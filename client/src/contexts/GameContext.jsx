@@ -2,7 +2,7 @@
  * GameContext.jsx
  * 
  * This file creates and exports the GameContext which serves as the central state management
- * for the "Connect the Stars" game. It combines multiple custom hooks to handle different aspects
+ * for the "Connect the Shows" game. It combines multiple custom hooks to handle different aspects
  * of the game (board management, searching, game state) and provides this combined state and 
  * functionality to all components via React Context.
  * 
