@@ -1,0 +1,79 @@
+.info-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 1.5rem;
+  background-color: #1a1a2e; /* Match header background color */
+  color: white;
+  margin-top: 0; /* Remove any margin */
+  border-top: none; /* Remove border if any */
+  box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.3); /* Add subtle shadow at bottom */
+  position: relative;
+  z-index: 5; /* Lower than header */
+  border-bottom: 1px solid #2a2a4e;
+}
+
+/* Since we moved actors to header, actor-info styles can be simplified */
+.actor-info {
+  display: flex;
+  align-items: center;
+}
+
+.actor-info img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.5rem;
+  border: 2px solid #ff9900;
+}
+
+.actor-info span {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* No need for flex: 2 since it's centered */
+  width: 100%;
+  max-width: 500px;
+}
+
+.success-message {
+  padding: 0.4rem 1rem;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 4px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add subtle shadow */
+  width: 100%;
+  text-align: center;
+}
+
+.goal-message {
+  padding: 0.4rem 1rem;
+  background-color: #ff9900;
+  color: white;
+  border-radius: 4px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add subtle shadow */
+  width: 100%;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .info-bar {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  .actor-info, .game-status {
+    margin: 0.5rem 0;
+  }
+}
