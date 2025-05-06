@@ -1,0 +1,96 @@
+import React from 'react';
+import { getImageUrlSync } from '../../services/tmdbService';
+
+const ActorSearchInterface = ({
+  index,
+  isLoading,
+  localSearchTerm,
+  onSearchChange,
+  onInputFocus,
+  onInputBlur,
+  searchInputRef,
+  activeInputIndex,
+  actorSearchResultsList,
+  onSelectActor,
+  actorSearchPageNum,
+  actorSearchTotalPagesNum,
+  onLoadMore,
+  onRandomize,
+}) => {
+  return (
+    <>
+      <div className="loading-actor">
+        {isLoading && activeInputIndex !== index ? 'Loading...' : 'Select an actor'}
+      </div>
+      
+      <div className="actor-search-panel">
+        <input
+          ref={searchInputRef}
+          type="text"
+          className="actor-search-input"
+          placeholder="Search actor name..."
+          value={localSearchTerm}
+          onChange={(e) => onSearchChange(e, index)}
+          onFocus={() => onInputFocus(index)}
+          onBlur={onInputBlur}
+          disabled={isLoading && activeInputIndex !== index}
+          style={{ 
+            opacity: (isLoading && activeInputIndex !== index) ? 0.7 : 1
+          }}
+        />
+        
+        {localSearchTerm && actorSearchResultsList && actorSearchResultsList.length > 0 && (
+          <div className="actor-search-results">
+            {actorSearchResultsList.map(actor => (
+              <div 
+                key={actor.id}
+                className="actor-search-item"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelectActor(actor.id, index);
+                }}
+                tabIndex={0}
+              >
+                <div className="actor-search-image">
+                  <img
+                    src={getImageUrlSync(actor.profile_path, 'profile')}
+                    alt={actor.name}
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/40?text=?';
+                    }}
+                  />
+                </div>
+                <div className="actor-search-name">
+                  {actor.name}
+                </div>
+              </div>
+            ))}
+            
+            {actorSearchPageNum < actorSearchTotalPagesNum && (
+              <div 
+                className="actor-search-item" 
+                style={{ justifyContent: 'center', color: '#4a6fa5', fontWeight: 'bold' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onLoadMore(index);
+                }}
+              >
+                Load more results
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <button 
+        className="randomize-btn"
+        onClick={() => onRandomize(index)}
+        disabled={isLoading && activeInputIndex !== index}
+      >
+        Random Actor
+      </button>
+    </>
+  );
+};
+
+export default ActorSearchInterface;

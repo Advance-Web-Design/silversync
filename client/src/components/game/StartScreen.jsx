@@ -13,7 +13,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameContext } from '../../contexts/GameContext';
-import { getImageUrlSync } from '../../services/tmdbService'; // Synchronous image URL generation
+import ActorCard from './ActorCard';
 import MenuIcon from '@mui/icons-material/Menu';
 import './StartScreen.css';
 
@@ -225,111 +225,26 @@ const StartScreen = () => {
         {/* Actor selection cards - one for each starting position */}
         <div className="actors-selection">
           {[0, 1].map((index) => (
-            <div key={index} className="actor-card">
-              {/* Display selected actor if one exists */}
-              {startActors[index] ? (
-                <>
-                  <div className="actor-image">
-                    <img
-                      src={getImageUrlSync(startActors[index].profile_path, 'profile')}
-                      alt={startActors[index].name}
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/150?text=No+Image';
-                      }}
-                    />
-                  </div>
-                  <div className="actor-name">
-                    {startActors[index].name}
-                  </div>
-                  <button 
-                    className="search-again-btn"
-                    onClick={() => handleSearchAgain(index)}
-                    disabled={isLoading}
-                  >
-                    Change Actor
-                  </button>
-                </>
-              ) : (
-                /* Display search interface if no actor is selected */
-                <>
-                  <div className="loading-actor">
-                    {isLoading && activeInputIndex !== index ? 'Loading...' : 'Select an actor'}
-                  </div>
-                  
-                  {/* Actor search input field */}
-                  <div className="actor-search-panel">
-                    <input
-                      ref={searchInputRefs[index]}
-                      type="text"
-                      className="actor-search-input"
-                      placeholder="Search actor name..."
-                      value={localSearchTerms[index]}
-                      onChange={(e) => handleSearchChange(e, index)}
-                      onFocus={() => handleInputFocus(index)}
-                      onBlur={handleInputBlur}
-                      disabled={isLoading && activeInputIndex !== index}
-                      style={{ 
-                        opacity: (isLoading && activeInputIndex !== index) ? 0.7 : 1
-                      }}
-                    />
-                    
-                    {/* Search results dropdown - only shown when active with results */}
-                    {localSearchTerms[index] && actorSearchResults[index] && actorSearchResults[index].length > 0 && (
-                      <div className="actor-search-results">
-                        {actorSearchResults[index].map(actor => (
-                          <div 
-                            key={actor.id}
-                            className="actor-search-item"
-                            onMouseDown={(e) => {
-                              // Prevent blur event from firing before click
-                              e.preventDefault();
-                              handleSelectActor(actor.id, index);
-                            }}
-                            tabIndex={0} // Make items focusable for keyboard navigation
-                          >
-                            <div className="actor-search-image">
-                              <img
-                                src={getImageUrlSync(actor.profile_path, 'profile')}
-                                alt={actor.name}
-                                onError={(e) => {
-                                  e.target.src = 'https://via.placeholder.com/40?text=?';
-                                }}
-                              />
-                            </div>
-                            <div className="actor-search-name">
-                              {actor.name}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {/* Load more results button - appears if more results exist */}
-                        {actorSearchPages[index] < actorSearchTotalPages[index] && (
-                          <div 
-                            className="actor-search-item" 
-                            style={{ justifyContent: 'center', color: '#4a6fa5', fontWeight: 'bold' }}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              loadMoreActors(index);
-                            }}
-                          >
-                            Load more results
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Random actor selection button */}
-                  <button 
-                    className="randomize-btn"
-                    onClick={() => randomizeActors(index)}
-                    disabled={isLoading && activeInputIndex !== index}
-                  >
-                    Random Actor
-                  </button>
-                </>
-              )}
-            </div>
+            <ActorCard
+              key={index}
+              index={index}
+              selectedActor={startActors[index]}
+              isLoading={isLoading}
+              onSearchAgain={handleSearchAgain}
+              // Props for ActorSearchInterface
+              localSearchTerm={localSearchTerms[index]}
+              onSearchChange={handleSearchChange}
+              onInputFocus={handleInputFocus}
+              onInputBlur={handleInputBlur}
+              searchInputRef={searchInputRefs[index]}
+              activeInputIndex={activeInputIndex}
+              actorSearchResultsList={actorSearchResults[index]}
+              onSelectActor={handleSelectActor}
+              actorSearchPageNum={actorSearchPages[index]}
+              actorSearchTotalPagesNum={actorSearchTotalPages[index]}
+              onLoadMore={loadMoreActors}
+              onRandomize={randomizeActors} // Pass the randomizeActors function directly
+            />
           ))}
         </div>
         

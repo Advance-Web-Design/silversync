@@ -1,7 +1,12 @@
+// ==================================================================================================== //
+// ==================== this component is a developer tool to help us test the code =================== //
+// ==================== it will be removed in the final version of the game         =================== //
+// ==================================================================================================== //
+
 import React from 'react';
 import { useGameContext } from '../../contexts/GameContext';
-import './SearchEntitiesSidebar.css';
 import { getItemTitle } from '../../utils/stringUtils';
+import './SearchEntitiesSidebar.css';
 
 const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
   const { 

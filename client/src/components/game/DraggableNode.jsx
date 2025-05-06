@@ -241,25 +241,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     }
   };
   
-  /**
-   * Get human-readable type label for the node
-   * @returns {string} Type label (Actor, Movie, TV Show)
-   */
-  const getNodeType = () => {
-    switch(node.type) {
-      case 'person':
-        return 'Actor';
-      case 'movie':
-        return 'Movie';
-      case 'tv':
-        return 'TV Show';
-      default:
-        return 'Unknown';
-    }
-  };
-  
   const nodeBorderColor = getNodeColor();
-  const nodeType = getNodeType();
   
   return (
     <div id={node.id} // ID attribute for finding the node when drawing connection lines
@@ -279,11 +261,6 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
                   {title.substring(0, 2)}
                 </div>
           )}
-          
-          {/* Type badge in the top right corner */}
-          <div className="node-type-badge" style={{ backgroundColor: nodeBorderColor }}>
-            {nodeType}
-          </div>
           
           {/* Name overlay at the bottom of the image */}
           <div className="node-title-overlay">

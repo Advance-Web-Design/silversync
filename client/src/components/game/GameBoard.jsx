@@ -14,7 +14,7 @@ import ConnectionsPanel from './ConnectionsPanel';
 import LoadingOverlay from './LoadingOverlay';
 import GameStats from './GameStats';
 import NodeLayer from './NodeLayer';
-import ConnectionLines from './ConnectionLine';
+import ConnectionLines from './ConnectionLines';
 import { Box } from '@mui/material';
 import './GameBoard.css';
 

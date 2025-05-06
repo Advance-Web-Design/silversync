@@ -1,7 +1,8 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/GameContext';
-import { getImageUrlSync } from '../../services/tmdbService';
 import { getItemTitle } from '../../utils/stringUtils';
+
+import ConnectionContent from './ConnectionContent';
 import './ConnectionsPanel.css';
 
 const ConnectionsPanel = () => {
@@ -38,12 +39,12 @@ const ConnectionsPanel = () => {
         
         // Mark guest appearances in TV shows - check for multiple possible flags
         const markedTvShows = sortedTvShows.map(show => {
-          // Check for various ways guest appearances might be marked
-          const isGuest = show.is_guest_appearance || 
-                         show.isGuestAppearance ||
-                         (show.character && show.character.toLowerCase().includes('guest')) ||
-                         (show.credit_id && show.credit_id.toLowerCase().includes('guest')) ||
-                         false;
+        // Check for various ways guest appearances might be marked
+        const isGuest = show.is_guest_appearance || 
+                        show.isGuestAppearance ||
+                        (show.character && show.character.toLowerCase().includes('guest')) ||
+                        (show.credit_id && show.credit_id.toLowerCase().includes('guest')) ||
+                        false;
           
           return {
             ...show,
@@ -124,6 +125,26 @@ const ConnectionsPanel = () => {
     }
   };
   
+  // Define isGuestStar here, as it's passed to ConnectionContent
+  const isGuestStar = (actor) => {
+    // Check based on roles array (more robust for aggregate credits)
+    if (actor.roles && Array.isArray(actor.roles)) {
+      return actor.roles.some(role => role.character && role.character.toLowerCase().includes('guest'));
+    }
+    // Fallback to checking character directly (for regular credits)
+    if (actor.character && typeof actor.character === 'string') {
+      return actor.character.toLowerCase().includes('guest');
+    }
+    // Check for explicit guest appearance flags if present
+    if (typeof actor.is_guest_appearance === 'boolean') {
+      return actor.is_guest_appearance;
+    }
+    if (typeof actor.isGuestAppearance === 'boolean') {
+        return actor.isGuestAppearance;
+    }
+    return false; // Default to false if no guest indicators found
+  };
+
   return (
     <div className="connections-panel">
       <div className="connections-header">
@@ -131,153 +152,13 @@ const ConnectionsPanel = () => {
         <button className="close-button" onClick={closeConnectionsPanel}>×</button>
       </div>
       
-      <div className="connections-content">
-        {nodeType === 'person' && (
-          <>
-            {connections.movies && connections.movies.length > 0 && (
-              <div className="connection-section">
-                <h3>Movies ({connections.movies.length})</h3>
-                <div className="connections-grid">
-                  {connections.movies.map((movie, index) => (
-                    <div 
-                      key={`movie-${movie.id}-${movie.credit_id || index}`}
-                      className={`connection-item ${isItemOnBoard(movie, 'movie') ? 'already-on-board' : ''}`}
-                    >
-                      <div className="connection-image">
-                        <img 
-                          src={getImageUrlSync(movie.poster_path, 'poster')} 
-                          alt={movie.title} 
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image' }}
-                        />
-                      </div>
-                      <div className="connection-info">
-                        <div className="connection-title">{movie.title}</div>
-                        <div className="connection-detail">
-                          {movie.character && <span>as {movie.character}</span>}
-                        </div>
-                        {!isItemOnBoard(movie, 'movie') && (
-                          <button 
-                            className="add-connection-button"
-                            onClick={() => handleAddToBoard(movie, 'movie')}
-                          >
-                            Add
-                          </button>
-                        )}
-                        {isItemOnBoard(movie, 'movie') && (
-                          <div className="on-board-indicator">On Board</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {connections.tvShows && connections.tvShows.length > 0 && (
-              <div className="connection-section">
-                <h3>TV Shows ({connections.tvShows.length})</h3>
-                <div className="connections-grid">
-                  {connections.tvShows.map((show, index) => (
-                    <div 
-                      key={`tv-${show.id}-${show.credit_id || index}`} 
-                      className={`connection-item ${isItemOnBoard(show, 'tv') ? 'already-on-board' : ''} ${show.isGuestAppearance ? 'guest-appearance' : ''}`}
-                    >
-                      <div className="connection-image">
-                        <img 
-                          src={getImageUrlSync(show.poster_path, 'poster')} 
-                          alt={show.name} 
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image' }}
-                        />
-                        {show.isGuestAppearance && (
-                          <div className="guest-badge">Guest</div>
-                        )}
-                      </div>
-                      <div className="connection-info">
-                        <div className="connection-title">{show.name}</div>
-                        <div className="connection-detail">
-                          {show.character && <span>as {show.character}</span>}
-                        </div>
-                        {!isItemOnBoard(show, 'tv') && (
-                          <button 
-                            className="add-connection-button"
-                            onClick={() => handleAddToBoard(show, 'tv')}
-                          >
-                            Add
-                          </button>
-                        )}
-                        {isItemOnBoard(show, 'tv') && (
-                          <div className="on-board-indicator">On Board</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        
-        {(nodeType === 'movie' || nodeType === 'tv') && (
-          <div className="connection-section">
-            <h3>Cast {nodeType === 'tv' ? '(including Guest Stars)' : ''} ({connections.cast?.length || 0})</h3>
-            <div className="connections-grid">
-              {connections.cast && connections.cast.map((actor, index) => {
-                const isGuestStar = actor.roles ? 
-                  actor.roles.some(role => role.character && role.character.toLowerCase().includes('guest')) : 
-                  (actor.character && actor.character.toLowerCase().includes('guest'));
-                
-                return (
-                  <div 
-                    key={`actor-${actor.id}-${actor.credit_id || actor.order || index}`} 
-                    className={`connection-item ${isItemOnBoard(actor, 'person') ? 'already-on-board' : ''} ${isGuestStar ? 'guest-appearance' : ''}`}
-                  >
-                    <div className="connection-image">
-                      <img 
-                        src={getImageUrlSync(actor.profile_path, 'profile')} 
-                        alt={actor.name} 
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image' }}
-                      />
-                      {isGuestStar && (
-                        <div className="guest-badge">Guest</div>
-                      )}
-                    </div>
-                    <div className="connection-info">
-                      <div className="connection-title">{actor.name}</div>
-                      <div className="connection-detail">
-                        {actor.character && <span>as {actor.character}</span>}
-                        {actor.roles && actor.roles.length > 0 && (
-                          <span>as {actor.roles[0].character}</span>
-                        )}
-                      </div>
-                      {!isItemOnBoard(actor, 'person') && (
-                        <button 
-                          className="add-connection-button"
-                          onClick={() => handleAddToBoard(actor, 'person')}
-                        >
-                          Add
-                        </button>
-                      )}
-                      {isItemOnBoard(actor, 'person') && (
-                        <div className="on-board-indicator">On Board</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        
-        {/* If no connections are found */}
-        {Object.values(connections).every(arr => !arr || arr.length === 0) && (
-          <div className="no-connections">
-            No connections found for this {
-              nodeType === 'person' ? 'actor' : 
-              nodeType === 'movie' ? 'movie' : 'TV show'
-            }.
-          </div>
-        )}
-      </div>
+      <ConnectionContent
+        nodeType={nodeType}
+        connections={connections}
+        isItemOnBoard={isItemOnBoard}
+        handleAddToBoard={handleAddToBoard}
+        isGuestStar={isGuestStar}
+      />
     </div>
   );
 };
