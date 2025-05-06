@@ -262,10 +262,8 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
   const nodeType = getNodeType();
   
   return (
-    <div
-      id={node.id} // ID attribute for finding the node when drawing connection lines
-      ref={nodeRef}
-      className={`draggable-node ${isDragging ? 'dragging' : ''} ${node.type}-node ${isStartActor ? 'start-actor' : ''}`}
+    <div id={node.id} // ID attribute for finding the node when drawing connection lines
+      ref={nodeRef} className={`draggable-node ${isDragging ? 'dragging' : ''} ${node.type}-node ${isStartActor ? 'start-actor' : ''}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -276,17 +274,10 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     >
       <div className="node-content">
         <div className="node-image-container">
-          {imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt={title}
-              className="node-image"
-              draggable="false" // Prevent default HTML5 drag behavior
-            />
-          ) : (
-            <div className="node-image-placeholder">
-              {title.substring(0, 2)}
-            </div>
+          {imageUrl ? ( <img src={imageUrl} alt={title} className="node-image" draggable="false" />
+          ) : ( <div className="node-image-placeholder"> 
+                  {title.substring(0, 2)}
+                </div>
           )}
           
           {/* Type badge in the top right corner */}
