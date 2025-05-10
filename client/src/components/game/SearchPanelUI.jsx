@@ -1,6 +1,6 @@
 import React from 'react';
 import { getItemTitle } from '../../utils/stringUtils';
-
+import {getItemYear} from '../../utils/stringUtils';
 const SearchPanelUI = ({
   handleSubmit,
   inputRef,
@@ -112,7 +112,7 @@ const SearchPanelUI = ({
                 />
               </div>
               <div className="in-game-result-info">
-                <div className="in-game-result-title">{getItemTitle(item)}</div>
+                <div className="in-game-result-title">{getItemTitle(item)+" " + getItemYear(item)} </div>
                 <div className="in-game-result-type">
                   {item.media_type === 'movie' ? 'Movie' : item.media_type === 'tv' ? 'TV Show' : 'Actor'}
                   {/* Show guest appearance tag if applicable */}
@@ -123,6 +123,8 @@ const SearchPanelUI = ({
                     <span style={{ color: '#FFC107' }}> (Guest)</span>
                   }
                 </div>
+                  
+
               </div>
               <button 
                 className="in-game-add-button"

@@ -69,3 +69,32 @@ export const getItemTitle = (item) => {
   
   return '';
 };
+
+
+
+
+
+
+/**
+ * Get a year enclosed in brackets for movies and TV shows
+ * @param {Object} item - Media item (movie, TV show, or person)
+ * @returns {string} - year of the item or empty string
+ */
+export const getItemYear = (item) => {
+  if (!item) return '';
+  
+  // Check media_type (API format) or type (internal format)
+  const type = item.media_type || item.type;
+  
+  if (type === 'person') return '';
+
+  if (type === 'movie') return item.release_date ? `(${item.release_date.split('-')[0]})` : '';
+  if (type === 'tv') return item.first_air_date ? `(${item.first_air_date.split('-')[0]})` : '';
+  
+  // Fallbacks if type is not available
+  if (item.release_date) return `(${item.release_date.split('-')[0]})`;
+  if (item.first_air_date) return `(${item.first_air_date.split('-')[0]})`;
+  
+  return '';
+}
+
