@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useGameContext } from '../../contexts/gameContext';
-import '../Header.css';
-import Header from '../Menu';
+import Menu from '../Menu';
 
 const BoardHeader = () => {
   const { 
@@ -70,7 +69,7 @@ const BoardHeader = () => {
 
   return (
     <header className="game-header">
-      <Header menuItems={menuItems} />
+      <Menu menuItems={menuItems} />
       {/* Logo and title */}
       <div className="logo-container">
         <span className="star-logo">★</span>

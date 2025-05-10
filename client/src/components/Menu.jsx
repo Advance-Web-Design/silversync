@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
-import './Header.css';
+import './Menu.css';
 
 function Header({ menuItems }) {
     const [menuOpen, setMenuOpen] = useState(false);
