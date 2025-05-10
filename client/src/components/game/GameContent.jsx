@@ -4,6 +4,14 @@ import StartScreen from './StartScreen';
 import GameplayArea from './GameplayArea';
 import { Box } from '@mui/material';
 
+import Profile from './components/Profile';
+import ProfileHeader from './components/ProfileHeader';
+import Leaderboard from './components/Leaderboard';
+import ChallengeMode from './components/ChallengeMode';
+import Register from './components/Register';
+import Login from './components/Login';
+
+
 function GameContent() {
   const { 
     gameStarted, 
