@@ -1,29 +1,28 @@
 /**
- * GameContext.jsx
+ * GameProvider.jsx 
  * 
- * This file creates and exports the GameContext which serves as the central state management
+ * This file defines and exports the GameProvider component which serves as the central state management
  * for the "Connect the Shows" game. It combines multiple custom hooks to handle different aspects
  * of the game (board management, searching, game state) and provides this combined state and 
  * functionality to all components via React Context.
  * 
- * The GameContext handles:
+ * The GameProvider handles:
  * - Starting actor selection and game initialization
  * - Search functionality for movies, TV shows, and actors
  * - Board state management including connections between entities
  * - Game progression and win state tracking
  */
-import { createContext, useContext, useState, useEffect } from 'react';
-import { fetchRandomPerson, searchMulti, checkActorInTvShow, fetchPopularEntities, getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
+import { useState, useEffect } from 'react'; // Keep existing React imports
+import { GameContext } from './gameContext'; // Import the actual context object from the new file
+
+// Keep all your other existing imports for hooks, services, utils
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
 import { getItemTitle } from '../utils/stringUtils';
+import { fetchRandomPerson, searchMulti, checkActorInTvShow, fetchPopularEntities, getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
 
-// Create context for game state management
-const GameContext = createContext();
-
-// Custom hook for components to access game context
-export const useGameContext = () => useContext(GameContext);
+// Removed context creation and useGameContext hook as they are in gameContext.js
 
 /**
  * Main Game Provider component that wraps the application
@@ -67,7 +66,7 @@ export const GameProvider = ({ children }) => {
     checkItemConnectability,
     checkInitialConnectability,
     addToBoard: addToBoardFn,
-    forceAddToBoard: forceAddToBoardFn,
+    // forceAddToBoard: forceAddToBoardFn, // Removed unused variable
     checkGameCompletion
   } = boardState;
   
@@ -77,17 +76,17 @@ export const GameProvider = ({ children }) => {
     didYouMean, setDidYouMean,
     exactMatch, setExactMatch,
     originalSearchTerm, setOriginalSearchTerm,
-    previousSearches, setPreviousSearches,
-    knownEntities, setKnownEntities,
+    // previousSearches, setPreviousSearches, // Removed unused variable
+    // knownEntities, setKnownEntities, // Removed unused variable
     connectableItems, setConnectableItems,
-    checkForMisspelling,
-    findExactMatch,
-    learnFromSuccessfulSearch,
-    useSpellingCorrection: useSpellingCorrectionFn,
-    searchStartActors: searchStartActorsFn,
-    performFuzzySearch,
-    addActorTvShowsToConnectableEntities,
-    updateConnectableEntitiesForNode
+    // checkForMisspelling, // Removed unused variable
+    // findExactMatch, // Removed unused variable
+    // learnFromSuccessfulSearch, // Removed unused variable
+    useSpellingCorrection: applySpellingCorrectionFnFromSearch, // Renamed to avoid linter confusion
+    searchStartActors: searchStartActorsFn
+    // performFuzzySearch, // Removed unused variable
+    // addActorTvShowsToConnectableEntities, // Removed unused variable
+    // updateConnectableEntitiesForNode // Removed unused variable
   } = searchState;
   
   /**
@@ -787,77 +786,30 @@ export const GameProvider = ({ children }) => {
       // Define a function to fetch possible connections for the node
       const fetchNodeConnections = async (node) => {
         let connections = [];
-        
         try {
-          // If node is a person, we could connect to their movies and TV shows
           if (node.type === 'person') {
-            // Movie credits
-            if (node.data.movie_credits?.cast) {
-              connections.push(...node.data.movie_credits.cast.map(movie => ({
-                ...movie,
-                media_type: 'movie'
-              })));
-            }
-            
-            // TV credits - make sure to include all TV shows including guest appearances
-            if (node.data.tv_credits?.cast) {
-              connections.push(...node.data.tv_credits.cast.map(show => ({
-                ...show,
-                media_type: 'tv',
-                connection_type: show.is_guest_appearance ? 'guest' : 'cast',
-                from_actor_id: node.data.id,
-                from_actor_name: node.data.name
-              })));
-            }
-            
-            // Explicitly include guest appearances
-            if (node.data.guest_appearances) {
-              connections.push(...node.data.guest_appearances.map(show => ({
-                ...show,
-                media_type: 'tv',
-                is_guest_appearance: true,
-                connection_type: 'guest',
-                from_actor_id: node.data.id,
-                from_actor_name: node.data.name
-              })));
-            }
-
-            // If we have access to the actor's complete details, use the addActorTvShowsToConnectableEntities helper
-            if (searchState.addActorTvShowsToConnectableEntities && node.data) {
-              const actorTvShows = searchState.addActorTvShowsToConnectableEntities(node.data);
-              if (actorTvShows && actorTvShows.length > 0) {
-                // Add shows from the helper, avoiding duplicates
-                const existingIds = new Set(connections.filter(c => c.media_type === 'tv').map(c => c.id));
-                const newTvShows = actorTvShows.filter(show => !existingIds.has(show.id));
-                connections.push(...newTvShows);
+            const credits = await getPersonDetails(node.data.id);
+            if (credits) {
+              if (credits.movie_credits && credits.movie_credits.cast) {
+                connections = [...connections, ...credits.movie_credits.cast.map(movie => ({ ...movie, media_type: 'movie' }))];
+              }
+              if (credits.tv_credits && credits.tv_credits.cast) {
+                connections = [...connections, ...credits.tv_credits.cast.map(tv => ({ ...tv, media_type: 'tv' }))];
               }
             }
-          }
-          // If node is a movie, we could connect to its cast
-          else if (node.type === 'movie' && node.data.credits?.cast) {
-            connections.push(...node.data.credits.cast.map(actor => ({
-              ...actor,
-              media_type: 'person'
-            })));
-          }
-          // If node is a TV show, we could connect to its cast
-          else if (node.type === 'tv' && node.data.credits?.cast) {
-            connections.push(...node.data.credits.cast.map(actor => ({
-              ...actor,
-              media_type: 'person'
-            })));
-            
-            // Also add guest stars if available
-            if (node.data.guest_stars) {
-              connections.push(...node.data.guest_stars.map(actor => ({
-                ...actor,
-                media_type: 'person',
-                is_guest_star: true
-              })));
+          } else if (node.type === 'movie') {
+            const credits = await getMovieDetails(node.data.id);
+            if (credits && credits.cast) {
+              connections = [...connections, ...credits.cast.map(person => ({ ...person, media_type: 'person' }))];
+            }
+          } else if (node.type === 'tv') {
+            const credits = await getTvShowDetails(node.data.id);
+            if (credits && credits.cast) {
+              connections = [...connections, ...credits.cast.map(person => ({ ...person, media_type: 'person' }))];
             }
           }
         } catch (error) {
-          console.error("Error fetching node connections:", error);
+          console.error(`Error fetching connections for node ${node.id}:`, error);
         }
         
         // Filter out connections without necessary data
@@ -874,9 +826,7 @@ export const GameProvider = ({ children }) => {
       // If the sidebar is currently showing all searchable entities, refresh the list
       if (showAllSearchable) {
         // Short delay to allow the node to be fully added to the board
-        setTimeout(() => {
-          fetchAndSetAllSearchableEntities();
-        }, 300);
+        setTimeout(() => fetchAndSetAllSearchableEntities(), 300);
       }
     }
   };
@@ -886,7 +836,12 @@ export const GameProvider = ({ children }) => {
    * Applies the suggested correction and performs a new search
    */
   const useSpellingCorrection = async () => {
-    useSpellingCorrectionFn(handleSearch);
+    if (didYouMean) {
+      // Call the renamed function
+      await applySpellingCorrectionFnFromSearch(handleSearch);
+    } else {
+      console.warn("useSpellingCorrection called, but no spelling suggestion is available.");
+    }
   };
   
   /**
@@ -924,7 +879,17 @@ export const GameProvider = ({ children }) => {
         gameState.setShortestPathLength
       );
     }
-  }, [nodes, connections, startActors, keepPlayingAfterWin, gameState.gameStartTime]);
+  }, [
+    nodes, 
+    connections, 
+    startActors, 
+    keepPlayingAfterWin, 
+    gameState.gameStartTime, 
+    checkGameCompletion, 
+    setGameCompleted, 
+    gameState.completeGame, 
+    gameState.setShortestPathLength 
+  ]);
 
   /**
    * Effect to initialize spell checking database with popular entities
@@ -943,58 +908,56 @@ export const GameProvider = ({ children }) => {
     initPopularEntities();
   }, []);
 
+  const providerValue = {
+    isLoading,
+    gameStarted,
+    gameStartTime: gameState.gameStartTime,
+    startActors,
+    nodes,
+    nodePositions,
+    connections,
+    searchResults,
+    setSearchResults,
+    searchTerm,
+    gameCompleted,
+    keepPlayingAfterWin,
+    setKeepPlayingAfterWin,
+    connectableItems,
+    didYouMean,
+    originalSearchTerm,
+    setSearchTerm,
+    randomizeActors,
+    startGame,
+    handleSearch,
+    addToBoard,
+    updateNodePosition,
+    resetGame,
+    useSpellingCorrection,
+    noMatchFound,
+    actorSearchResults,
+    actorSearchTerms,
+    searchStartActors,
+    setActorSearch,
+    selectStartActor,
+    actorSearchPages,
+    actorSearchTotalPages,
+    startActorsError,
+    checkActorTvShowConnection,
+    selectedNode,
+    selectNode,
+    closeConnectionsPanel,
+    completeGame: gameState.completeGame,
+    bestScore: gameState.bestScore,
+    shortestPathLength: gameState.shortestPathLength,
+    possibleConnections,
+    isLoadingConnections,
+    showAllSearchable,
+    toggleShowAllSearchable
+  };
+
   return (
-    <GameContext.Provider
-      value={{
-        isLoading,
-        gameStarted,
-        gameStartTime: gameState.gameStartTime,
-        startActors,
-        nodes,
-        nodePositions,
-        connections,
-        searchResults,
-        setSearchResults, // Add this to expose setSearchResults
-        searchTerm,
-        gameCompleted,
-        keepPlayingAfterWin,
-        setKeepPlayingAfterWin,
-        connectableItems,
-        didYouMean,
-        originalSearchTerm,
-        setSearchTerm,
-        randomizeActors,
-        startGame,
-        handleSearch,
-        addToBoard,
-        updateNodePosition, // Fixed: Using the wrapper function
-        resetGame,
-        useSpellingCorrection,
-        noMatchFound,
-        actorSearchResults,
-        actorSearchTerms,
-        searchStartActors,
-        setActorSearch,
-        selectStartActor,
-        actorSearchPages,
-        actorSearchTotalPages,
-        startActorsError,
-        checkActorTvShowConnection,
-        selectedNode,
-        selectNode,
-        closeConnectionsPanel,
-        completeGame: gameState.completeGame,
-        bestScore: gameState.bestScore,
-        shortestPathLength: gameState.shortestPathLength,
-        possibleConnections, // Add this to expose possibleConnections
-        isLoadingConnections, // Add this to expose isLoadingConnections
-        showAllSearchable, // Add this to expose showAllSearchable
-        toggleShowAllSearchable // Add this to expose toggleShowAllSearchable
-      }}
-    >
+    <GameContext.Provider value={providerValue}>
       {children}
     </GameContext.Provider>
   );
 };
-
-export default GameContext;

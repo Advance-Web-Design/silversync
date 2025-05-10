@@ -9,7 +9,7 @@
  * 5. Coordinates with the game state for displaying the current game status
  */
 import React, { useRef, useEffect, useState } from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import ConnectionsPanel from './ConnectionsPanel';
 import LoadingOverlay from './LoadingOverlay';
 import GameStats from './GameStats';

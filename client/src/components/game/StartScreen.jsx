@@ -11,8 +11,8 @@
  * The component uses debounced search to improve performance and uses local state
  * to keep the UI responsive during searches.
  */
-import React, { useState, useEffect, useRef } from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import React, { useState, useEffect, useRef, useMemo } from 'react'; // Added useMemo
+import { useGameContext } from '../../contexts/gameContext';
 import ActorCard from './ActorCard';
 import MenuIcon from '@mui/icons-material/Menu';
 import './StartScreen.css';
@@ -34,8 +34,8 @@ const StartScreen = () => {
     startActorsError       // Error message for actor selection
   } = useGameContext();
   
-  // Refs to maintain focus on search inputs after state updates
-  const searchInputRefs = [useRef(null), useRef(null)];
+  // Memoize searchInputRefs to prevent useEffect from re-running unnecessarily
+  const searchInputRefs = useMemo(() => [React.createRef(), React.createRef()], []);
   
   // Local state for search input values to prevent UI from clearing during typing
   const [localSearchTerms, setLocalSearchTerms] = useState(['', '']);
@@ -59,11 +59,15 @@ const StartScreen = () => {
    * Maintains the same input focus after asynchronous operations complete
    */
   useEffect(() => {
-    if (activeInputIndex !== null && searchInputRefs[activeInputIndex]?.current) {
-      searchInputRefs[activeInputIndex].current.focus();
+    if (isLoading) return;
+
+    // Focus on the first empty input field or the active one
+    const activeIndex = activeInputIndex !== null ? activeInputIndex : startActors.findIndex(actor => !actor);
+    if (activeIndex !== -1 && searchInputRefs[activeIndex] && searchInputRefs[activeIndex].current) {
+      searchInputRefs[activeIndex].current.focus();
     }
-  }, [isLoading, actorSearchResults, activeInputIndex]);
-  
+  }, [isLoading, actorSearchResults, activeInputIndex, startActors, searchInputRefs]); // searchInputRefs is now stable
+
   /**
    * Handles search input changes with debouncing
    * Updates local state immediately for responsive UI

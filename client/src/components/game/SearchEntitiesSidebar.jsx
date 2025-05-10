@@ -4,45 +4,30 @@
 // ==================================================================================================== //
 
 import React from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import { getItemTitle } from '../../utils/stringUtils';
 import './SearchEntitiesSidebar.css';
 
 const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
   const { 
+    nodes, 
     searchResults, 
-    connectableItems,
+    isLoading, 
+    showAllSearchable, 
+    toggleShowAllSearchable, 
     addToBoard,
-    isLoading,
-    toggleShowAllSearchable,
-    nodes
+    connectableItems // Assuming connectableItems is provided by context
   } = useGameContext();
 
-  if (!isOpen) return null;
-
-  // Organize search results to only show connectable items
+  // Moved React.useMemo hooks to be called unconditionally at the top level
   const connectableEntities = React.useMemo(() => {
-    if (!searchResults || searchResults.length === 0) return [];
-    
+    if (!searchResults || !connectableItems) return [];
     return searchResults.filter(item => {
       const itemKey = `${item.media_type}-${item.id}`;
-      return connectableItems[itemKey]; // Only include items that can be connected
+      return connectableItems[itemKey];
     });
   }, [searchResults, connectableItems]);
 
-  // Handle adding an item to the board
-  const handleAddToBoard = (item) => {
-    addToBoard(item);
-    // No need to close sidebar after adding - let user continue browsing
-  };
-
-  // Close the sidebar and toggle the state in context
-  const handleClose = () => {
-    toggleShowAllSearchable(); // This will set showAllSearchable to false
-    onClose();
-  };
-
-  // Group entities by type for better organization
   const groupedEntities = React.useMemo(() => {
     const groups = {
       person: [],
@@ -63,6 +48,25 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
     
     return groups;
   }, [connectableEntities]);
+
+  if (!isOpen) return null;
+
+  // Early exit or loading state
+  if (!showAllSearchable && (!searchResults || searchResults.length === 0)) {
+    return null;
+  }
+
+  // Handle adding an item to the board
+  const handleAddToBoard = (item) => {
+    addToBoard(item);
+    // No need to close sidebar after adding - let user continue browsing
+  };
+
+  // Close the sidebar and toggle the state in context
+  const handleClose = () => {
+    toggleShowAllSearchable(); // This will set showAllSearchable to false
+    onClose();
+  };
 
   // Find the source node(s) that an entity can connect with
   const getConnectedNodes = (item) => {

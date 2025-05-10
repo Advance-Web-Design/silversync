@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import Header from './Header';
 import StartScreen from './StartScreen';
 import GameplayArea from './GameplayArea';

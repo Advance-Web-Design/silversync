@@ -15,7 +15,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { getImageUrlSync } from '../../services/tmdbService';
 import { getItemTitle } from '../../utils/stringUtils';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import './DraggableNode.css';
 
 const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight, isStartActor }) => {
@@ -75,7 +75,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     if (nodeRef.current) {
       nodeRef.current.style.zIndex = "1000";
     }
-  }, [node, lastClickTime, position, selectNode]);
+  }, [node, lastClickTime, selectNode]);
   
   /**
    * Handles mouse movement during dragging to update node position
@@ -155,7 +155,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     if (nodeRef.current) {
       nodeRef.current.style.zIndex = "1000";
     }
-  }, [node, position, lastClickTime, selectNode]);
+  }, [node, lastClickTime, selectNode]);
   
   /**
    * Handles touch movement during dragging to update node position on mobile
@@ -206,8 +206,6 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
    */
   useEffect(() => {
     if (!nodeRef.current) return;
-    
-    const currentNodeRef = nodeRef.current;
     
     // Add event listeners
     document.addEventListener('mousemove', handleMouseMove);

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import MenuIcon from '@mui/icons-material/Menu';
 import './Header.css';
 

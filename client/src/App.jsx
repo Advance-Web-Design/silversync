@@ -1,5 +1,5 @@
 import React from 'react';
-import {GameProvider} from './contexts/GameContext';
+import {GameProvider} from './contexts/GameProvider';
 import GameContent from './components/game/GameContent';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline} from '@mui/material';

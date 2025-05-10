@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/gameContext';
 import './SearchPanel.css';
 import SearchPanelUI from './SearchPanelUI';
 import SearchEntitiesSidebar from './SearchEntitiesSidebar';
@@ -17,10 +17,13 @@ const SearchPanel = () => {
     addToBoard,
     noMatchFound,
     useSpellingCorrection,
-    showAllSearchable
+    showAllSearchable,
+    setSearchResults,
+    setNoMatchFound,
+    setDidYouMean,
+    setExactMatch
   } = useGameContext();
   
-  const [inputFocused, setInputFocused] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const inputRef = useRef(null);
   const resultsContainerRef = useRef(null);
@@ -68,8 +71,8 @@ const SearchPanel = () => {
     // If the search term is emptied, clear the search results in the context
     if (e.target.value.trim() === '') {
       // Reset all search-related states when the input is cleared
-      if (typeof useGameContext().setSearchResults === 'function') {
-        useGameContext().setSearchResults([]);
+      if (typeof setSearchResults === 'function') {
+        setSearchResults([]);
       }
       // Also reset the suggestion and no match found states
       setNoMatchFound(false);
@@ -85,10 +88,15 @@ const SearchPanel = () => {
     setSearchTerm('');
     
     // Also clear the search results in the context to collapse the panel
-    if (typeof useGameContext().setSearchResults === 'function') {
-      useGameContext().setSearchResults([]);
+    if (typeof setSearchResults === 'function') {
+      setSearchResults([]);
     }
     
+    // Reset search feedback states from context
+    setNoMatchFound(false);
+    setDidYouMean(null);
+    setExactMatch(null);
+
     // Focus back on the input after clicking
     if (inputRef.current) {
       inputRef.current.focus();
