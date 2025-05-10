@@ -244,33 +244,71 @@ export const getPersonDetails = async (personId) => {
     // Now try to find guest appearances
     const guestAppearances = await findPersonGuestAppearances(personId);
     
-    // If we found any guest appearances, add them to the tv_credits
+    // Ensure tv_credits and tv_credits.cast exist
+    if (!personDetails.tv_credits) {
+      personDetails.tv_credits = { cast: [] };
+    }
+    if (!personDetails.tv_credits.cast) {
+      personDetails.tv_credits.cast = [];
+    }
+
+    // If we found any guest appearances, merge them into the tv_credits.cast
     if (guestAppearances && guestAppearances.length > 0) {
-      // Make sure tv_credits exists and has a cast array
-      if (!personDetails.tv_credits) {
-        personDetails.tv_credits = { cast: [] };
-      }
-      if (!personDetails.tv_credits.cast) {
-        personDetails.tv_credits.cast = [];
-      }
+      const existingTvShowIds = new Set(personDetails.tv_credits.cast.map(show => show.id));
       
-      // Add guest appearances to the cast array
-      personDetails.tv_credits.cast = [
-        ...personDetails.tv_credits.cast,
-        ...guestAppearances
-      ];
+      guestAppearances.forEach(guestAppearance => {
+        // Only add if it's not already in the main cast credits
+        // and ensure it's marked as a guest appearance
+        if (!existingTvShowIds.has(guestAppearance.id)) {
+          personDetails.tv_credits.cast.push({
+            ...guestAppearance, // Spread guest appearance details
+            is_guest_appearance: true // Explicitly mark as guest appearance
+          });
+          existingTvShowIds.add(guestAppearance.id); // Add to set to prevent re-adding
+        } else {
+          // If it IS already in tv_credits (e.g. a recurring role that's also listed as guest),
+          // find it and ensure it's marked as having a guest appearance aspect.
+          const existingCredit = personDetails.tv_credits.cast.find(c => c.id === guestAppearance.id);
+          if (existingCredit) {
+            existingCredit.is_guest_appearance = true; 
+          }
+        }
+      });
       
-      // Add a property to indicate we've added guest appearances
-      personDetails.guest_appearances_added = true;
+      // Add a property to indicate we've processed guest appearances
+      personDetails.guest_appearances_processed = true;
+      // It might be useful to still have the raw guest appearances if needed for specific display
+      // personDetails.raw_guest_appearances = guestAppearances; 
     }
     
     return personDetails;
   } catch (error) {
     console.error('Error getting person details with guest appearances:', error);
     // Fall back to the standard API call if our enhanced version fails
-    return apiCall(`/person/${personId}`, {
-      append_to_response: 'movie_credits,tv_credits,images'
-    });
+    // This fallback should also ideally try to initialize tv_credits if null
+    try {
+      const fallbackDetails = await apiCall(`/person/${personId}`, {
+        append_to_response: 'movie_credits,tv_credits,images'
+      });
+      if (!fallbackDetails.tv_credits) {
+        fallbackDetails.tv_credits = { cast: [] };
+      }
+      if (!fallbackDetails.tv_credits.cast) {
+        fallbackDetails.tv_credits.cast = [];
+      }
+      return fallbackDetails;
+    } catch (fallbackError) {
+      console.error('Error in fallback getPersonDetails:', fallbackError);
+      // If even fallback fails, return a minimal structure or throw
+      return { 
+        id: personId, 
+        name: "Error loading details", 
+        movie_credits: { cast: [] }, 
+        tv_credits: { cast: [] },
+        images: { profiles: [] },
+        error: true 
+      };
+    }
   }
 };
 
@@ -662,8 +700,6 @@ export const fetchPopularEntities = async (moviePages = 3, tvPages = 3, personPa
   }
 };
 
-// Cache for image data URLs to avoid repeated fetches
-const imageCache = new Map();
 const IMAGE_SIZES = {
   poster: 'w500',   // For movie/TV posters
   profile: 'w185',  // For person profiles

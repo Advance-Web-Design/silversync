@@ -30,8 +30,8 @@ const ActorSearchInterface = ({
           className="actor-search-input"
           placeholder="Search actor name..."
           value={localSearchTerm}
-          onChange={(e) => onSearchChange(e, index)}
-          onFocus={() => onInputFocus(index)}
+          onChange={onSearchChange} // Pass the handler directly
+          onFocus={onInputFocus} // Pass the handler directly
           onBlur={onInputBlur}
           disabled={isLoading && activeInputIndex !== index}
           style={{ 
@@ -47,7 +47,7 @@ const ActorSearchInterface = ({
                 className="actor-search-item"
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  onSelectActor(actor.id, index);
+                  onSelectActor(actor.id); // Call with actor.id only
                 }}
                 tabIndex={0}
               >
@@ -72,7 +72,7 @@ const ActorSearchInterface = ({
                 style={{ justifyContent: 'center', color: '#4a6fa5', fontWeight: 'bold' }}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  onLoadMore(index);
+                  onLoadMore(); // Call without arguments
                 }}
               >
                 Load more results
@@ -84,7 +84,7 @@ const ActorSearchInterface = ({
       
       <button 
         className="randomize-btn"
-        onClick={() => onRandomize(index)}
+        onClick={onRandomize} // Call without arguments
         disabled={isLoading && activeInputIndex !== index}
       >
         Random Actor

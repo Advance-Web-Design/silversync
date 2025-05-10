@@ -11,8 +11,8 @@
  * The component uses debounced search to improve performance and uses local state
  * to keep the UI responsive during searches.
  */
-import React, { useState, useEffect, useRef, useMemo } from 'react'; // Added useMemo
-import { useGameContext } from '../../contexts/gameContext';
+import React from 'react'; // Removed useEffect, useRef, useState, useMemo
+import { useGameContext } from '../../contexts/gameContext'; // Corrected import path
 import ActorCard from './ActorCard';
 import MenuIcon from '@mui/icons-material/Menu';
 import './StartScreen.css';
@@ -34,93 +34,6 @@ const StartScreen = () => {
     startActorsError       // Error message for actor selection
   } = useGameContext();
   
-  // Memoize searchInputRefs to prevent useEffect from re-running unnecessarily
-  const searchInputRefs = useMemo(() => [React.createRef(), React.createRef()], []);
-  
-  // Local state for search input values to prevent UI from clearing during typing
-  const [localSearchTerms, setLocalSearchTerms] = useState(['', '']);
-  
-  // Track which input is currently focused (0, 1, or null)
-  const [activeInputIndex, setActiveInputIndex] = useState(null);
-  
-  // Debounce timer references to delay API calls while typing
-  const searchTimers = useRef([null, null]);
-  
-  /**
-   * Effect to synchronize local search terms with context search terms
-   * This ensures the UI stays in sync with the global state
-   */
-  useEffect(() => {
-    setLocalSearchTerms([actorSearchTerms[0] || '', actorSearchTerms[1] || '']);
-  }, [actorSearchTerms]);
-  
-  /**
-   * Effect to restore focus after loading or search result updates
-   * Maintains the same input focus after asynchronous operations complete
-   */
-  useEffect(() => {
-    if (isLoading) return;
-
-    // Focus on the first empty input field or the active one
-    const activeIndex = activeInputIndex !== null ? activeInputIndex : startActors.findIndex(actor => !actor);
-    if (activeIndex !== -1 && searchInputRefs[activeIndex] && searchInputRefs[activeIndex].current) {
-      searchInputRefs[activeIndex].current.focus();
-    }
-  }, [isLoading, actorSearchResults, activeInputIndex, startActors, searchInputRefs]); // searchInputRefs is now stable
-
-  /**
-   * Handles search input changes with debouncing
-   * Updates local state immediately for responsive UI
-   * Delays API calls until user stops typing
-   * 
-   * @param {Event} e - Input change event
-   * @param {number} index - Index of the actor position (0 or 1)
-   */
-  const handleSearchChange = (e, index) => {
-    const value = e.target.value;
-    
-    // Update local state immediately for responsive UI feedback
-    setLocalSearchTerms(prev => {
-      const newTerms = [...prev];
-      newTerms[index] = value;
-      return newTerms;
-    });
-    
-    // Clear previous timer to implement debouncing
-    if (searchTimers.current[index]) {
-      clearTimeout(searchTimers.current[index]);
-    }
-    
-    // Set new timer to update search after typing pauses
-    searchTimers.current[index] = setTimeout(() => {
-      setActorSearch(value, index);
-      searchStartActors(value, index);
-    }, 300); // 300ms debounce delay
-  };
-
-  /**
-   * Handles input focus to track which search field is active
-   * @param {number} index - Index of the focused input (0 or 1)
-   */
-  const handleInputFocus = (index) => {
-    setActiveInputIndex(index);
-  };
-
-  /**
-   * Handles input blur events with a delay to prevent
-   * losing focus when clicking on search results
-   * 
-   * @param {Event} e - Blur event object
-   */
-  const handleInputBlur = (e) => {
-    // Only clear activeInputIndex if we're not clicking on a search result
-    // This prevents the dropdown from disappearing before the click is processed
-    if (!e.relatedTarget || !e.relatedTarget.classList.contains('actor-search-item')) {
-      // Small delay to allow click events on search results to process first
-      setTimeout(() => setActiveInputIndex(null), 100);
-    }
-  };
-
   /**
    * Handles actor selection from search results
    * Selects the actor and clears the search term
@@ -130,14 +43,8 @@ const StartScreen = () => {
    */
   const handleSelectActor = (actorId, index) => {
     selectStartActor(actorId, index);
-    // Clear search after selection
-    setActorSearch('', index);
-    setLocalSearchTerms(prev => {
-      const newTerms = [...prev];
-      newTerms[index] = '';
-      return newTerms;
-    });
-    setActiveInputIndex(null);
+    setActorSearch('', index); // Clear the search term in context for this slot
+    // Local search term update will be handled by ActorSelectionSlot via prop changes
   };
   
   /**
@@ -147,9 +54,9 @@ const StartScreen = () => {
    * @param {number} index - Index of the actor position (0 or 1)
    */
   const loadMoreActors = (index) => {
-    if (actorSearchPages[index] < actorSearchTotalPages[index]) {
-      searchStartActors(actorSearchTerms[index], index, actorSearchPages[index] + 1);
-    }
+    if (isLoading || actorSearchPages[index] >= actorSearchTotalPages[index]) return;
+    // Ensure actorSearchTerms[index] is used for loading more, as localSearchTerms is removed
+    searchStartActors(actorSearchTerms[index] || '', index, actorSearchPages[index] + 1);
   };
 
   /**
@@ -168,13 +75,8 @@ const StartScreen = () => {
    */
   const handleSearchAgain = (index) => {
     selectStartActor(null, index);
-    // Focus the search input after clicking "Change Actor"
-    setTimeout(() => {
-      if (searchInputRefs[index] && searchInputRefs[index].current) {
-        searchInputRefs[index].current.focus();
-        setActiveInputIndex(index);
-      }
-    }, 0);
+    setActorSearch('', index); // Clear the search term in context
+    // Focus logic is now handled by ActorSelectionSlot when it becomes visible
   };
 
   return (
@@ -233,21 +135,23 @@ const StartScreen = () => {
               key={index}
               index={index}
               selectedActor={startActors[index]}
-              isLoading={isLoading}
-              onSearchAgain={handleSearchAgain}
-              // Props for ActorSearchInterface
-              localSearchTerm={localSearchTerms[index]}
-              onSearchChange={handleSearchChange}
-              onInputFocus={handleInputFocus}
-              onInputBlur={handleInputBlur}
-              searchInputRef={searchInputRefs[index]}
-              activeInputIndex={activeInputIndex}
-              actorSearchResultsList={actorSearchResults[index]}
-              onSelectActor={handleSelectActor}
-              actorSearchPageNum={actorSearchPages[index]}
-              actorSearchTotalPagesNum={actorSearchTotalPages[index]}
-              onLoadMore={loadMoreActors}
-              onRandomize={randomizeActors} // Pass the randomizeActors function directly
+              isLoading={isLoading} // Global loading state
+              onSearchAgain={handleSearchAgain} // For "Change Actor" button in ActorCard
+
+              // Data for ActorSelectionSlot (passed via ActorCard)
+              initialSearchTerm={actorSearchTerms[index]}
+              currentActorSearchResults={actorSearchResults[index]}
+              searchPageNum={actorSearchPages[index]}
+              searchTotalPages={actorSearchTotalPages[index]}
+              
+              // Callbacks for ActorSelectionSlot (passed via ActorCard)
+              // ActorCard will adapt these for ActorSelectionSlot, adding index where necessary
+              // or ActorSelectionSlot will use its own index prop with these.
+              callbackOnSelectActor={handleSelectActor}
+              callbackOnLoadMore={loadMoreActors}
+              callbackOnRandomize={randomizeActors} // from context, already takes index
+              callbackSearchActors={searchStartActors} // from context
+              callbackUpdateSearchTerm={setActorSearch} // from context
             />
           ))}
         </div>

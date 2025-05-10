@@ -1,8 +1,12 @@
 // New component: VictoryModal.jsx
 import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
+import { useGameContext } from '../../contexts/gameContext'; // Import useGameContext
 
-function VictoryModal({ resetGame, onKeepPlaying }) {
+function VictoryModal() { 
+  // Get necessary functions from context
+  const { resetGame, setKeepPlayingAfterWin } = useGameContext();
+
   return (
     <Box className="absolute inset-0 bg-black/70 flex items-center justify-center">
       <Paper elevation={6} className="p-6 rounded-xl max-w-md mx-auto">
@@ -16,14 +20,14 @@ function VictoryModal({ resetGame, onKeepPlaying }) {
           <Button 
             variant="contained" 
             color="primary" 
-            onClick={resetGame}
+            onClick={resetGame} // Use resetGame from context
             className="px-5"
           >
             New Game
           </Button>
           <Button
             variant="outlined"
-            onClick={onKeepPlaying}
+            onClick={() => setKeepPlayingAfterWin(true)} // Use setKeepPlayingAfterWin from context
             className="px-5"
           >
             Keep Playing

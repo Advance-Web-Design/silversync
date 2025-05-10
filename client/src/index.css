@@ -30,7 +30,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   color: #213547;
-  background-color: #ffffff;
+  background-color: transparent; /* Changed from #ffffff */
 }
 
 #root {

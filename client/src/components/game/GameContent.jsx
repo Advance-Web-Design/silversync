@@ -17,7 +17,13 @@ function GameContent() {
   } = useGameContext();
   
   return (
-    <Box className={`flex flex-col h-screen ${!gameStarted ? 'bg-black' : ''}`}>
+    <Box 
+      className="flex flex-col h-screen" // Keep other Tailwind classes
+      sx={{
+        backgroundColor: !gameStarted ? 'black' : 'transparent', // Or your desired default
+        // Potentially set to theme.palette.background.default if you want to use MUI theme's default
+      }}
+    >
       {gameStarted && <Header />}
       
       {isLoading && <LoadingOverlay />}

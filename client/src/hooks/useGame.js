@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPersonDetails, findPersonGuestAppearances } from '../services/tmdbService';
+import { getPersonDetails } from '../services/tmdbService';
 import { INITIAL_KNOWN_ENTITIES } from '../utils/constants';
 
 /**
@@ -43,84 +43,31 @@ export const useGame = () => {
    */
   const startGame = async (setNodes, setNodePositions) => {
     if (startActors[0] && startActors[1]) {
-      // Check if both actors are the same
       if (startActors[0].id === startActors[1].id) {
         setStartActorsError("Cannot start with duplicate actors. Please select two different actors.");
         return;
       }
-      
-      // Clear any previous errors
       setStartActorsError(null);
-      
       setIsLoading(true);
       
       try {
-        // Enhance both actors with guest appearances before starting the game
-        const enhancedActors = [];
-        
-        for (let i = 0; i < 2; i++) {
-          // Get full details with guest appearances
-          const actorWithGuests = {...startActors[i]};
-          
-          // Explicitly fetch guest appearances for both actors
-          const guestAppearances = await findPersonGuestAppearances(actorWithGuests.id);
-          
-          // Ensure TV credits include guest appearances
-          if (guestAppearances && guestAppearances.length > 0) {
-            console.log(`Found ${guestAppearances.length} guest appearances for actor ${actorWithGuests.name}`);
-            
-            if (!actorWithGuests.tv_credits) {
-              actorWithGuests.tv_credits = { cast: [] };
-            }
-            
-            // Add any guest appearances that aren't already in the TV credits
-            const existingTvIds = new Set(actorWithGuests.tv_credits.cast.map(credit => credit.id));
-            
-            for (const appearance of guestAppearances) {
-              if (!existingTvIds.has(appearance.id)) {
-                actorWithGuests.tv_credits.cast.push({
-                  ...appearance,
-                  is_guest_appearance: true,  // Mark as guest appearance
-                  isGuestAppearance: true     // Add alternative flag for robustness
-                });
-                existingTvIds.add(appearance.id);
-              } else {
-                // If it's already there, mark it as a guest appearance if it is one
-                const existingCredit = actorWithGuests.tv_credits.cast.find(credit => credit.id === appearance.id);
-                if (existingCredit) {
-                  existingCredit.is_guest_appearance = true;
-                  existingCredit.isGuestAppearance = true; // Add alternative flag for robustness
-                }
-              }
-            }
-            
-            actorWithGuests.guest_appearances_added = true;
-            // Store guest appearances separately for easier access
-            actorWithGuests.guest_appearances = guestAppearances;
-          }
-          
-          enhancedActors.push(actorWithGuests);
-        }
-        
-        console.log("Starting game with enhanced actors including guest appearances");
+        // The startActors should already be enhanced by selectStartActor
+        // which now uses the modified getPersonDetails
+        console.log("Starting game with actors (already enhanced with guest appearances):", startActors);
       
-        // Set initial positions for the starting actor nodes
-        const actor1Id = `person-${enhancedActors[0].id}`;
-        const actor2Id = `person-${enhancedActors[1].id}`;
+        const actor1Id = `person-${startActors[0].id}`;
+        const actor2Id = `person-${startActors[1].id}`;
         
-        // Initialize the game board with the two starting actors (with guest appearances)
         setNodes([
-          { id: actor1Id, type: 'person', data: enhancedActors[0] },
-          { id: actor2Id, type: 'person', data: enhancedActors[1] }
+          { id: actor1Id, type: 'person', data: startActors[0] },
+          { id: actor2Id, type: 'person', data: startActors[1] }
         ]);
         
-        // Set initial positions (left and right sides of the board)
         setNodePositions({
           [actor1Id]: { x: 100, y: 100 },
           [actor2Id]: { x: 500, y: 100 }
         });
         
-        // Set game start time for timer
         setGameStartTime(new Date().getTime());
         setGameStarted(true);
       } catch (error) {
@@ -181,72 +128,35 @@ export const useGame = () => {
    */
   const selectStartActor = async (actorId, actorIndex) => {
     try {
-      // Special case for null actorId - we're clearing the actor
       if (!actorId) {
         setStartActors(prev => {
           const newStartActors = [...prev];
           newStartActors[actorIndex] = null;
           return newStartActors;
         });
-        
-        // Clear the search results for this slot
         setActorSearchResults(prev => {
           const newResults = [...prev];
           newResults[actorIndex] = [];
           return newResults;
         });
-        
-        // Also reset the search term
         setActorSearch('', actorIndex);
         return;
       }
       
-      // For non-null actorId, continue with API call
       setIsLoading(true);
       
-      // Get detailed information for the actor
+      // getPersonDetails now handles merging of guest appearances
       const actorDetails = await getPersonDetails(actorId);
       
-      // Also fetch guest appearances for this actor
-      const guestAppearances = await findPersonGuestAppearances(actorId);
-      
-      // Enhance the actor details with guest appearances
-      if (guestAppearances && guestAppearances.length > 0) {
-        console.log(`Found ${guestAppearances.length} guest appearances for actor ${actorDetails.name}`);
-        
-        if (!actorDetails.tv_credits) {
-          actorDetails.tv_credits = { cast: [] };
-        }
-        
-        // Add any guest appearances that aren't already in the TV credits
-        const existingTvIds = new Set(actorDetails.tv_credits.cast.map(credit => credit.id));
-        
-        for (const appearance of guestAppearances) {
-          if (!existingTvIds.has(appearance.id)) {
-            actorDetails.tv_credits.cast.push({
-              ...appearance,
-              is_guest_appearance: true  // Mark as guest appearance
-            });
-            existingTvIds.add(appearance.id);
-          } else {
-            // If it's already there, mark it as a guest appearance if it is one
-            const existingCredit = actorDetails.tv_credits.cast.find(credit => credit.id === appearance.id);
-            if (existingCredit) {
-              existingCredit.is_guest_appearance = true;
-            }
-          }
-        }
-        
-        actorDetails.guest_appearances_added = true;
-      }
-      
+      // Log to confirm structure (optional)
+      // console.log(`Selected actor ${actorDetails.name} details with processed guest appearances:`, actorDetails);
+
       setStartActors(prev => {
         const newStartActors = [...prev];
         newStartActors[actorIndex] = actorDetails;
         return newStartActors;
       });
       
-      // Clear the search results for this slot
       setActorSearchResults(prev => {
         const newResults = [...prev];
         newResults[actorIndex] = [];
@@ -254,6 +164,7 @@ export const useGame = () => {
       });
     } catch (error) {
       console.error('Error selecting start actor:', error);
+      // Potentially set an error state for the UI
     } finally {
       setIsLoading(false);
     }

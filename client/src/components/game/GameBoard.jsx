@@ -37,7 +37,7 @@ const GameBoard = () => {
   
   // Refs for DOM elements and animation
   const boardRef = useRef(null);
-  const svgRef = useRef(null);
+  // const svgRef = useRef(null); // Removed unused ref
   
   // Create refs for connections to animate them
   const connectionRefs = useRef({});
@@ -147,6 +147,7 @@ const GameBoard = () => {
   const pathLengthValue = getPathLength();
 
   // For debugging purposes, log the search results state
+  // TODO: Remove this useEffect before final release
   useEffect(() => {
     console.log('Search results state:', { hasResults: hasSearchResults, resultsLength: searchResults?.length || 0 });
   }, [searchResults, hasSearchResults]);
@@ -162,7 +163,6 @@ const GameBoard = () => {
         connectionRefs={connectionRefs}
         boardSize={boardSize}
         gameCompleted={gameCompleted}
-        svgRef={svgRef}
       />
       {/* Node Layer - contains all the draggable entities (actors, movies, TV shows) */}
       <NodeLayer
