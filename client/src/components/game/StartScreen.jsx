@@ -14,7 +14,8 @@
 import React from 'react'; // Removed useEffect, useRef, useState, useMemo
 import { useGameContext } from '../../contexts/gameContext'; // Corrected import path
 import ActorCard from './ActorCard';
-import MenuIcon from '@mui/icons-material/Menu';
+import Header from '../Header'; // Import the generic Header component
+import LoadingOverlay from './LoadingOverlay'; // Import LoadingOverlay
 import './StartScreen.css';
 
 const StartScreen = () => {
@@ -60,14 +61,6 @@ const StartScreen = () => {
   };
 
   /**
-   * Handles menu button click (placeholder for future menu functionality)
-   */
-  const handleMenuClick = () => {
-    // Menu functionality placeholder
-    console.log('Menu clicked');
-  };
-
-  /**
    * Handles "change actor" button to clear an actor selection
    * Focuses the search input after clearing
    * 
@@ -78,6 +71,16 @@ const StartScreen = () => {
     setActorSearch('', index); // Clear the search term in context
     // Focus logic is now handled by ActorSelectionSlot when it becomes visible
   };
+
+  // Define menu items for the StartScreen
+  const startScreenMenuItems = [
+    { label: 'Login', onClick: () => console.log('Login clicked') },
+    { label: 'Register', onClick: () => console.log('Register clicked') },
+    { label: 'Leaderboards', onClick: () => console.log('Leaderboards clicked') },
+    { label: 'Challenge Modes', onClick: () => console.log('Challenge Modes clicked') },
+    { label: 'How to Play', onClick: () => console.log('How to Play clicked') },
+    { label: 'About', onClick: () => console.log('About clicked') },
+  ];
 
   return (
     <div className="min-h-screen bg-black text-white relative"
@@ -100,25 +103,9 @@ const StartScreen = () => {
           Connect The Stars
         </h1>
         
-        {/* Menu button on top right */}
-        <button 
-          onClick={handleMenuClick}
-          style={{
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: '4px',
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'white',
-            cursor: 'pointer'
-          }}
-        >
-          <MenuIcon /> Menu
-        </button>
+        {/* Menu button on top right - Replaced with Header component */}
+        <Header menuItems={startScreenMenuItems} />
       </div>
-      
       {/* Main content area */}
       <div className="start-screen">
         {/* Error message display */}
@@ -156,20 +143,12 @@ const StartScreen = () => {
           ))}
         </div>
         
+        <div > {/* add padding here to buffer the loading overlay*/}
+          {isLoading && <LoadingOverlay />} {/* Add LoadingOverlay here */}
+        </div>
+        
         {/* Game control buttons at the bottom */}
         <div className="game-actions">
-          {/* Button to randomize both actors at once */}
-          <button 
-            className="randomize-all-btn"
-            onClick={() => {
-              randomizeActors(0);
-              randomizeActors(1);
-            }}
-            disabled={isLoading}
-          >
-            Random Both Actors
-          </button>
-          
           {/* Start game button - only enabled when two actors are selected */}
           <button
             className="start-game-btn"

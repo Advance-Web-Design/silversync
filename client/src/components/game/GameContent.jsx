@@ -1,15 +1,12 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
-import Header from './Header';
 import StartScreen from './StartScreen';
 import GameplayArea from './GameplayArea';
-import LoadingOverlay from './LoadingOverlay';
 import { Box } from '@mui/material';
 
 function GameContent() {
   const { 
     gameStarted, 
-    isLoading, 
     gameCompleted,
     keepPlayingAfterWin, 
     resetGame, 
@@ -24,10 +21,6 @@ function GameContent() {
         // Potentially set to theme.palette.background.default if you want to use MUI theme's default
       }}
     >
-      {gameStarted && <Header />}
-      
-      {isLoading && <LoadingOverlay />}
-      
       {!gameStarted ? ( <StartScreen /> ) : ( <GameplayArea 
           gameCompleted={gameCompleted}
           keepPlayingAfterWin={keepPlayingAfterWin}
