@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import '../Header.css';
-import Header from '../Header';
+import Header from '../Menu';
 
 const BoardHeader = () => {
   const { 

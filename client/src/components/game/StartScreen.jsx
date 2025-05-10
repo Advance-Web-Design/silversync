@@ -14,7 +14,7 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import ActorCard from './ActorCard';
-import Header from '../Header';
+import Header from '../Menu';
 import LoadingOverlay from './LoadingOverlay'
 import './StartScreen.css';
 
