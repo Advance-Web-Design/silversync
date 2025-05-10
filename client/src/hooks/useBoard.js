@@ -512,7 +512,7 @@ export const useBoard = () => {
           if (count > 0) {
             // Place the new node near the average position of connected nodes
             return {
-              x: (sumX / count) + Math.random() * 100 - 50, // Add some randomness
+              x: (sumX / count) + Math.random() * 100 - 50,
               y: (sumY / count) + Math.random() * 100 - 50
             };
           }

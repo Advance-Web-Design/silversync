@@ -1,6 +1,5 @@
 import React from 'react';
-// import ActorSearchInterface from './ActorSearchInterface'; // No longer directly used
-import ActorSelectionSlot from './ActorSelectionSlot'; // Import the new component
+import ActorSelectionSlot from './ActorSelectionSlot';
 import { getImageUrlSync } from '../../services/tmdbService';
 
 const ActorCard = ({
@@ -19,19 +18,6 @@ const ActorCard = ({
   callbackOnRandomize,
   callbackSearchActors,
   callbackUpdateSearchTerm,
-  // Removed props that were for ActorSearchInterface directly:
-  // localSearchTerm,
-  // onSearchChange,
-  // onInputFocus,
-  // onInputBlur,
-  // searchInputRef,
-  // activeInputIndex,
-  // actorSearchResultsList, // Renamed to currentActorSearchResults for clarity
-  // onSelectActor, // Renamed to callbackOnSelectActor
-  // actorSearchPageNum, // Renamed to searchPageNum
-  // actorSearchTotalPagesNum, // Renamed to searchTotalPages
-  // onLoadMore, // Renamed to callbackOnLoadMore
-  // onRandomize, // Renamed to callbackOnRandomize
 }) => {
   return (
     <div className="actor-card">

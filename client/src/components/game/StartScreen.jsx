@@ -11,11 +11,11 @@
  * The component uses debounced search to improve performance and uses local state
  * to keep the UI responsive during searches.
  */
-import React from 'react'; // Removed useEffect, useRef, useState, useMemo
-import { useGameContext } from '../../contexts/gameContext'; // Corrected import path
+import React from 'react';
+import { useGameContext } from '../../contexts/gameContext';
 import ActorCard from './ActorCard';
-import Header from '../Header'; // Import the generic Header component
-import LoadingOverlay from './LoadingOverlay'; // Import LoadingOverlay
+import Header from '../Header';
+import LoadingOverlay from './LoadingOverlay'
 import './StartScreen.css';
 
 const StartScreen = () => {
@@ -44,8 +44,7 @@ const StartScreen = () => {
    */
   const handleSelectActor = (actorId, index) => {
     selectStartActor(actorId, index);
-    setActorSearch('', index); // Clear the search term in context for this slot
-    // Local search term update will be handled by ActorSelectionSlot via prop changes
+    setActorSearch('', index);
   };
   
   /**
@@ -56,7 +55,7 @@ const StartScreen = () => {
    */
   const loadMoreActors = (index) => {
     if (isLoading || actorSearchPages[index] >= actorSearchTotalPages[index]) return;
-    // Ensure actorSearchTerms[index] is used for loading more, as localSearchTerms is removed
+    // Ensure actorSearchTerms[index] is used for loading more
     searchStartActors(actorSearchTerms[index] || '', index, actorSearchPages[index] + 1);
   };
 
@@ -68,8 +67,7 @@ const StartScreen = () => {
    */
   const handleSearchAgain = (index) => {
     selectStartActor(null, index);
-    setActorSearch('', index); // Clear the search term in context
-    // Focus logic is now handled by ActorSelectionSlot when it becomes visible
+    setActorSearch('', index);
   };
 
   // Define menu items for the StartScreen
@@ -122,23 +120,20 @@ const StartScreen = () => {
               key={index}
               index={index}
               selectedActor={startActors[index]}
-              isLoading={isLoading} // Global loading state
-              onSearchAgain={handleSearchAgain} // For "Change Actor" button in ActorCard
+              isLoading={isLoading}
+              onSearchAgain={handleSearchAgain}
 
               // Data for ActorSelectionSlot (passed via ActorCard)
               initialSearchTerm={actorSearchTerms[index]}
               currentActorSearchResults={actorSearchResults[index]}
               searchPageNum={actorSearchPages[index]}
               searchTotalPages={actorSearchTotalPages[index]}
-              
-              // Callbacks for ActorSelectionSlot (passed via ActorCard)
-              // ActorCard will adapt these for ActorSelectionSlot, adding index where necessary
-              // or ActorSelectionSlot will use its own index prop with these.
+
               callbackOnSelectActor={handleSelectActor}
               callbackOnLoadMore={loadMoreActors}
-              callbackOnRandomize={randomizeActors} // from context, already takes index
-              callbackSearchActors={searchStartActors} // from context
-              callbackUpdateSearchTerm={setActorSearch} // from context
+              callbackOnRandomize={randomizeActors}
+              callbackSearchActors={searchStartActors}
+              callbackUpdateSearchTerm={setActorSearch}
             />
           ))}
         </div>

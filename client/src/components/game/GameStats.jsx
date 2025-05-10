@@ -1,5 +1,5 @@
 import React from 'react';
-import './GameBoard.css'; // Import the same CSS for consistency
+import './GameBoard.css';
 
 /**
  * GameStats component - Displays game statistics and guest appearances message

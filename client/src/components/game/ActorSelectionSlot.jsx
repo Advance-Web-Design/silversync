@@ -4,14 +4,14 @@ import ActorSearchInterface from './ActorSearchInterface';
 const ActorSelectionSlot = ({
   index,
   isLoading,
-  currentActorSearchResultsFromContext, // Was: actorSearchResultsList
+  currentActorSearchResultsFromContext,
   onSelectActorCallback,
-  searchPageNumFromContext, // Was: actorSearchPageNum
-  searchTotalPagesFromContext, // Was: actorSearchTotalPagesNum
+  searchPageNumFromContext,
+  searchTotalPagesFromContext,
   onLoadMoreCallback,
   onRandomizeCallback,
   searchActorsCallback,
-  updateSearchTermInContextCallback, // Was: setSearchTermInContextCallback
+  updateSearchTermInContextCallback,
   initialSearchTermFromContext,
 }) => {
   const [localSearchTerm, setLocalSearchTerm] = useState(initialSearchTermFromContext || '');

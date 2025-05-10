@@ -30,8 +30,8 @@ const ActorSearchInterface = ({
           className="actor-search-input"
           placeholder="Search actor name..."
           value={localSearchTerm}
-          onChange={onSearchChange} // Pass the handler directly
-          onFocus={onInputFocus} // Pass the handler directly
+          onChange={onSearchChange}
+          onFocus={onInputFocus}
           onBlur={onInputBlur}
           disabled={isLoading && activeInputIndex !== index}
           style={{ 

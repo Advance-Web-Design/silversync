@@ -12,17 +12,13 @@
  * - Board state management including connections between entities
  * - Game progression and win state tracking
  */
-import { useState, useEffect } from 'react'; // Keep existing React imports
-import { GameContext } from './gameContext'; // Import the actual context object from the new file
-
-// Keep all your other existing imports for hooks, services, utils
+import { useState, useEffect } from 'react';
+import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
 import { getItemTitle } from '../utils/stringUtils';
 import { fetchRandomPerson, searchMulti, checkActorInTvShow, fetchPopularEntities, getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
-
-// Removed context creation and useGameContext hook as they are in gameContext.js
 
 /**
  * Main Game Provider component that wraps the application
@@ -66,7 +62,6 @@ export const GameProvider = ({ children }) => {
     checkItemConnectability,
     checkInitialConnectability,
     addToBoard: addToBoardFn,
-    // forceAddToBoard: forceAddToBoardFn, // Removed unused variable
     checkGameCompletion
   } = boardState;
   

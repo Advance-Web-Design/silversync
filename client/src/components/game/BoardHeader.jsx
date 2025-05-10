@@ -1,14 +1,13 @@
-import React, { useState } from 'react'; // Removed useEffect
+import React, { useState } from 'react';
 import { useGameContext } from '../../contexts/gameContext';
-// import MenuIcon from '@mui/icons-material/Menu'; // No longer directly used here
-import '../Header.css'; // Assuming this is the correct path for styling the new Header
-import Header from '../Header'; // Import the generic Header component
+import '../Header.css';
+import Header from '../Header';
 
-const BoardHeader = () => { // Renamed from Header to BoardHeader
+const BoardHeader = () => {
   const { 
     resetGame, 
-    gameStarted, // Uncommented
-    startActors, // Uncommented
+    gameStarted, 
+    startActors, 
     showAllSearchable,
     toggleShowAllSearchable
   } = useGameContext();
@@ -18,7 +17,6 @@ const BoardHeader = () => { // Renamed from Header to BoardHeader
   // Handle new game option
   const handleNewGame = () => {
     resetGame();
-    // setMenuOpen(false); // Managed by Header component
   };
   
   // Handle login option
@@ -26,44 +24,36 @@ const BoardHeader = () => { // Renamed from Header to BoardHeader
     // Implementation for login
     console.log('Login clicked');
     setIsLoggedIn(true);
-    // setMenuOpen(false); // Managed by Header component
   };
 
   // Handle register option
   const handleRegister = () => {
     // Implementation for register
     console.log('Register clicked');
-    // setMenuOpen(false); // Managed by Header component
   };
 
   // Handle settings option
   const handleSettings = () => {
     // Implementation for settings
     console.log('Settings clicked');
-    // setMenuOpen(false); // Managed by Header component
   };
 
   // Handle challenge a player option
   const handleChallengePlayer = () => {
     // Implementation for challenging a player
     console.log('Challenge a player clicked');
-    // setMenuOpen(false); // Managed by Header component
   };
 
   // Handle score board option
   const handleScoreBoard = () => {
     // Implementation for viewing score board
     console.log('Score board clicked');
-    // setMenuOpen(false); // Managed by Header component
   };
   
   // Handle show all searchable entities option
   const handleShowAllSearchable = () => {
     toggleShowAllSearchable();
-    // setMenuOpen(false); // Managed by Header component
   };
-  
-  // menuOpen, menuRef, handleMenuToggle, and useEffect for click outside are now managed by the Header component.
 
   const menuItems = [
     { label: 'New Game', onClick: handleNewGame },
@@ -100,4 +90,4 @@ const BoardHeader = () => { // Renamed from Header to BoardHeader
   );
 };
 
-export default BoardHeader; // Ensure this is exported correctly
+export default BoardHeader;

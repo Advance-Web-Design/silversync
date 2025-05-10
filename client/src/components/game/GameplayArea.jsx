@@ -4,19 +4,17 @@ import { Box } from '@mui/material';
 import GameBoard from './GameBoard';
 import SearchPanel from './SearchPanel';
 import VictoryModal from './VictoryModal';
-import LoadingOverlay from './LoadingOverlay'; // Import LoadingOverlay
-import BoardHeader from './BoardHeader'; // Import BoardHeader
-import { useGameContext } from '../../contexts/gameContext'; // Import useGameContext
+import LoadingOverlay from './LoadingOverlay';
+import BoardHeader from './BoardHeader';
+import { useGameContext } from '../../contexts/gameContext';
 
-// Remove resetGame, setKeepPlayingAfterWin from props if they are only for VictoryModal
-// Keep gameCompleted, keepPlayingAfterWin for conditional rendering logic here
 function GameplayArea() {
-  const { gameCompleted, keepPlayingAfterWin, isLoading } = useGameContext(); // Get these from context, add isLoading
+  const { gameCompleted, keepPlayingAfterWin, isLoading } = useGameContext();
 
   return (
     <Box className="relative flex-1 flex flex-col">
-      <BoardHeader /> {/* Add BoardHeader here */}
-      {/* GameBoard takes full space */}
+      <BoardHeader /> 
+      
       <GameBoard />
       
       {isLoading && <LoadingOverlay />} {/* Add LoadingOverlay here */}

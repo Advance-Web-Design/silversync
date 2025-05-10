@@ -1,7 +1,7 @@
 // New component: VictoryModal.jsx
 import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
-import { useGameContext } from '../../contexts/gameContext'; // Import useGameContext
+import { useGameContext } from '../../contexts/gameContext';
 
 function VictoryModal() { 
   // Get necessary functions from context
@@ -27,7 +27,7 @@ function VictoryModal() {
           </Button>
           <Button
             variant="outlined"
-            onClick={() => setKeepPlayingAfterWin(true)} // Use setKeepPlayingAfterWin from context
+            onClick={() => setKeepPlayingAfterWin(true)}
             className="px-5"
           >
             Keep Playing

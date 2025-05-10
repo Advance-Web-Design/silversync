@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-// import { useGameContext } from '../contexts/gameContext'; // Commented out as it's not used and might be causing loading issues
 import MenuIcon from '@mui/icons-material/Menu';
 import './Header.css';
 
-function Header({ menuItems }) { // menuItems prop will define the buttons
+function Header({ menuItems }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
 
