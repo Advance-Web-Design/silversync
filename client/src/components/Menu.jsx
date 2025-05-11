@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
+import HowToPlay from './HowToPlay';
 import './Menu.css';
 
 function Header({ menuItems }) {
@@ -26,10 +27,9 @@ function Header({ menuItems }) {
     return (
         <>
             {/* Menu button and dropdown */}
-            <div className="menu-container" ref={menuRef}>
-                <button className="nav-button menu-button" onClick={handleMenuToggle}>
-                    <MenuIcon fontSize="small" /> MENU
-                </button>
+            <div className="menu-container" ref={menuRef}>                <button className="nav-button menu-button" onClick={handleMenuToggle}>
+                <MenuIcon fontSize="small" /> MENU
+            </button>
 
                 {menuOpen && (
                     <div className="menu-dropdown">
@@ -38,6 +38,8 @@ function Header({ menuItems }) {
                                 {item.label}
                             </button>
                         ))}
+                        <HowToPlay />
+
                     </div>
                 )}
             </div>
