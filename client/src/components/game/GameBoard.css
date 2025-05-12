@@ -23,7 +23,7 @@
 }
 
 .connection-line {
-  stroke: rgba(255, 215, 0, 0.6);
+  stroke: rgba(255, 255, 255, 1);
   stroke-width: 2;
 }
 

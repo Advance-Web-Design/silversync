@@ -231,9 +231,9 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
       case 'person':
         return 'rgba(111, 168, 220, 0.9)'; // Blue for actors
       case 'movie':
-        return 'rgba(249, 203, 156, 0.9)'; // Orange for movies
+        return 'rgba(201, 176, 55, 0.9)'; // Old Gold for movies
       case 'tv':
-        return 'rgba(182, 215, 168, 0.9)'; // Green for TV shows
+        return 'rgba(215, 215, 215, 0.9)'; // Silver for TV shows
       default:
         return 'rgba(200, 200, 200, 0.9)';
     }
