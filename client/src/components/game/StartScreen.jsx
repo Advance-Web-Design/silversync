@@ -14,7 +14,7 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import ActorCard from './ActorCard';
-import Header from '../Menu';
+import Menu from '../Menu';
 import LoadingOverlay from './LoadingOverlay'
 import './StartScreen.css';
 
@@ -70,16 +70,6 @@ const StartScreen = () => {
     setActorSearch('', index);
   };
 
-  // Define menu items for the StartScreen
-  const startScreenMenuItems = [
-    { label: 'Login', onClick: () => console.log('Login clicked') },
-    { label: 'Register', onClick: () => console.log('Register clicked') },
-    { label: 'Leaderboards', onClick: () => console.log('Leaderboards clicked') },
-    { label: 'Challenge Modes', onClick: () => console.log('Challenge Modes clicked') },
-    { label: 'How to Play', onClick: () => console.log('How to Play clicked') },
-    { label: 'About', onClick: () => console.log('About clicked') },
-  ];
-
   return (
     <div className="min-h-screen bg-black text-white relative"
       style={{
@@ -102,7 +92,7 @@ const StartScreen = () => {
         </h1>
         
         {/* Menu button on top right - Replaced with Header component */}
-        <Header menuItems={startScreenMenuItems} />
+        <Menu parentName={'StartScreen'} />
       </div>
       {/* Main content area */}
       <div className="start-screen">

@@ -3,21 +3,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import './HowToPlay.css';
 
 function HowToPlay() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleOpen = () => {
-    setIsOpen(true);
-  };
+  const [isOpen, setIsOpen] = useState(true);
 
   const handleClose = () => {
     setIsOpen(false);
   };
 
   return (
-    <>      <button className="how-to-play-button" onClick={handleOpen}>
-        HOW TO PLAY
-      </button>
-      
+    <>
       {isOpen && (
         <div className="popup-overlay">
           <div className="popup-content">
