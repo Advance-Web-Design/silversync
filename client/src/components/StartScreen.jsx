@@ -12,10 +12,10 @@
  * to keep the UI responsive during searches.
  */
 import React from 'react';
-import { useGameContext } from '../../contexts/gameContext';
-import ActorCard from './ActorCard';
-import Menu from '../Menu';
-import LoadingOverlay from './LoadingOverlay'
+import { useGameContext } from '../contexts/gameContext';
+import ActorCard from './game/ActorCard';
+import Menu from './Menu';
+import LoadingOverlay from './game/LoadingOverlay'
 import './StartScreen.css';
 
 const StartScreen = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
-import StartScreen from './StartScreen';
+import StartScreen from '../StartScreen';
 import GameplayArea from './GameplayArea';
 import { Box } from '@mui/material';
 

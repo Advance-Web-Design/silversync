@@ -23,6 +23,7 @@ function Menu(props) {
     const handleMenuToggle = () => {
         setMenuOpen(prev => !prev);
         if (showHowToPlay) setShowHowToPlay(false); // Close HowToPlay if menu is toggled
+        if (showAbout) setShowAbout(false); // Close About if menu is toggled
     };
 
     // Action handlers using context functions
@@ -32,52 +33,59 @@ function Menu(props) {
         setMenuOpen(false);
     };
 
+    // Logout action handler
     const handleLogout = () => {
         console.log('Logout action triggered');
         if (logout) logout(); // Call logout function from context
         setMenuOpen(false);
     };
 
+    // Register action handler
     const handleRegister = () => {
         console.log('Register action triggered');
         if (register) register(); // Call register function from context
         setMenuOpen(false);
     };
 
+    // Other action handlers
     const handleHowToPlay = () => {
-        console.info('How to Play action triggered');
         setShowHowToPlay(prev => !prev); // Toggle HowToPlay visibility
         setMenuOpen(false); // Close the main menu
     };
 
+    // Leaderboard action handler
     const handleLeaderboard = () => {
         console.log('Leaderboard action triggered');
         setMenuOpen(false);
     };
 
+    // Challenge Mode action handler
     const handleChallengeMode = () => {
         console.log('Challenge Mode action triggered');
         setMenuOpen(false);
     };
 
+    // About action handler
     const handleAbout = () => {
-        console.info('How to Play action triggered');
         setShowAbout(prev => !prev); // Toggle About visibility
         setMenuOpen(false); // Close the main menu
     };
 
+    // New Game action handler
     const handleNewGame = () => {
-        console.log('New Game action triggered');
         resetGame(); // Call the resetGame function from context
         setMenuOpen(false);
     };
 
+    // Cheat Sheet action handler
+    // this will need to be removed later
+    // as it is not a part of the final game
     const handleCheatSheet = () => {
-        console.log('Cheat Sheet action triggered');
         toggleShowAllSearchable(); // Call the function from context
         setMenuOpen(false);
     };
-
+    
+    // Settings action handler
     const handleSettings = () => {
         console.log('Settings action triggered');
         setMenuOpen(false);
@@ -132,6 +140,8 @@ function Menu(props) {
                         ) : (
                             <button onClick={handleLogout} className="menu-item">Logout</button>
                         )}
+
+                        {/* Conditionally render items based on parentName prop */}
                         {props.parentName === 'StartScreen' && (
                             <>
                             <button onClick={handleChallengeMode} className="menu-item">Challenge Mode</button>
