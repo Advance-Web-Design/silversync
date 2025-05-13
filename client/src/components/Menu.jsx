@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import './Menu.css';
 import { useGameContext } from '../contexts/gameContext'; // Import useGameContext
-import HowToPlay from './HowToPlay'; // Assuming HowToPlay is in the same directory
+import HowToPlay from './HowToPlay';
+import About from './About';
 
 function Menu(props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false); // State for HowToPlay visibility
+    const [showAbout, setShowAbout] = useState(false); // State for About visibility
     const menuRef = useRef(null);
     // Destructure login-related states and functions from context
     const { 
@@ -43,7 +45,7 @@ function Menu(props) {
     };
 
     const handleHowToPlay = () => {
-        console.log('How to Play action triggered');
+        console.info('How to Play action triggered');
         setShowHowToPlay(prev => !prev); // Toggle HowToPlay visibility
         setMenuOpen(false); // Close the main menu
     };
@@ -59,8 +61,9 @@ function Menu(props) {
     };
 
     const handleAbout = () => {
-        console.log('About action triggered');
-        setMenuOpen(false);
+        console.info('How to Play action triggered');
+        setShowAbout(prev => !prev); // Toggle About visibility
+        setMenuOpen(false); // Close the main menu
     };
 
     const handleNewGame = () => {
@@ -105,6 +108,11 @@ function Menu(props) {
         setShowHowToPlay(false);
     };
 
+    // Function to be passed to About component to close it
+    const closeAbout = () => {
+        setShowAbout(false);
+    };
+
     return (
         <> {/* Use React Fragment to allow HowToPlay to be a sibling */}
             <div className="menu-container" ref={menuRef}>
@@ -143,6 +151,9 @@ function Menu(props) {
             </div>
             {/* Conditionally render the HowToPlay component */}
             {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
+
+            {/* Conditionally render the About component */}
+            {showAbout && <About onClose={closeAbout}/>}
         </>
     );
 }
