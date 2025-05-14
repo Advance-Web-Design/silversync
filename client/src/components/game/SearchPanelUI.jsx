@@ -8,10 +8,8 @@ const SearchPanelUI = ({
   handleInputChange,
   isLoading,
   hasResults,
-  didYouMean,
-  originalSearchTerm,
-  useSpellingCorrection,
   noMatchFound,
+  originalSearchTerm,
   shouldShowResults,
   resultsContainerRef,
   organizedResults,
@@ -38,47 +36,6 @@ const SearchPanelUI = ({
           {isLoading ? 'Searching...' : 'Search'}
         </button>
       </form>
-      
-      {/* Enhanced Did You Mean section */}
-      {didYouMean && originalSearchTerm && (
-        <div className="in-game-search-suggestion">
-          <p className="suggestion-title">
-            Did you mean:
-          </p>
-          <div className="suggestion-content">
-            {typeof didYouMean === 'string' ? (
-              <button 
-                onClick={useSpellingCorrection}
-                className="suggestion-button text-only"
-              >
-                {didYouMean}
-              </button>
-            ) : (
-              <button 
-                onClick={useSpellingCorrection}
-                className={`suggestion-button entity-suggestion ${didYouMean.isConnectable ? 'connectable' : ''}`}
-              >
-                <div className="suggestion-image">
-                  <img 
-                    src={`https://image.tmdb.org/t/p/w92${didYouMean.media_type === 'person' ? didYouMean.profile_path : didYouMean.poster_path}`} 
-                    alt={getItemTitle(didYouMean)}
-                  />
-                </div>
-                <div className="suggestion-info">
-                  <span className="suggestion-name">{getItemTitle(didYouMean)}</span>
-                  <span className="suggestion-type">
-                    {didYouMean.media_type === 'movie' ? 'Movie' : 
-                     didYouMean.media_type === 'tv' ? 'TV Show' : 'Actor'}
-                    {didYouMean.isConnectable && 
-                      <span className="connectable-tag"> (Can be added to board)</span>
-                    }
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
       
       {/* No Results Message */}
       {noMatchFound && (

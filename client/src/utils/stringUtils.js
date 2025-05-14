@@ -70,11 +70,6 @@ export const getItemTitle = (item) => {
   return '';
 };
 
-
-
-
-
-
 /**
  * Get a year enclosed in brackets for movies and TV shows
  * @param {Object} item - Media item (movie, TV show, or person)
@@ -97,4 +92,3 @@ export const getItemYear = (item) => {
   
   return '';
 }
-

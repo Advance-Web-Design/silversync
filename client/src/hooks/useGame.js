@@ -1,25 +1,31 @@
 import { useState, useEffect } from 'react';
 import { getPersonDetails } from '../services/tmdbService';
 import { INITIAL_KNOWN_ENTITIES } from '../utils/constants';
+import { 
+  validateStartActors,
+  initializeGameBoard,
+  updateBestScore,
+  loadBestScore,
+  getInitialGameState,
+  updateActorSearchTerm,
+  clearActorSearchResults
+} from '../utils/gameUtils';
 
 /**
  * Custom hook for managing game state
  * @returns {Object} - Game methods and state
  */
 export const useGame = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameStartTime, setGameStartTime] = useState(null);
-  const [startActors, setStartActors] = useState([null, null]);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);
-  const [startActorsError, setStartActorsError] = useState(null);
-  const [knownEntities, setKnownEntities] = useState(INITIAL_KNOWN_ENTITIES);
-  const [bestScore, setBestScore] = useState(() => {
-    // Initialize best score from localStorage
-    const savedBestScore = localStorage.getItem('bestScore');
-    return savedBestScore ? parseInt(savedBestScore) : null;
-  });
+    const [isLoading, setIsLoading] = useState(false);
+    const [gameStarted, setGameStarted] = useState(false);
+    const [gameStartTime, setGameStartTime] = useState(null);
+    const [startActors, setStartActors] = useState([null, null]);
+    const [gameCompleted, setGameCompleted] = useState(false);
+    const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);
+    const [startActorsError, setStartActorsError] = useState(null);
+    const [knownEntities, setKnownEntities] = useState(INITIAL_KNOWN_ENTITIES);
+  const [bestScore, setBestScore] = useState(() => loadBestScore());
+  
   const [shortestPathLength, setShortestPathLength] = useState(null);
   
   // Actor search related state
@@ -30,56 +36,49 @@ export const useGame = () => {
   
   // Load best score from localStorage on mount
   useEffect(() => {
-    const savedBestScore = localStorage.getItem('bestScore');
-    if (savedBestScore) {
-      setBestScore(parseInt(savedBestScore));
+    const savedScore = loadBestScore();
+    if (savedScore) {
+      setBestScore(savedScore);
     }
   }, []);
-  
-  /**
+    /**
    * Start the game with the selected actors
    * @param {function} setNodes - Function to set board nodes
    * @param {function} setNodePositions - Function to set node positions
    */
   const startGame = async (setNodes, setNodePositions) => {
-    if (startActors[0] && startActors[1]) {
-      if (startActors[0].id === startActors[1].id) {
-        setStartActorsError("Cannot start with duplicate actors. Please select two different actors.");
-        return;
-      }
-      setStartActorsError(null);
-      setIsLoading(true);
+    // Validate if we can start the game with the selected actors
+    const { valid, error } = validateStartActors(startActors[0], startActors[1]);
+    
+    if (!valid) {
+      setStartActorsError(error);
+      return;
+    }
+    
+    setStartActorsError(null);
+    setIsLoading(true);
+    
+    try {
+      // The startActors should already be enhanced by selectStartActor
+      // which now uses the modified getPersonDetails
+      console.log("Starting game with actors (already enhanced with guest appearances):", startActors);
+    
+      // Initialize the game board with the starting actors
+      const { nodes, nodePositions } = initializeGameBoard(startActors);
       
-      try {
-        // The startActors should already be enhanced by selectStartActor
-        // which now uses the modified getPersonDetails
-        console.log("Starting game with actors (already enhanced with guest appearances):", startActors);
+      setNodes(nodes);
+      setNodePositions(nodePositions);
       
-        const actor1Id = `person-${startActors[0].id}`;
-        const actor2Id = `person-${startActors[1].id}`;
-        
-        setNodes([
-          { id: actor1Id, type: 'person', data: startActors[0] },
-          { id: actor2Id, type: 'person', data: startActors[1] }
-        ]);
-        
-        setNodePositions({
-          [actor1Id]: { x: 100, y: 100 },
-          [actor2Id]: { x: 500, y: 100 }
-        });
-        
-        setGameStartTime(new Date().getTime());
-        setGameStarted(true);
-      } catch (error) {
-        console.error("Error starting game:", error);
-        setStartActorsError("Error starting game. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+      setGameStartTime(new Date().getTime());
+      setGameStarted(true);
+    } catch (error) {
+      console.error("Error starting game:", error);
+      setStartActorsError("Error starting game. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  /**
+    /**
    * Reset the game to initial state
    * @param {function} setNodes - Function to set board nodes
    * @param {function} setNodePositions - Function to set node positions
@@ -94,20 +93,23 @@ export const useGame = () => {
     setSearchResults, 
     setConnectableItems
   ) => {
+    // Reset game state flags
     setGameStarted(false);
     setGameCompleted(false);
     setGameStartTime(null);
-    setKeepPlayingAfterWin(false); // Reset the keepPlayingAfterWin flag
+    setKeepPlayingAfterWin(false);
     setStartActors([null, null]);
-    setNodes([]);
-    setNodePositions({});
-    setConnections([]);
-    setSearchResults([]);
-    setConnectableItems({});
+    
+    // Reset board state using initial values
+    const initialState = getInitialGameState();
+    setNodes(initialState.nodes);
+    setNodePositions(initialState.nodePositions);
+    setConnections(initialState.connections);
+    setSearchResults(initialState.searchResults);
+    setConnectableItems(initialState.connectableItems);
     // Keep previousSearches and knownEntities for better suggestions across games
   };
-  
-  /**
+    /**
    * Set game as completed and update best score if needed
    * @param {number} score - Current game score
    */
@@ -115,13 +117,12 @@ export const useGame = () => {
     setGameCompleted(true);
     
     // Update best score if current score is better (lower) than previous best
-    if (!bestScore || score < bestScore) {
-      setBestScore(score);
-      localStorage.setItem('bestScore', score.toString());
+    const newBestScore = updateBestScore(score, bestScore);
+    if (newBestScore !== bestScore) {
+      setBestScore(newBestScore);
     }
   };
-  
-  /**
+    /**
    * Select an actor as a starting actor
    * @param {number} actorId - ID of the actor to select
    * @param {number} actorIndex - Index (0 or 1) of the actor position
@@ -134,11 +135,7 @@ export const useGame = () => {
           newStartActors[actorIndex] = null;
           return newStartActors;
         });
-        setActorSearchResults(prev => {
-          const newResults = [...prev];
-          newResults[actorIndex] = [];
-          return newResults;
-        });
+        setActorSearchResults(prev => clearActorSearchResults(actorIndex, prev));
         setActorSearch('', actorIndex);
         return;
       }
@@ -157,11 +154,7 @@ export const useGame = () => {
         return newStartActors;
       });
       
-      setActorSearchResults(prev => {
-        const newResults = [...prev];
-        newResults[actorIndex] = [];
-        return newResults;
-      });
+      setActorSearchResults(prev => clearActorSearchResults(actorIndex, prev));
     } catch (error) {
       console.error('Error selecting start actor:', error);
       // Potentially set an error state for the UI
@@ -169,18 +162,13 @@ export const useGame = () => {
       setIsLoading(false);
     }
   };
-  
-  /**
+    /**
    * Set actor search term
    * @param {string} term - Search term
    * @param {number} actorIndex - Index (0 or 1) of the actor position
    */
   const setActorSearch = (term, actorIndex) => {
-    setActorSearchTerms(prev => {
-      const newTerms = [...prev];
-      newTerms[actorIndex] = term;
-      return newTerms;
-    });
+    setActorSearchTerms(prev => updateActorSearchTerm(term, actorIndex, prev));
   };
   
   return {

@@ -4,24 +4,21 @@ import './SearchPanel.css';
 import SearchPanelUI from './SearchPanelUI';
 import SearchEntitiesSidebar from './SearchEntitiesSidebar';
 
-const SearchPanel = () => {
-  const {
+const SearchPanel = () => {  const {
     searchTerm,
     setSearchTerm,
     handleSearch,
     searchResults,
     isLoading,
     connectableItems,
-    didYouMean,
     originalSearchTerm,
     addToBoard,
     noMatchFound,
-    useSpellingCorrection,
     showAllSearchable,
     setSearchResults,
     setNoMatchFound,
-    setDidYouMean,
-    setExactMatch
+    setExactMatch,
+    setDidYouMean
   } = useGameContext();
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -116,17 +113,14 @@ const SearchPanel = () => {
   const shouldShowResults = !isLoading && hasResults && searchTerm.trim() !== '';
 
   return (
-    <> {/* Use a fragment to wrap SearchPanelUI and SearchEntitiesSidebar */}
-      <SearchPanelUI
+    <> {/* Use a fragment to wrap SearchPanelUI and SearchEntitiesSidebar */}      <SearchPanelUI
         handleSubmit={handleSubmit}
         inputRef={inputRef}
         searchTerm={searchTerm}
         handleInputChange={handleInputChange}
         isLoading={isLoading}
         hasResults={hasResults}
-        didYouMean={didYouMean}
         originalSearchTerm={originalSearchTerm}
-        useSpellingCorrection={useSpellingCorrection}
         noMatchFound={noMatchFound}
         shouldShowResults={shouldShowResults}
         resultsContainerRef={resultsContainerRef}

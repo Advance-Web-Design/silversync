@@ -173,6 +173,11 @@ const GameBoard = () => {
           startActors={startActors}
       />
         
+        
+      {/* Other components... */}
+      {selectedNode && <ConnectionsPanel />}
+      {isLoading && <LoadingOverlay />}
+      
       {/* Game Stats - displays game statistics */}
       <GameStats
         formattedBestScore={formattedBestScoreValue}
@@ -181,10 +186,6 @@ const GameBoard = () => {
         hasGuestAppearances={hasGuestAppearances}
         hasSearchResults={hasSearchResults}
       />
-        
-      {/* Other components... */}
-      {selectedNode && <ConnectionsPanel />}
-      {isLoading && <LoadingOverlay />}
     </Box>
   );
 };
