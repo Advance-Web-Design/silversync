@@ -7,7 +7,8 @@ const NodeLayer = ({
   nodePositions, 
   updateNodePosition, 
   boardSize, 
-  startActors 
+  startActors,
+  zoomLevel
 }) => {
   return (
     <Box className="nodes-container">
@@ -26,6 +27,7 @@ const NodeLayer = ({
             boardWidth={boardSize.width}
             boardHeight={boardSize.height}
             isStartActor={isStartActor}
+            zoomLevel={zoomLevel} /* zoom level */
           />
         );
       })}

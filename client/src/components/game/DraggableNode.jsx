@@ -18,7 +18,7 @@ import { getItemTitle } from '../../utils/stringUtils';
 import { useGameContext } from '../../contexts/gameContext';
 import './DraggableNode.css';
 
-const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight, isStartActor }) => {
+const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight, isStartActor, zoomLevel }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -85,8 +85,10 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     if (!isDragging) return;
     
     // Calculate new position based on mouse position and initial offset
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
+    const effectiveZoom = zoomLevel || 1; /*sanity check to prevent division by 0 */
+    const newX = (e.clientX - dragOffset.x) / effectiveZoom;
+    const newY = (e.clientY - dragOffset.y) / effectiveZoom;
+    updatePosition({ x: newX, y: newY });
     
     // Calculate boundaries considering node dimensions
     const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 0;
@@ -167,8 +169,10 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     const touch = e.touches[0];
     
     // Calculate new position based on touch position and initial offset
-    const newX = touch.clientX - dragOffset.x;
-    const newY = touch.clientY - dragOffset.y;
+    const effectiveZoom = zoomLevel || 1; /*sanity check to prevent division by 0 */
+    const newX = (touch.clientX - dragOffset.x) / effectiveZoom;
+    const newY = (touch.clientY - dragOffset.y) / effectiveZoom;
+    updatePosition({ x: newX, y: newY });
     
     // Calculate boundaries considering node dimensions
     const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 0;
@@ -248,6 +252,8 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
         left: `${position.x}px`,
         top: `${position.y}px`,
         borderColor: nodeBorderColor,
+        transform: `scale(${zoomLevel})`,
+        transformOrigin: 'top left'
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
