@@ -71,16 +71,8 @@ export const GameProvider = ({ children }) => {
     didYouMean, setDidYouMean,
     exactMatch, setExactMatch,
     originalSearchTerm, setOriginalSearchTerm,
-    // previousSearches, setPreviousSearches, // Removed unused variable
-    // knownEntities, setKnownEntities, // Removed unused variable
-    connectableItems, setConnectableItems,    // checkForMisspelling, // Removed unused variable
-    // findExactMatch, // Removed unused variable
-    // learnFromSuccessfulSearch, // Removed unused variable
-    // useSpellingCorrection: applySpellingCorrectionFnFromSearch, // Removed as part of removing "Did you mean" functionality
+    connectableItems, setConnectableItems,
     searchStartActors: searchStartActorsFn
-    // performFuzzySearch, // Removed unused variable
-    // addActorTvShowsToConnectableEntities, // Removed unused variable
-    // updateConnectableEntitiesForNode // Removed unused variable
   } = searchState;
 
   /**
@@ -212,17 +204,11 @@ export const GameProvider = ({ children }) => {
   const fetchAndSetAllSearchableEntities = async () => {
     setIsLoading(true);
     try {
-      // If no nodes on the board yet or only starting actors, don't show any entities 
-      // until the user has at least started the game
       if (nodes.length === 0 || !gameStarted) {
         setSearchResults([]);
         return;
       }
-      // If only starting actors are on the board, don't automatically show popular entities
-      // This prevents showing all movies at the start
       else if (nodes.length <= 2 && startActors.length === 2) {
-        // Only show entities if specifically requested through the "Show All" action
-        // Don't automatically fetch popular entities
         if (showAllSearchable) {
           const relevantEntities = [];
 
@@ -519,6 +505,7 @@ export const GameProvider = ({ children }) => {
       return false;
     }
   };
+
   /**
    * Main search function for finding movies, TV shows, or actors
    * Uses fuzzy search capabilities but without showing "Did you mean" prompts
@@ -562,7 +549,9 @@ export const GameProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };  /**
+  };  
+  
+  /**
    * Processes and filters search results from the API
    * Handles exact matches and connectability checks, but without spelling suggestions UI
    * 
@@ -800,7 +789,6 @@ export const GameProvider = ({ children }) => {
       }
     }
   };
-  // The useSpellingCorrection function has been removed as part of removing the "Did you mean" functionality
 
   /**
    * Wrapper for searching start actors
