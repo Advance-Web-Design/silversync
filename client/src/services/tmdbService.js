@@ -4,22 +4,20 @@
  * This file provides a service layer for interacting with The Movie Database (TMDB) API.
  * It handles all API communication including fetching movie/TV/actor data, searching,
  * and retrieving connections between entities for the "Connect the Stars" game.
- * 
- * Features:
- * - Request caching to minimize API calls
- * - Error handling and fallbacks
- * - Enhanced data processing (e.g., finding guest appearances)
- * - Image URL processing
- * 
- * This service is designed to work with either direct TMDB API calls or through a backend proxy.
- * Configuration in api.config.js determines which mode is used.
  */
-import { callApi, getImageUrl as getApiImageUrl, storeInSession, getFromSession } from './apiService';
-import config from '../config/api.config';
-
-// Track specialized caches that aren't handled by the generic caching mechanism
-const requestCache = new Map();
-const CACHE_TTL = config.cache.ttl;
+import { callApi, storeInSession, getFromSession } from './apiService';
+import {
+  CACHE_TTL,
+  SIX_HOURS,
+  getValidCachedData,
+  setCachedData,
+  getImageUrl,
+  processMovieResults,
+  processTvResults,
+  processPersonResults,
+  filterValidEntities,
+  processBatchedPromises
+} from '../utils/tmdbUtils';
 
 /**
  * Fetches a random popular actor from TMDB
@@ -61,83 +59,60 @@ export const findPersonGuestAppearances = async (personId) => {
   try {
     // Check cache first
     const cacheKey = `guest-appearances-${personId}`;
-    if (requestCache.has(cacheKey)) {
-      const cachedData = requestCache.get(cacheKey);
-      if (Date.now() - cachedData.timestamp < CACHE_TTL) {
-        return cachedData.data;
-      }
-    }
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
     
-    // Search for the person to get their known shows
-    const person = await callApi(`/person/${personId}`);
+    // Fetch all three API endpoints in parallel
+    const [person, personCredits, personPopular] = await Promise.all([
+      callApi(`/person/${personId}`),
+      callApi(`/person/${personId}/tv_credits`),
+      callApi(`/person/${personId}/combined_credits`)
+    ]);
     
-    // If no known for department, likely not an actor
+    // Early exit conditions in case the person is not an actor or has no TV credits
     if (!person.known_for_department || person.known_for_department !== 'Acting') {
+      setCachedData(cacheKey, []);
       return [];
     }
     
-    // Get person's TV credits for comparison
-    const personCredits = await callApi(`/person/${personId}/tv_credits`);
     const regularCreditIds = new Set((personCredits.cast || []).map(show => show.id));
+    let potentialGuestAppearances = [];
     
-    // Use person popular to get potential guest appearances
-    const personPopular = await callApi(`/person/${personId}/combined_credits`);
-    let guestAppearances = [];
-    
-    // Check each TV show credit
-    const promises = [];
-    for (const credit of (personPopular.cast || [])) {
-      // Only process TV shows
-      if (credit.media_type !== 'tv') continue;
-      
-      // Skip if it's already in regular credits
-      if (regularCreditIds.has(credit.id)) continue;
-      
-      // This might be a guest appearance - collect promises to resolve in parallel
-      promises.push(
-        callApi(`/tv/${credit.id}`).then(showDetails => {
-          // Create a guest appearance entry similar to regular TV credits format
-          return {
-            id: credit.id,
-            name: credit.name || showDetails.name,
-            original_name: credit.original_name || showDetails.original_name,
-            poster_path: credit.poster_path || showDetails.poster_path,
-            backdrop_path: credit.backdrop_path || showDetails.backdrop_path,
-            character: credit.character || 'Guest Appearance',
-            episode_count: credit.episode_count || 1,
-            first_air_date: credit.first_air_date || showDetails.first_air_date,
-            popularity: credit.popularity || showDetails.popularity,
-            vote_average: credit.vote_average || showDetails.vote_average,
-            vote_count: credit.vote_count || showDetails.vote_count,
-            credit_id: credit.credit_id,
-            is_guest_appearance: true
-          };
-        }).catch(err => {
-          console.error(`Error fetching show details for ${credit.id}:`, err);
-          return null; // Return null for failed requests
-        })
-      );
-      
-      // Limit to 5 requests at a time to avoid overloading the API
-      if (promises.length >= 5) {
-        const results = await Promise.all(promises);
-        guestAppearances = [...guestAppearances, ...results.filter(Boolean)];
-        promises.length = 0; // Clear the array
+    // Pre-filter to reduce unnecessary API calls
+    (personPopular.cast || []).forEach(credit => {
+      if (credit.media_type === 'tv' && !regularCreditIds.has(credit.id)) {
+        potentialGuestAppearances.push(credit);
       }
-    }
-    
-    // Process any remaining promises
-    if (promises.length > 0) {
-      const results = await Promise.all(promises);
-      guestAppearances = [...guestAppearances, ...results.filter(Boolean)];
-    }
-    
-    // Cache the results
-    requestCache.set(cacheKey, {
-      timestamp: Date.now(),
-      data: guestAppearances
     });
     
+    // Use batch processing with the utility function
+    const guestAppearances = await processBatchedPromises(
+      potentialGuestAppearances,
+      credit => callApi(`/tv/${credit.id}`)
+        .then(showDetails => ({
+          id: credit.id,
+          name: credit.name || showDetails.name,
+          original_name: credit.original_name || showDetails.original_name,
+          poster_path: credit.poster_path || showDetails.poster_path,
+          backdrop_path: credit.backdrop_path || showDetails.backdrop_path,
+          character: credit.character || 'Guest Appearance',
+          episode_count: credit.episode_count || 1,
+          first_air_date: credit.first_air_date || showDetails.first_air_date,
+          popularity: credit.popularity || showDetails.popularity,
+          vote_average: credit.vote_average || showDetails.vote_average,
+          vote_count: credit.vote_count || showDetails.vote_count,
+          credit_id: credit.credit_id,
+          is_guest_appearance: true
+        }))
+        .catch(err => {
+          console.error(`Error fetching show details for ${credit.id}:`, err);
+          return null;
+        }),
+      { batchSize: 10 }
+    );
+    
+    // Cache the results
+    setCachedData(cacheKey, guestAppearances);
     return guestAppearances;
   } catch (error) {
     console.error('Error finding guest appearances:', error);
@@ -173,20 +148,25 @@ export const searchActorGuestAppearances = async (actorId, query) => {
 };
 
 /**
- * Get person details including movie and TV credits - now with guest appearances
+ * Get person details including movie and TV credits
  * 
  * @param {number} personId - The TMDB ID of the person
- * @returns {Promise<Object>} - The person details including credits and guest appearances
+ * @returns {Promise<Object>} - The person details including credits
  */
 export const getPersonDetails = async (personId) => {
   try {
-    // Get the standard person details first
-    const personDetails = await callApi(`/person/${personId}`, {
-      append_to_response: 'movie_credits,tv_credits,images'
-    });
+    // Check cache first
+    const cacheKey = `person-details-${personId}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
     
-    // Now try to find guest appearances
-    const guestAppearances = await findPersonGuestAppearances(personId);
+    // Get person details and guest appearances in parallel
+    const [personDetails, guestAppearances] = await Promise.all([
+      callApi(`/person/${personId}`, {
+        append_to_response: 'movie_credits,tv_credits,images'
+      }),
+      findPersonGuestAppearances(personId)
+    ]);
     
     // Ensure tv_credits and tv_credits.cast exist
     if (!personDetails.tv_credits) {
@@ -201,17 +181,15 @@ export const getPersonDetails = async (personId) => {
       const existingTvShowIds = new Set(personDetails.tv_credits.cast.map(show => show.id));
       
       guestAppearances.forEach(guestAppearance => {
-        // Only add if it's not already in the main cast credits
-        // and ensure it's marked as a guest appearance
+        // Only add if it's not already in the main cast credits and ensure it's marked as a guest appearance
         if (!existingTvShowIds.has(guestAppearance.id)) {
           personDetails.tv_credits.cast.push({
-            ...guestAppearance, // Spread guest appearance details
-            is_guest_appearance: true // Explicitly mark as guest appearance
+            ...guestAppearance,
+            is_guest_appearance: true
           });
-          existingTvShowIds.add(guestAppearance.id); // Add to set to prevent re-adding
+          existingTvShowIds.add(guestAppearance.id);
         } else {
-          // If it IS already in tv_credits (e.g. a recurring role that's also listed as guest),
-          // find it and ensure it's marked as having a guest appearance aspect.
+          // If it's already in tv_credits, mark it as having a guest appearance
           const existingCredit = personDetails.tv_credits.cast.find(c => c.id === guestAppearance.id);
           if (existingCredit) {
             existingCredit.is_guest_appearance = true; 
@@ -223,25 +201,28 @@ export const getPersonDetails = async (personId) => {
       personDetails.guest_appearances_processed = true;
     }
     
+    // Cache the results
+    setCachedData(cacheKey, personDetails);
     return personDetails;
   } catch (error) {
-    console.error('Error getting person details with guest appearances:', error);
-    // Fall back to the standard API call if our enhanced version fails
-    // This fallback should also ideally try to initialize tv_credits if null
+    console.error('Error getting person details:', error);
+    
+    // Fall back to standard API call if enhanced version fails
     try {
       const fallbackDetails = await callApi(`/person/${personId}`, {
         append_to_response: 'movie_credits,tv_credits,images'
       });
+      
       if (!fallbackDetails.tv_credits) {
         fallbackDetails.tv_credits = { cast: [] };
       }
       if (!fallbackDetails.tv_credits.cast) {
         fallbackDetails.tv_credits.cast = [];
       }
+      
       return fallbackDetails;
     } catch (fallbackError) {
-      console.error('Error in fallback getPersonDetails:', fallbackError);
-      // If even fallback fails, return a minimal structure or throw
+      console.error('Fallback person details error:', fallbackError);
       return { 
         id: personId, 
         name: "Error loading details", 
@@ -261,36 +242,86 @@ export const getPersonDetails = async (personId) => {
  * @returns {Promise<Object>} - The movie details including credits
  */
 export const getMovieDetails = async (movieId) => {
-  return callApi(`/movie/${movieId}`, {
-    append_to_response: 'credits'
-  });
+  try {
+    // Check cache first
+    const cacheKey = `movie-details-${movieId}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Get movie details with credits and images
+    const movieDetails = await callApi(`/movie/${movieId}`, {
+      append_to_response: 'credits,images,videos,releases'
+    });
+    
+    // Cache the results
+    setCachedData(cacheKey, movieDetails);
+    return movieDetails;
+  } catch (error) {
+    console.error('Error getting movie details:', error);
+    return { id: movieId, error: true };
+  }
 };
 
 /**
  * Get TV show details including credits
  * 
  * @param {number} tvId - The TMDB ID of the TV show
- * @returns {Promise<Object>} - The TV show details including credits
+ * @returns {Promise<Object>} - The TV show details
  */
 export const getTvShowDetails = async (tvId) => {
-  return callApi(`/tv/${tvId}`, {
-    append_to_response: 'credits,aggregate_credits'
-  });
+  try {
+    // Check cache first
+    const cacheKey = `tv-details-${tvId}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Get TV show details with aggregate credits (useful for guest stars)
+    const tvDetails = await callApi(`/tv/${tvId}`, {
+      append_to_response: 'aggregate_credits,credits,images,videos'
+    });
+    
+    // Cache the results
+    setCachedData(cacheKey, tvDetails);
+    return tvDetails;
+  } catch (error) {
+    console.error('Error getting TV show details:', error);
+    return { id: tvId, error: true };
+  }
 };
 
 /**
- * Get TV show season details (including episodes)
+ * Get TV show season details
  * 
  * @param {number} tvId - The TMDB ID of the TV show
  * @param {number} seasonNumber - The season number to fetch
  * @returns {Promise<Object>} - The season details including episodes
  */
 export const getTvShowSeason = async (tvId, seasonNumber) => {
-  return callApi(`/tv/${tvId}/season/${seasonNumber}`);
+  try {
+    // Check cache first
+    const cacheKey = `tv-season-${tvId}-${seasonNumber}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Get season details
+    const seasonDetails = await callApi(`/tv/${tvId}/season/${seasonNumber}`);
+    
+    // Cache the results
+    setCachedData(cacheKey, seasonDetails);
+    return seasonDetails;
+  } catch (error) {
+    console.error(`Error getting TV season ${seasonNumber} for show ${tvId}:`, error);
+    return { 
+      id: tvId,
+      season_number: seasonNumber,
+      episodes: [],
+      error: true 
+    };
+  }
 };
 
 /**
- * Get TV episode details (including guest stars)
+ * Get TV episode details
  * 
  * @param {number} tvId - The TMDB ID of the TV show
  * @param {number} seasonNumber - The season number of the episode
@@ -298,9 +329,31 @@ export const getTvShowSeason = async (tvId, seasonNumber) => {
  * @returns {Promise<Object>} - The episode details including guest stars
  */
 export const getTvEpisodeDetails = async (tvId, seasonNumber, episodeNumber) => {
-  return callApi(`/tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}`, {
-    append_to_response: 'credits'
-  });
+  try {
+    // Check cache first
+    const cacheKey = `tv-episode-${tvId}-${seasonNumber}-${episodeNumber}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Get episode details with credits
+    const episodeDetails = await callApi(
+      `/tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}`, 
+      { append_to_response: 'credits,images' }
+    );
+    
+    // Cache the results
+    setCachedData(cacheKey, episodeDetails);
+    return episodeDetails;
+  } catch (error) {
+    console.error(`Error getting TV episode S${seasonNumber}E${episodeNumber} for show ${tvId}:`, error);
+    return { 
+      show_id: tvId,
+      season_number: seasonNumber, 
+      episode_number: episodeNumber,
+      guest_stars: [],
+      error: true 
+    };
+  }
 };
 
 /**
@@ -313,52 +366,146 @@ export const getTvEpisodeDetails = async (tvId, seasonNumber, episodeNumber) => 
  */
 export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisodesPerSeason = 5) => {
   try {
-    // First get the TV show details to get the number of seasons
+    // Check cache first
+    const cacheKey = `tv-guest-stars-${tvId}-${maxSeasonsToFetch}-${maxEpisodesPerSeason}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+
+    // Get TV show details to try aggregate_credits first
     const tvDetails = await getTvShowDetails(tvId);
-    const seasons = tvDetails.seasons || [];
     
-    // Limit to the first few seasons to avoid too many requests
-    const limitedSeasons = seasons.slice(0, maxSeasonsToFetch);
-    
-    let guestStars = [];
-    const processedActorIds = new Set(); // To avoid duplicates
-    
-    // Fetch guest stars from each season's episodes
-    for (const season of limitedSeasons) {
-      // Skip specials (season_number 0)
-      if (season.season_number === 0) continue;
+    // Try to use aggregate_credits first (much more efficient)
+    if (tvDetails.aggregate_credits && 
+        tvDetails.aggregate_credits.cast && 
+        tvDetails.aggregate_credits.cast.length > 0) {
       
-      const seasonDetails = await getTvShowSeason(tvId, season.season_number);
-      const episodes = seasonDetails.episodes || [];
+      console.log(`Using aggregate_credits for TV show ${tvId}`);
       
-      // Limit episodes per season to avoid too many requests
-      const limitedEpisodes = episodes.slice(0, maxEpisodesPerSeason);
-      
-      for (const episode of limitedEpisodes) {
-        const episodeDetails = await getTvEpisodeDetails(
-          tvId, 
-          season.season_number, 
-          episode.episode_number
-        );
+      // Find potential guest stars based on episode count and character
+      const potentialGuestStars = tvDetails.aggregate_credits.cast.filter(actor => {
+        if (!actor.roles || actor.roles.length === 0) return false;
         
-        const episodeGuestStars = episodeDetails.guest_stars || [];
-        
-        episodeGuestStars.forEach(actor => {
-          // Avoid duplicates
-          if (!processedActorIds.has(actor.id)) {
-            processedActorIds.add(actor.id);
-            
-            guestStars.push({
-              ...actor,
-              episode_name: episode.name,
-              episode_number: episode.episode_number,
-              season_number: season.season_number
-            });
-          }
+        return actor.roles.some(role => {
+          // Consider as guest star if less than 3 episodes or character contains guest-related terms
+          const isLowEpisodeCount = role.episode_count < 3;
+          const hasGuestIndicator = role.character && 
+            (role.character.toLowerCase().includes('guest') || 
+             role.character.toLowerCase().includes('special appearance') ||
+             role.character.toLowerCase().includes('cameo'));
+             
+          return isLowEpisodeCount || hasGuestIndicator;
         });
+      });
+      
+      if (potentialGuestStars.length > 0) {
+        const guestStars = potentialGuestStars.map(actor => {
+          // Get the first role (most significant or recent)
+          const primaryRole = actor.roles && actor.roles.length > 0 ? actor.roles[0] : null;
+          
+          return {
+            id: actor.id,
+            name: actor.name,
+            profile_path: actor.profile_path,
+            character: primaryRole?.character || 'Guest Star',
+            credit_id: primaryRole?.credit_id || actor.credit_id,
+            gender: actor.gender,
+            popularity: actor.popularity,
+            known_for_department: actor.known_for_department,
+            // Add episode info from the role when available
+            episode_count: primaryRole?.episode_count || 1,
+            episode_name: 'Various',
+            episode_number: 1,
+            season_number: 1
+          };
+        });
+        
+        // Cache the results
+        setCachedData(cacheKey, guestStars, { source: 'aggregate_credits' });
+        return guestStars;
       }
     }
     
+    // If we couldn't extract from aggregate_credits, fallback to episode-by-episode approach
+    console.log(`Falling back to episode fetching for TV show ${tvId}`);
+    
+    const seasons = tvDetails.seasons || [];
+    
+    // Filter valid seasons and limit to requested count
+    const validSeasons = seasons
+      .filter(season => season.season_number > 0)
+      .slice(0, maxSeasonsToFetch);
+    
+    // If no valid seasons, return empty array
+    if (validSeasons.length === 0) {
+      const emptyResult = [];
+      setCachedData(cacheKey, emptyResult, { source: 'no_seasons' });
+      return emptyResult;
+    }
+    
+    // Fetch all season details in parallel
+    const seasonPromises = validSeasons.map(season => 
+      getTvShowSeason(tvId, season.season_number)
+    );
+    
+    const seasonDetails = await Promise.all(seasonPromises);
+    
+    // Prepare episode batch for parallel fetching
+    let episodeBatches = [];
+    
+    // Build the episode list to fetch
+    seasonDetails.forEach((seasonData, index) => {
+      const episodes = seasonData.episodes || [];
+      const limitedEpisodes = episodes.slice(0, maxEpisodesPerSeason);
+      
+      limitedEpisodes.forEach(episode => {
+        episodeBatches.push({
+          seasonNumber: validSeasons[index].season_number,
+          episodeNumber: episode.episode_number,
+          episodeName: episode.name
+        });
+      });
+    });
+    
+    // Use the batched promise utility for efficient fetching
+    let guestStars = [];
+    const processedActorIds = new Set();
+    
+    // Process episodes in batches
+    const episodeResults = await processBatchedPromises(
+      episodeBatches,
+      ep => getTvEpisodeDetails(tvId, ep.seasonNumber, ep.episodeNumber)
+        .then(details => ({
+          details,
+          seasonNumber: ep.seasonNumber,
+          episodeName: ep.episodeName,
+          episodeNumber: ep.episodeNumber
+        })),
+      { 
+        adaptiveSizing: true,
+        delayBetweenBatches: 100 
+      }
+    );
+    
+    // Extract guest stars from episode results
+    episodeResults.forEach(result => {
+      const episodeGuestStars = result.details.guest_stars || [];
+      
+      episodeGuestStars.forEach(actor => {
+        if (!processedActorIds.has(actor.id)) {
+          processedActorIds.add(actor.id);
+          
+          guestStars.push({
+            ...actor,
+            episode_name: result.episodeName,
+            episode_number: result.episodeNumber,
+            season_number: result.seasonNumber
+          });
+        }
+      });
+    });
+    
+    // Cache the results
+    setCachedData(cacheKey, guestStars, { source: 'episode_details' });
     return guestStars;
   } catch (error) {
     console.error('Error fetching guest stars:', error);
@@ -375,24 +522,38 @@ export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisod
  */
 export const checkActorInTvShow = async (actorId, tvShowId) => {
   try {
-    // Get actor's TV credits
-    const tvCredits = await callApi(`/person/${actorId}/tv_credits`);
+    // Check cache first
+    const cacheKey = `actor-in-show-${actorId}-${tvShowId}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Fetch both API endpoints in parallel
+    const [tvCredits, combinedCredits] = await Promise.all([
+      callApi(`/person/${actorId}/tv_credits`),
+      callApi(`/person/${actorId}/combined_credits`)
+    ]);
     
     // Check regular cast credits
     if (tvCredits.cast && tvCredits.cast.some(show => show.id === tvShowId)) {
-      return { appears: true, role: 'cast' };
+      const result = { appears: true, role: 'cast' };
+      setCachedData(cacheKey, result);
+      return result;
     }
     
-    // Check guest appearances through combined credits (more thorough)
-    const combinedCredits = await callApi(`/person/${actorId}/combined_credits`);
-    const tvAppearances = combinedCredits.cast ? combinedCredits.cast.filter(c => c.media_type === 'tv') : [];
+    // Check guest appearances
+    const tvAppearances = combinedCredits.cast ? 
+      combinedCredits.cast.filter(c => c.media_type === 'tv') : [];
     
     if (tvAppearances.some(show => show.id === tvShowId)) {
-      return { appears: true, role: 'guest' };
+      const result = { appears: true, role: 'guest' };
+      setCachedData(cacheKey, result);
+      return result;
     }
     
-    // If neither found, they haven't appeared in the show
-    return { appears: false };
+    // If no appearances found, return false
+    const result = { appears: false };
+    setCachedData(cacheKey, result);
+    return result;
   } catch (error) {
     console.error('Error checking actor in TV show:', error);
     return { appears: false, error: error.message };
@@ -412,86 +573,25 @@ export const searchMulti = async (query) => {
     }
 
     const trimmedQuery = query.trim();
-    let results = [];
     
-    // Try to search in all categories at once first
-    const multiResults = await callApi('/search/multi', { 
-      query: trimmedQuery, 
+    // Check cache first
+    const cacheKey = `search-multi-${trimmedQuery}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Search across all types in parallel
+    const results = await callApi('/search/multi', {
+      query: trimmedQuery,
       include_adult: false,
-      language: 'en-US'
+      page: 1
     });
     
-    results = multiResults.results || [];
-    
-    // Always fetch more specific results to ensure better coverage
-    const [tvResults, movieResults, peopleResults] = await Promise.all([
-      callApi('/search/tv', { 
-        query: trimmedQuery,
-        include_adult: false,
-        language: 'en-US'
-      }),
-      callApi('/search/movie', { 
-        query: trimmedQuery,
-        include_adult: false,
-        language: 'en-US'
-      }),
-      callApi('/search/person', { 
-        query: trimmedQuery,
-        include_adult: false,
-        language: 'en-US'
-      })
-    ]);
-    
-    // Track existing IDs to avoid duplicates
-    const existingIds = new Map();
-    results.forEach(item => {
-      if (item.id && item.media_type) {
-        existingIds.set(`${item.media_type}-${item.id}`, true);
-      }
-    });
-    
-    // Add TV results with media_type
-    if (tvResults.results && tvResults.results.length > 0) {
-      tvResults.results.forEach(show => {
-        if (!existingIds.has(`tv-${show.id}`)) {
-          results.push({
-            ...show,
-            media_type: 'tv'
-          });
-          existingIds.set(`tv-${show.id}`, true);
-        }
-      });
+    if (!results.results || results.results.length === 0) {
+      return [];
     }
     
-    // Add movie results with media_type
-    if (movieResults.results && movieResults.results.length > 0) {
-      movieResults.results.forEach(movie => {
-        if (!existingIds.has(`movie-${movie.id}`)) {
-          results.push({
-            ...movie,
-            media_type: 'movie'
-          });
-          existingIds.set(`movie-${movie.id}`, true);
-        }
-      });
-    }
-    
-    // Add people results with media_type
-    if (peopleResults.results && peopleResults.results.length > 0) {
-      peopleResults.results.forEach(person => {
-        if (!existingIds.has(`person-${person.id}`)) {
-          results.push({
-            ...person,
-            media_type: 'person'
-          });
-          existingIds.set(`person-${person.id}`, true);
-        }
-      });
-    }
-    
-    // Clean up results to ensure all have the right properties
-    results = results.map(item => {
-      // Fix missing media_type
+    // Process results
+    let processedResults = results.results.map(item => {
       if (!item.media_type) {
         if (item.title && !item.name) {
           return { ...item, media_type: 'movie' };
@@ -505,17 +605,21 @@ export const searchMulti = async (query) => {
     });
     
     // Filter out results with no media type or unknown media types
-    results = results.filter(item => 
+    processedResults = processedResults.filter(item => 
       item.media_type === 'movie' || 
       item.media_type === 'tv' || 
       item.media_type === 'person'
     );
     
     // Sort by popularity
-    results.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+    processedResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     
     // Limit to a reasonable number of results
-    return results.slice(0, 20);
+    const finalResults = processedResults.slice(0, 20);
+    
+    // Cache the results
+    setCachedData(cacheKey, finalResults);
+    return finalResults;
   } catch (error) {
     console.error('Error in searchMulti:', error);
     return [];
@@ -534,17 +638,28 @@ export const searchPeople = async (query, page = 1) => {
     if (!query || !query.trim()) {
       return { results: [], page: 1, total_pages: 1 };
     }
+    
+    // Check cache first for this specific page
+    const cacheKey = `search-people-${query.trim()}-${page}`;
+    const cachedData = getValidCachedData(cacheKey);
+    if (cachedData) return cachedData;
+    
+    // Search for people
     const response = await callApi('/search/person', { 
       query: query.trim(),
       include_adult: false,
       page: page
     });
     
-    return {
+    const result = {
       results: response.results || [],
       page: response.page || 1,
       total_pages: response.total_pages || 1
     };
+    
+    // Cache the results
+    setCachedData(cacheKey, result);
+    return result;
   } catch (error) {
     console.error('Error in searchPeople:', error);
     return { results: [], page: 1, total_pages: 1 };
@@ -562,12 +677,10 @@ export const searchPeople = async (query, page = 1) => {
 export const fetchPopularEntities = async (moviePages = 3, tvPages = 3, personPages = 3) => {
   try {
     console.log('Fetching popular entities for spell checking database...');
-    let allEntities = [];
     
     // Check if we have cached entities in session storage
     const cachedEntities = getFromSession('popularEntities');
     const lastFetchTime = getFromSession('popularEntitiesLastFetch');
-    const SIX_HOURS = 6 * 60 * 60 * 1000;
     
     if (cachedEntities && lastFetchTime && 
         (Date.now() - parseInt(lastFetchTime)) < SIX_HOURS) {
@@ -575,59 +688,37 @@ export const fetchPopularEntities = async (moviePages = 3, tvPages = 3, personPa
       return cachedEntities;
     }
     
-    // Fetch popular movies
-    for (let page = 1; page <= moviePages; page++) {
-      const popularMovies = await callApi('/movie/popular', { page });
-      const movieEntities = popularMovies.results.map(movie => ({
-        id: movie.id,
-        title: movie.title,
-        name: movie.title, // Duplicate as name for consistency in search
-        original_title: movie.original_title,
-        poster_path: movie.poster_path,
-        media_type: 'movie',
-        popularity: movie.popularity,
-        release_date: movie.release_date
-      }));
-      allEntities = [...allEntities, ...movieEntities];
-    }
+    // Create arrays of promises for each page request
+    const moviePromises = Array.from({ length: moviePages }, (_, i) => 
+      callApi('/movie/popular', { page: i + 1 })
+    );
     
-    // Fetch popular TV shows
-    for (let page = 1; page <= tvPages; page++) {
-      const popularTv = await callApi('/tv/popular', { page });
-      const tvEntities = popularTv.results.map(show => ({
-        id: show.id,
-        name: show.name,
-        title: show.name, // Duplicate as title for consistency in search
-        original_name: show.original_name,
-        poster_path: show.poster_path,
-        media_type: 'tv',
-        popularity: show.popularity,
-        first_air_date: show.first_air_date
-      }));
-      allEntities = [...allEntities, ...tvEntities];
-    }
+    const tvPromises = Array.from({ length: tvPages }, (_, i) => 
+      callApi('/tv/popular', { page: i + 1 })
+    );
     
-    // Fetch popular people
-    for (let page = 1; page <= personPages; page++) {
-      const popularPeople = await callApi('/person/popular', { page });
-      const personEntities = popularPeople.results.map(person => ({
-        id: person.id,
-        name: person.name,
-        profile_path: person.profile_path,
-        media_type: 'person',
-        popularity: person.popularity,
-        known_for_department: person.known_for_department,
-        known_for: person.known_for
-      }));
-      allEntities = [...allEntities, ...personEntities];
-    }
+    const personPromises = Array.from({ length: personPages }, (_, i) => 
+      callApi('/person/popular', { page: i + 1 })
+    );
+    
+    // Execute all requests in parallel by media type
+    console.log(`Fetching ${moviePages} movie pages, ${tvPages} TV pages, and ${personPages} person pages in parallel`);
+    const [movieResults, tvResults, personResults] = await Promise.all([
+      Promise.all(moviePromises),
+      Promise.all(tvPromises),
+      Promise.all(personPromises)
+    ]);
+    
+    // Process results using utility functions from tmdbUtils
+    const movieEntities = processMovieResults(movieResults);
+    const tvEntities = processTvResults(tvResults);
+    const personEntities = processPersonResults(personResults);
+    
+    // Combine all entities
+    const allEntities = [...movieEntities, ...tvEntities, ...personEntities];
     
     // Filter entities and ensure they have required fields
-    const filteredEntities = allEntities.filter(entity => (
-      entity && entity.id && 
-      ((entity.media_type === 'person' && entity.profile_path) || 
-       (entity.media_type !== 'person' && entity.poster_path))
-    ));
+    const filteredEntities = filterValidEntities(allEntities);
     
     console.log(`Fetched ${filteredEntities.length} unique entities for spell checking`);
     
@@ -638,20 +729,18 @@ export const fetchPopularEntities = async (moviePages = 3, tvPages = 3, personPa
     return filteredEntities;
   } catch (error) {
     console.error('Error fetching popular entities:', error);
+    // Try to return cached data even if it's expired in case of error
+    const cachedEntities = getFromSession('popularEntities');
+    if (cachedEntities) {
+      console.log('Falling back to cached entities due to fetch error');
+      return cachedEntities;
+    }
     return [];
   }
 };
 
-/**
- * Gets the full image URL for TMDB images
- * According to TMDB docs, images don't need authentication headers
- * @param {string} path - The image path
- * @param {string} type - The image type (poster, profile, etc.)
- * @returns {string} - The image URL
- */
-export const getImageUrl = (path, type = 'poster') => {
-  return getApiImageUrl(path, type);
-};
+// Export the getImageUrl directly from tmdbUtils
+export { getImageUrl };
 
 /**
  * Backward compatibility function to maintain existing code
