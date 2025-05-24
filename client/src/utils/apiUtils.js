@@ -45,8 +45,8 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
 
   try {
     const response = await fetch(url.toString(), { 
-      method,
-      headers,
+      method: method,
+      headers: headers,
       body: method !== 'GET' && body ? JSON.stringify(body) : null,
     });
     
@@ -59,7 +59,7 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
     // Cache the response
     requestCache.set(cacheKey, {
       timestamp: now,
-      data
+      data: data
     });
     
     return data;

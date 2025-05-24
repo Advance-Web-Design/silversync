@@ -83,7 +83,7 @@ const ActorSearchInterface = ({
       </div>
       
       <button 
-        className="randomize-btn"
+        className="w-full mt-2 cursor-pointer rounded border-none bg-cyan-600 py-2 px-4 text-white transition-colors duration-300 hover:bg-[#0f3460] disabled:bg-[#cccccc] disabled:cursor-not-allowed"
         onClick={onRandomize} // Call without arguments
         disabled={isLoading && activeInputIndex !== index}
       >

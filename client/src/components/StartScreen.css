@@ -40,6 +40,7 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   position: relative;
   min-height: 300px;
+  margin: 2rem;
 }
 
 .actor-image {
@@ -192,27 +193,6 @@
   cursor: not-allowed;
 }
 
-.start-game-btn {
-  background-color: #ff9900;
-  color: white;
-  border: none;
-  padding: 0.8rem 2rem;
-  border-radius: 4px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  width: 100%;
-}
-
-.start-game-btn:hover:not(:disabled) {
-  background-color: #ffb347;
-}
-
-.start-game-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
 
 .continue-iterating-btn {
   background-color: #4a6fa5;

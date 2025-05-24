@@ -71,31 +71,20 @@ const StartScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative"
-      style={{
-        backgroundImage: 'url("/stars-bg.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}>
+    <div className="relative min-h-screen bg-[url('/bg2.png')] bg-cover bg-center bg-fixed  text-black">
 
       {/* Header with game title and menu button */}
       <div className="flex justify-between items-center p-4 w-full">
-        {/* Title on top left */}
-        <h1 style={{ 
-          fontFamily: 'serif', 
-          color: 'gold', 
-          fontWeight: 'bold',
-          fontSize: '1.75rem'
-        }}>
+        {/* Menu button on top left */}
+        <Menu parentName={'StartScreen'} />
+        
+        {/* Title on top right */}
+        <h1 className="font-serif font-bold text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500]">
           Connect The Stars
         </h1>
-        
-        {/* Menu button on top right - Replaced with Header component */}
-        <Menu parentName={'StartScreen'} />
       </div>
       {/* Main content area */}
-      <div className="start-screen">
+      <div className="flex flex-col items-center justify-center p-8  mx-auto h-full">
         {/* Error message display */}
         {startActorsError && (
           <div className="error-message">
@@ -104,7 +93,7 @@ const StartScreen = () => {
         )}
 
         {/* Actor selection cards - one for each starting position */}
-        <div className="actors-selection">
+        <div className="flex flex-wrap justify-around w-full max-w-lg m-10 mb-12">
           {[0, 1].map((index) => (
             <ActorCard
               key={index}
@@ -133,13 +122,14 @@ const StartScreen = () => {
         </div>
         
         {/* Game control buttons at the bottom */}
-        <div className="game-actions">
+        <div className="flex flex-col items-center gap-4 w-full max-w-[300px] p-4">
           {/* Start game button - only enabled when two actors are selected */}
           <button
-            className="start-game-btn"
+            className="w-full cursor-pointer rounded-lg bg-cyan-400 py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            
+            //className='!bg-[#ffb347] !text-black disabled:bg-blue-500 disabled:text-green-400 hover:bg-pink-500'
             onClick={startGame}
             disabled={!(startActors[0] && startActors[1]) || isLoading}
-            style={{ backgroundColor: 'gold', color: 'black' }}
           >
             START GAME
           </button>

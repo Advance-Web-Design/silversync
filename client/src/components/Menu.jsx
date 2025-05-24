@@ -124,9 +124,12 @@ function Menu(props) {
     return (
         <> {/* Use React Fragment to allow HowToPlay to be a sibling */}
             <div className="menu-container" ref={menuRef}>
-                <button className="menu-button" onClick={handleMenuToggle}>
-                    <MenuIcon fontSize="large" /> 
-                    <span style={{ marginLeft: '8px' }}>Menu</span>
+                <button
+                    className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-[#3b3b3b] text-white shadow-md hover:bg-black transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-75"
+                    onClick={handleMenuToggle}
+                >
+                    <MenuIcon fontSize="medium" /> {/* Adjusted icon size for better fit */}
+                    <span className="mt-1 text-xs">Menu</span> {/* Text below icon, smaller */}
                 </button>
 
                 {menuOpen && (
