@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import './Login.css';
+import { verifyUser } from "../services/firebaseService";
+
 
 function LoginWindow() {
   const [isOpen, setIsOpen] = useState(true);
@@ -20,7 +22,29 @@ function LoginWindow() {
   const handleLogin = (e) => {
     e.preventDefault(); // Prevents page reload
     // TODO: Add your login logic here
-    alert(`Username: ${username}\nPassword: ${password}`);
+
+    // TODO: temporary client-side login logic
+    
+
+
+    verifyUser(username, password)
+      .then(userId => {
+        if (userId) {
+          console.log('User logged in with ID:', userId);
+          alert('Login successful!');
+          handleClose(); // Close the popup after successful login
+        } else {
+          alert('Invalid username or password.');
+        }
+      })
+      .catch(error => {
+        console.error('Error during login:', error);
+        alert('An error occurred during login. Please try again.');
+      });
+
+
+
+    //alert(`Username: ${username}\nPassword: ${password}`);
   };
   
 

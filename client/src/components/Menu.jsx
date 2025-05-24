@@ -4,11 +4,16 @@ import './Menu.css';
 import { useGameContext } from '../contexts/gameContext'; // Import useGameContext
 import HowToPlay from './HowToPlay';
 import About from './About';
+import LoginWindow from './Login'; // Import Login component
+import RegisterWindow from './Register'; // Import Register component
 
 function Menu(props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false); // State for HowToPlay visibility
     const [showAbout, setShowAbout] = useState(false); // State for About visibility
+    const [showLoginWindow, setShowLoginWindow] = useState(false); // State for Login window visibility
+    const [showRegisterWindow, setShowRegisterWindow] = useState(false); // State for Register window visibility
+
     const menuRef = useRef(null);
     // Destructure login-related states and functions from context
     const { 
@@ -24,12 +29,16 @@ function Menu(props) {
         setMenuOpen(prev => !prev);
         if (showHowToPlay) setShowHowToPlay(false); // Close HowToPlay if menu is toggled
         if (showAbout) setShowAbout(false); // Close About if menu is toggled
+        if (showLoginWindow) setShowLoginWindow(false); // Close Login if menu is toggled
+        if (showRegisterWindow) setShowRegisterWindow(false); // Close Register if menu is toggled
+
     };
 
     // Action handlers using context functions
     const handleLogin = () => {
         console.log('Login action triggered');
-        if (login) login(); // Call login function from context
+        // if (login) login(); // Call login function from context
+        setShowLoginWindow(prev => !prev); // Toggle login visibility
         setMenuOpen(false);
     };
 
@@ -43,7 +52,8 @@ function Menu(props) {
     // Register action handler
     const handleRegister = () => {
         console.log('Register action triggered');
-        if (register) register(); // Call register function from context
+        //if (register) register(); // Call register function from context
+        setShowRegisterWindow(prev => !prev); // Toggle login visibility
         setMenuOpen(false);
     };
 
@@ -116,6 +126,14 @@ function Menu(props) {
         setShowHowToPlay(false);
     };
 
+    const closeLoginWindow = () => {
+        setShowLoginWindow(false);
+    };
+
+    const closeRegisterWindow = () => {
+        setShowRegisterWindow(false);
+    };
+
     // Function to be passed to About component to close it
     const closeAbout = () => {
         setShowAbout(false);
@@ -167,6 +185,14 @@ function Menu(props) {
 
             {/* Conditionally render the About component */}
             {showAbout && <About onClose={closeAbout}/>}
+
+
+            
+            {/* Conditionally render the login component */}
+            {showLoginWindow && <LoginWindow onClose={closeLoginWindow} />}
+
+            {/* Conditionally render the register component */}
+            {showRegisterWindow && <RegisterWindow onClose={closeRegisterWindow} />}
         </>
     );
 }

@@ -1,4 +1,5 @@
-
+//TODO: THIS IMPORT IS TEMPORARY, REMOVE WHEN CLIENT AND SERVER ARE SEPARATED
+import { addUser } from "../services/firebaseService";
 
 
 import React, { useState } from 'react';
@@ -51,6 +52,18 @@ function RegisterWindow() {
 
     // TODO: Add your register logic here
 
+    // TODO: FIX WHEN CLIENT AND SERVER ARE SEPARATED
+    addUser(username, password, email)
+      .then(userId => {
+        console.log('User registered with ID:', userId);
+        alert('Registration successful!');
+        handleClose(); // Close the popup after successful registration
+      })
+      .catch(error => {
+        console.error('Error registering user:', error);
+        alert('Registration failed. Please try again.');
+      });
+//    console.log("user side register log")
     alert(`Email: ${email}\nUsername: ${username}\nPassword: ${password}`);
   };
 
