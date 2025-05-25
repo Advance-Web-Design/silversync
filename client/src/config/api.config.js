@@ -2,7 +2,7 @@
  * API Configuration
  * 
  * This file centralizes API configuration settings.
- * When migrating to a backend, this file will be the primary place to make changes.
+ * All API calls now go through the backend for security.
  */
 
 // Environment detection
@@ -12,30 +12,29 @@ const isProduction = process.env.NODE_ENV === 'production';
 const config = {
   // Base URLs
   tmdb: {
+    // Keep these for reference but they won't be used directly
     baseUrl: 'https://api.themoviedb.org/3',
     imageBaseUrl: 'https://image.tmdb.org/t/p',
-    // This will be handled by the backend in the future
-    apiKey: 'bdfd168e527a1c86c379e6bb6b7c3a9f',
-    apiToken: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiZGZkMTY4ZTUyN2ExYzg2YzM3OWU2YmI2YjdjM2E5ZiIsIm5iZiI6MTc0NTEzMzk4OS4wNTMsInN1YiI6IjY4MDRhMWE1NmUxYTc2OWU4MWVlMDg3NiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Hs2RaAd_2xRcdxTfL0JJkTUhosZFrjLvsUhLaX5rVq8'
+    // Remove API key and token from client - now handled by backend
   },
   
-  // When backend is implemented, we'll switch to this
+  // Backend configuration - all calls go through here
   backend: {
-    // In production, we'd use a relative URL that will be handled by the backend server
-    baseUrl: isProduction ? '/api' : 'http://localhost:5000/api',
-    // Endpoints that will be available on the backend
+    // Backend server URL
+    baseUrl: isProduction ? '/api' : 'http://localhost:3000/api',
+    // Endpoints that map to our backend API routes
     endpoints: {
-      person: '/person',
-      movie: '/movie',
-      tv: '/tv',
-      search: '/search',
-      images: '/images'
+      person: '/tmdb/actor',      // Maps to server/app/api/tmdb/actor/[...path]/route.js
+      movie: '/tmdb/movie',       // Maps to server/app/api/tmdb/movie/[...path]/route.js
+      tv: '/tmdb/tv-show',        // Maps to server/app/api/tmdb/tv-show/[...path]/route.js
+      search: '/tmdb/search',     // Maps to server/app/api/tmdb/search/[...path]/route.js
+      images: '/tmdb'             // For image-related endpoints
     }
   },
   
-  // Feature flags for the service layer
+  // Feature flags - force backend usage
   features: {
-    useBackend: false, // Set to true when migrating to backend
+    useBackend: true,          // ALWAYS use backend - no direct TMDB calls
     cacheResponses: true,
     enableLogging: !isProduction
   },
@@ -48,12 +47,12 @@ const config = {
   
   // Image size configuration
   imageSizes: {
-    poster: 'w500',   // For movie/TV posters
-    profile: 'w185',  // For person profiles
-    backdrop: 'w780', // For backdrops
-    small: 'w92',     // For small thumbnails
-    medium: 'w185',   // For medium thumbnails
-    large: 'w500'     // For large images
+    poster: 'w500',
+    profile: 'w185',
+    backdrop: 'w780',
+    small: 'w92',
+    medium: 'w185',
+    large: 'w500'
   }
 };
 

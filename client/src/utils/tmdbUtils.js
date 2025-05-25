@@ -1,11 +1,9 @@
 /**
  * tmdbUtils.js
  * 
- * Utility functions and constants for working with the TMDB API.
- * This file contains helper functions for caching, image handling, and data processing
- * to keep the main tmdbService.js file cleaner and more focused.
+ * Utility functions and constants for working with the TMDB API through our backend.
+ * This file contains helper functions for caching, image handling, and data processing.
  */
-import { getImageUrl as getApiImageUrl } from '../services/apiService';
 import config from '../config/api.config';
 
 // Constants
@@ -51,26 +49,36 @@ export const setCachedData = (key, data, options = {}, cache = requestCache) => 
 /**
  * Gets the full image URL for TMDB images with fallback
  * 
- * @param {string} path - The image path
- * @param {string} type - The image type (poster, profile, etc.)
- * @returns {string} - The image URL
+ * @param {string} path - The image path from TMDB API response
+ * @param {string} type - The image type (poster, profile, backdrop, etc.)
+ * @returns {string} - The complete image URL or placeholder
  */
 export const getImageUrl = (path, type = 'poster') => {
   if (!path) {
-    // Return appropriate placeholder based on image type
+    // Return appropriate placeholder based on type
     switch (type) {
       case 'poster':
-        return 'https://via.placeholder.com/342x513?text=No+Poster';
+        return 'https://via.placeholder.com/342x513/cccccc/666666?text=No+Poster';
       case 'profile':
-        return 'https://via.placeholder.com/185x278?text=No+Image';
+        return 'https://via.placeholder.com/185x278/cccccc/666666?text=No+Image';
       case 'backdrop':
-        return 'https://via.placeholder.com/780x439?text=No+Backdrop';
+        return 'https://via.placeholder.com/780x439/cccccc/666666?text=No+Backdrop';
+      case 'small':
+        return 'https://via.placeholder.com/92x138/cccccc/666666?text=No+Image';
+      case 'medium':
+        return 'https://via.placeholder.com/185x278/cccccc/666666?text=No+Image';
+      case 'large':
+        return 'https://via.placeholder.com/500x750/cccccc/666666?text=No+Image';
       default:
-        return 'https://via.placeholder.com/500x750?text=No+Image';
+        return 'https://via.placeholder.com/500x750/cccccc/666666?text=No+Image';
     }
   }
   
-  return getApiImageUrl(path, type);
+  // Use config for image sizes
+  const size = config.imageSizes[type] || 'w500';
+  
+  // Return direct TMDB image URL (no API key needed)
+  return `https://image.tmdb.org/t/p/${size}${path}`;
 };
 
 /**

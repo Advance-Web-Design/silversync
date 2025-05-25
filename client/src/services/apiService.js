@@ -1,126 +1,91 @@
 /**
  * API Service
  * 
- * This service provides a consistent interface for making API calls,
- * abstracting away whether we're calling the TMDB API directly or our backend.
+ * This service provides a consistent interface for making API calls through our backend.
+ * All TMDB API calls are proxied through our Next.js backend for security.
  */
-import { makeApiCall, sessionStorageManager } from '../utils/apiUtils';
 import config from '../config/api.config';
 
-// TMDB API headers with authorization
-const tmdbHeaders = {
-  'Authorization': `Bearer ${config.tmdb.apiToken}`,
-  'Accept': 'application/json'
-};
-
-// Backend API headers if needed
-const backendHeaders = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
-};
-
 /**
- * Make a call to the appropriate API endpoint based on configuration
+ * Make a call to the backend API endpoint
  * 
- * @param {string} endpoint - The API endpoint to call
+ * @param {string} endpoint - The TMDB API endpoint to call (e.g., '/movie/550')
  * @param {Object} params - URL parameters for the request
  * @param {Object} options - Additional options for the request
  * @returns {Promise<Object>} - The response data
  */
 export const callApi = async (endpoint, params = {}, options = {}) => {
-  if (config.features.useBackend) {
-    // Route the request through our backend
-    // Map TMDB endpoints to our backend endpoints
-    const backendEndpoint = mapToBackendEndpoint(endpoint);
+  try {
+    // Remove leading slash if present to avoid double slashes
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
     
-    return makeApiCall(
-      backendEndpoint,
-      params,
-      { ...options, headers: { ...backendHeaders, ...options.headers } },
-      config.backend.baseUrl
-    );
-  } else {
-    // Direct call to TMDB API
-    // Add API key to parameters
-    const tmdbParams = { ...params, api_key: config.tmdb.apiKey };
+    // Build the backend URL - ALL calls go through backend now
+    const backendUrl = `${config.backend.baseUrl}/tmdb/${cleanEndpoint}`;
     
-    return makeApiCall(
-      endpoint,
-      tmdbParams,
-      { ...options, headers: { ...tmdbHeaders, ...options.headers } },
-      config.tmdb.baseUrl
-    );
+    // Build query string from parameters
+    const queryString = new URLSearchParams(params).toString();
+    const finalUrl = queryString ? `${backendUrl}?${queryString}` : backendUrl;
+    
+    // Set up headers for backend request
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...options.headers
+    };
+    
+    // Make the request to our backend proxy
+    const response = await fetch(finalUrl, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ 
+        message: `HTTP ${response.status}` 
+      }));
+      throw new Error(`API call failed: ${response.status} - ${errorData.message || errorData.status_message || 'Unknown error'}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Backend API call failed for ${endpoint}:`, error);
+    throw error;
   }
 };
 
 /**
- * Maps a TMDB API endpoint to our backend endpoint structure
+ * Store data in session storage with JSON serialization
  * 
- * @param {string} tmdbEndpoint - The original TMDB endpoint
- * @returns {string} - The corresponding backend endpoint
- */
-const mapToBackendEndpoint = (tmdbEndpoint) => {
-  // Simple mapping example - this would be expanded based on backend API design
-  if (tmdbEndpoint.startsWith('/person')) {
-    return `${config.backend.endpoints.person}${tmdbEndpoint.replace('/person', '')}`;
-  } else if (tmdbEndpoint.startsWith('/movie')) {
-    return `${config.backend.endpoints.movie}${tmdbEndpoint.replace('/movie', '')}`;
-  } else if (tmdbEndpoint.startsWith('/tv')) {
-    return `${config.backend.endpoints.tv}${tmdbEndpoint.replace('/tv', '')}`;
-  } else if (tmdbEndpoint.startsWith('/search')) {
-    return `${config.backend.endpoints.search}${tmdbEndpoint.replace('/search', '')}`;
-  }
-  
-  // Default case - pass through the endpoint
-  return tmdbEndpoint;
-};
-
-/**
- * Gets an image URL, either directly from TMDB or via our backend
- * 
- * @param {string} path - The image path from TMDB
- * @param {string} type - The image type (poster, profile, etc.)
- * @returns {string} - The complete image URL
- */
-export const getImageUrl = (path, type = 'poster') => {
-  if (!path) {
-    return `https://via.placeholder.com/500x750?text=No+Image`;
-  }
-  
-  if (config.features.useBackend) {
-    // When using a backend, the backend can proxy image requests or serve cached images
-    return `${config.backend.baseUrl}${config.backend.endpoints.images}/${type}/${encodeURIComponent(path)}`;
-  } else {
-    // Direct URL to TMDB images
-    const size = config.imageSizes[type] || 'w500';
-    return `${config.tmdb.imageBaseUrl}/${size}${path}`;
-  }
-};
-
-/**
- * Stores data in session storage with timestamp for expiration
- * 
- * @param {string} key - The storage key
- * @param {Object} data - The data to store
+ * @param {string} key - Key to store under
+ * @param {any} data - Data to store
  */
 export const storeInSession = (key, data) => {
-  sessionStorageManager.setItem(key, data);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error storing data in session storage:', error);
+  }
 };
 
 /**
- * Retrieves data from session storage if not expired
+ * Get data from session storage with JSON parsing
  * 
- * @param {string} key - The storage key
- * @param {number} maxAge - Maximum age in milliseconds
- * @returns {Object|null} - The stored data or null if not found/expired
+ * @param {string} key - Key to retrieve
+ * @returns {any} The stored data or null
  */
-export const getFromSession = (key, maxAge = config.cache.sessionStorageTTL) => {
-  return sessionStorageManager.getItem(key, maxAge);
+export const getFromSession = (key) => {
+  try {
+    const item = sessionStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+  } catch (error) {
+    console.error('Error retrieving data from session storage:', error);
+    return null;
+  }
 };
 
 export default {
   callApi,
-  getImageUrl,
   storeInSession,
   getFromSession
 };

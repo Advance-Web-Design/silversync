@@ -466,10 +466,6 @@ export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisod
       });
     });
     
-    // Use the batched promise utility for efficient fetching
-    let guestStars = [];
-    const processedActorIds = new Set();
-    
     // Process episodes in batches
     const episodeResults = await processBatchedPromises(
       episodeBatches,
@@ -486,6 +482,10 @@ export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisod
       }
     );
     
+    // Use the batched promise utility for efficient fetching
+    let guestStars = [];
+    const processedActorIds = new Set();
+
     // Extract guest stars from episode results
     episodeResults.forEach(result => {
       const episodeGuestStars = result.details.guest_stars || [];
