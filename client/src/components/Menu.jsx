@@ -94,12 +94,6 @@ function Menu(props) {
         toggleShowAllSearchable(); // Call the function from context
         setMenuOpen(false);
     };
-    
-    // Settings action handler
-    const handleSettings = () => {
-        console.log('Settings action triggered');
-        setMenuOpen(false);
-    };
 
     // Effect to close the menu when clicking outside
     useEffect(() => {
@@ -176,7 +170,6 @@ function Menu(props) {
                             <button onClick={handleHowToPlay} className="menu-item">How to Play</button>
                             <button onClick={handleCheatSheet} className="menu-item">Cheat Sheet</button>
                             </>)}
-                        <button onClick={handleSettings} className="menu-item">Settings</button>
                     </div>
                 )}
             </div>
