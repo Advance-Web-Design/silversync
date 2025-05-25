@@ -376,16 +376,23 @@ export const GameProvider = ({ children }) => {
    * Makes multiple attempts if needed to avoid duplicates
    * 
    * @param {number} actorIndex - Index (0 or 1) of the actor position to fill
-   */
-  const randomizeActors = async (actorIndex) => {
+   */  const randomizeActors = async (actorIndex) => {
     setIsLoading(true);
+    setStartActorsError(null); // Clear any previous errors
+    
     try {
       let randomActor = null;
       let attempts = 0;
       const maxAttempts = 5; // Limit attempts to avoid infinite loop
 
+      console.log(`Fetching random actor for position ${actorIndex}...`);
+
       while (!randomActor && attempts < maxAttempts) {
+        attempts++;
+        console.log(`Attempt ${attempts} to fetch random actor...`);
+        
         const actor = await fetchRandomPerson();
+        console.log('Fetched actor:', actor?.name, actor?.id);
 
         // Check if this actor is already used in the other position
         const otherIndex = actorIndex === 0 ? 1 : 0;
@@ -394,9 +401,9 @@ export const GameProvider = ({ children }) => {
         // Only use this actor if it's not the same as the other position
         if (!otherActor || otherActor.id !== actor.id) {
           randomActor = actor;
+          console.log(`Successfully selected actor: ${actor.name}`);
         } else {
           console.log("Duplicate actor found, trying again...");
-          attempts++;
         }
       }
 
@@ -404,15 +411,17 @@ export const GameProvider = ({ children }) => {
         const newStartActors = [...startActors];
         newStartActors[actorIndex] = randomActor;
         setStartActors(newStartActors);
+        console.log(`Actor set for position ${actorIndex}:`, randomActor.name);
       } else {
-        console.error("Failed to find a unique actor after multiple attempts");
-        // Automatically try again after a short delay
-        setTimeout(() => randomizeActors(actorIndex), 500);
+        const errorMsg = "Failed to find a unique actor after multiple attempts";
+        console.error(errorMsg);
+        setStartActorsError(errorMsg);
+        // Don't retry automatically to prevent infinite loops
       }
     } catch (error) {
       console.error("Error fetching random actor:", error);
-      // Automatically try again after a short delay
-      setTimeout(() => randomizeActors(actorIndex), 500);
+      setStartActorsError(`Failed to load actor: ${error.message}`);
+      // Don't retry automatically to prevent infinite loops
     } finally {
       setIsLoading(false);
     }
@@ -809,7 +818,6 @@ export const GameProvider = ({ children }) => {
       setIsLoading
     );
   };
-
   /**
    * Effect to check for game completion when nodes or connections change
    * Validates if starting actors are connected and updates game state
@@ -831,7 +839,6 @@ export const GameProvider = ({ children }) => {
     startActors,
     keepPlayingAfterWin,
     gameState.gameStartTime,
-    checkGameCompletion,
     setGameCompleted,
     gameState.completeGame,
     gameState.setShortestPathLength

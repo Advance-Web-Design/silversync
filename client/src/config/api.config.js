@@ -17,8 +17,7 @@ const config = {
     imageBaseUrl: 'https://image.tmdb.org/t/p',
     // Remove API key and token from client - now handled by backend
   },
-  
-  // Backend configuration - all calls go through here
+    // Backend configuration - all calls go through here
   backend: {
     // Backend server URL
     baseUrl: isProduction ? '/api' : 'http://localhost:3000/api',

@@ -18,10 +18,7 @@ export async function GET(request, { params }) {
       queryParams.append(key, value);
     });
     
-    // Add API key from environment variables (server-side only)
-    queryParams.append('api_key', process.env.TMDB_API_KEY);
-    
-    // Build the TMDB API URL
+    // Use Bearer token for authentication (recommended by TMDB)
     const apiUrl = `https://api.themoviedb.org/3/${path}?${queryParams.toString()}`;
     
     // Set up headers for TMDB request
