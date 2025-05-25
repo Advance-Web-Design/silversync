@@ -14,14 +14,14 @@ An interactive web game where players connect Hollywood actors through movies an
 ### System Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │    │  Backend Server │    │   TMDB API      │
-│  (Port 5174)    │───▶│  (Port 3000)    │───▶│                 │
-│                 │    │                 │    │                 │
-│ • React/Vite    │    │ • Next.js 15    │    │ • External API  │
-│ • API calls     │    │ • Fetch API     │    │ • Images (CDN)  │
-│ • Image display │    │ • CORS headers  │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐     ┌─────────────────┐    ┌─────────────────┐
+│   Client App    │     │  Backend Server │    │   TMDB API      │
+│  (Port 5174)    │───▶ │   (Port 3000)  │───▶│                 │
+│                 │     │                 │    │                 │
+│ • React/Vite    │     │ • Next.js 15    │    │ • External API  │
+│ • API calls     │     │ • Fetch API     │    │ • Images (CDN)  │
+│ • Image display │     │ • CORS headers  │    │                 │
+└─────────────────┘     └─────────────────┘    └─────────────────┘
 ```
 
 ### Data Flow
