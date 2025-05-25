@@ -27,7 +27,7 @@ const ActorSearchInterface = ({
         <input
           ref={searchInputRef}
           type="text"
-          className="actor-search-input"
+          className="w-full py-2.5 px-2.5 rounded border border-gray-300 text-base mb-1.5"
           placeholder="Search actor name..."
           value={localSearchTerm}
           onChange={onSearchChange}
@@ -44,7 +44,7 @@ const ActorSearchInterface = ({
             {actorSearchResultsList.map(actor => (
               <div 
                 key={actor.id}
-                className="actor-search-item"
+                className="flex items-center p-2 cursor-pointer border-b border-gray-100 text-black hover:bg-gray-300"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onSelectActor(actor.id); // Call with actor.id only
