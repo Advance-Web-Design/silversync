@@ -6,7 +6,28 @@
  */
 
 // Environment detection
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = import.meta.env.PROD;
+const isDevelopment = import.meta.env.DEV;
+
+// Get backend URL based on environment
+const getBackendUrl = () => {
+  // If running in production, use relative path
+  if (isProduction) {
+    return '/api';
+  }
+  
+  // In development, check if we have a custom backend URL
+  if (typeof window !== 'undefined') {
+    // Allow override via localStorage for testing different backend URLs
+    const customBackendUrl = localStorage.getItem('customBackendUrl');
+    if (customBackendUrl) {
+      return customBackendUrl;
+    }
+  }
+  
+  // Default development backend URL
+  return 'http://localhost:3000/api';
+};
 
 // API Endpoints Configuration
 const config = {
@@ -17,10 +38,10 @@ const config = {
     imageBaseUrl: 'https://image.tmdb.org/t/p',
     // Remove API key and token from client - now handled by backend
   },
-    // Backend configuration - all calls go through here
+  // Backend configuration - all calls go through here
   backend: {
     // Backend server URL
-    baseUrl: isProduction ? '/api' : 'http://localhost:3000/api',
+    baseUrl: getBackendUrl(),
     // Endpoints that map to our backend API routes
     endpoints: {
       person: '/tmdb/actor',      // Maps to server/app/api/tmdb/actor/[...path]/route.js
@@ -30,12 +51,11 @@ const config = {
       images: '/tmdb'             // For image-related endpoints
     }
   },
-  
-  // Feature flags - force backend usage
+    // Feature flags - force backend usage
   features: {
     useBackend: true,          // ALWAYS use backend - no direct TMDB calls
     cacheResponses: true,
-    enableLogging: !isProduction
+    enableLogging: isDevelopment
   },
   
   // Cache configuration

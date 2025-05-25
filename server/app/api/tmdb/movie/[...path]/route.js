@@ -1,55 +1,60 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import { handlePreflight, withCors } from '../../../utils/cors.js';
 
 // TMDB API configurations
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3/movie';
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS() {
+  return handlePreflight();
+}
 
 export async function GET(request, { params }) {
   try {
-    // Get the path segments and reassemble them
-    const path = params.path ? params.path.join('/') : '';
+    // AWAIT params before using it (Next.js 15 requirement)
+    const resolvedParams = await params;
+    const path = resolvedParams.path ? resolvedParams.path.join('/') : '';
     
     // Extract query parameters
     const { searchParams } = new URL(request.url);
-    const queryParams = {};
+    const queryParams = new URLSearchParams();
     
     // Copy all query parameters from the original request
     searchParams.forEach((value, key) => {
-      queryParams[key] = value;
+      queryParams.append(key, value);
     });
     
-    // Add the API key (kept secure on server)
-    queryParams.api_key = TMDB_API_KEY;
-    
     // Build the complete URL
-    const tmdbUrl = `${TMDB_BASE_URL}${path ? '/' + path : ''}`;
+    const tmdbUrl = `${TMDB_BASE_URL}${path ? '/' + path : ''}?${queryParams.toString()}`;
     
     // Log the request in development
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`Movie API: ${tmdbUrl} with params:`, 
-        { ...queryParams, api_key: 'API_KEY_HIDDEN' });
+      console.log(`Movie API: ${tmdbUrl}`);
     }
     
-    // Forward the request to TMDB using axios
-    const response = await axios({
-      method: 'get',
-      url: tmdbUrl,
-      params: queryParams
-    });
+    // Use Bearer token for authentication (same as other routes)
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`
+    };
     
-    return NextResponse.json(response.data);
+    // Forward the request to TMDB using fetch
+    const response = await fetch(tmdbUrl, {
+      method: 'GET',
+      headers,
+      next: { revalidate: 60 } // Cache for 60 seconds
+    });
+      if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Movie API error:', errorData);
+      return withCors(NextResponse.json(errorData, { status: response.status }));
+    }
+    
+    const data = await response.json();
+    return withCors(NextResponse.json(data));
     
   } catch (error) {
-    console.error('Error in movie API:', error.message);
-    
-    if (error.response) {
-      return NextResponse.json({ 
-        error: error.response.data?.status_message || 'Error from TMDB API',
-        status_code: error.response.status
-      }, { status: error.response.status });
-    }
-    
-    return NextResponse.json({ error: 'Failed to fetch movie data' }, { status: 500 });
+    console.error('Error in movie API:', error);
+    return withCors(NextResponse.json({ error: 'Failed to fetch movie data' }, { status: 500 }));
   }
 }
