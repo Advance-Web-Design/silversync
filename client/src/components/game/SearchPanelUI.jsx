@@ -1,10 +1,11 @@
 import React from 'react';
 import { getItemTitle } from '../../utils/stringUtils';
-import {getItemYear} from '../../utils/stringUtils';
+import { getItemYear } from '../../utils/stringUtils';
+
 const SearchPanelUI = ({
   handleSubmit,
   inputRef,
-  searchTerm,
+  searchTerm = "", // Add default value here
   handleInputChange,
   isLoading,
   hasResults,
@@ -24,14 +25,14 @@ const SearchPanelUI = ({
           className="in-game-search-input"
           type="text"
           placeholder="Search movies, TV shows, actors..."
-          value={searchTerm}
+          value={searchTerm || ""} // Add fallback here too
           onChange={handleInputChange}
           autoFocus
         />
         <button
           type="submit"
           className="in-game-search-button"
-          disabled={isLoading || !searchTerm.trim()}
+          disabled={isLoading || !searchTerm?.trim()} // Add optional chaining
         >
           {isLoading ? 'Searching...' : 'Search'}
         </button>
@@ -55,7 +56,7 @@ const SearchPanelUI = ({
       {/* Search Results - only show if we have search term and results */}
       {shouldShowResults && (
         <div className="in-game-search-results" ref={resultsContainerRef}>
-          {/* Only show connectable results - no need to separate into categories */}
+          {/* Only show connectable results - no need to separate into categories */}          
           {organizedResults.connectable.map(item => (
             <div
               key={`${item.media_type}-${item.id}`}
@@ -69,7 +70,7 @@ const SearchPanelUI = ({
                 />
               </div>
               <div className="in-game-result-info">
-                <div className="in-game-result-title">{getItemTitle(item)+" " + getItemYear(item)} </div>
+                <div className="in-game-result-title">{getItemTitle(item) + " " + getItemYear(item)} </div>
                 <div className="in-game-result-type">
                   {item.media_type === 'movie' ? 'Movie' : item.media_type === 'tv' ? 'TV Show' : 'Actor'}
                   {/* Show guest appearance tag if applicable */}
@@ -80,8 +81,6 @@ const SearchPanelUI = ({
                     <span style={{ color: '#FFC107' }}> (Guest)</span>
                   }
                 </div>
-                  
-
               </div>
               <button 
                 className="in-game-add-button"
@@ -103,7 +102,6 @@ const SearchPanelUI = ({
           )}
         </div>
       )}
-
     </div>
   );
 };

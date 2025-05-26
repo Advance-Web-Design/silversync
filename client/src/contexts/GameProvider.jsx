@@ -12,13 +12,20 @@
  * - Board state management including connections between entities
  * - Game progression and win state tracking
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
 import { getItemTitle } from '../utils/stringUtils';
-import { fetchRandomPerson, searchMulti, checkActorInTvShow, fetchPopularEntities, getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
+import { 
+  fetchAllPossibleConnections as fetchEntityConnections,
+  checkActorTvShowConnection as checkActorTvConnection,
+  fetchConnectableEntitiesFromBoard,
+} from '../utils/entityUtils';
+import { processSearchResults as processResults } from '../utils/searchUtils';
+import { filterExistingBoardEntities, fetchRandomUniqueActor } from '../utils/boardUtils';
+import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson, searchMulti } from '../services/tmdbService';
 
 /**
  * Main Game Provider component that wraps the application
@@ -34,24 +41,22 @@ export const GameProvider = ({ children }) => {
   const searchState = useSearch();
 
   // Local state for UI and game interactions
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [possibleConnections, setPossibleConnections] = useState([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [showAllSearchable, setShowAllSearchable] = useState(false);
-
   // Destructure state from hooks for easier access
   const {
     isLoading, setIsLoading,
     gameStarted, setGameStarted,
     startActors, setStartActors,
     gameCompleted, setGameCompleted,
-    keepPlayingAfterWin, setKeepPlayingAfterWin,
-    startActorsError, setStartActorsError,
+    keepPlayingAfterWin, setKeepPlayingAfterWin, setStartActorsError,
     actorSearchResults, setActorSearchResults,
     actorSearchTerms, actorSearchPages, actorSearchTotalPages,
     setActorSearchPages, setActorSearchTotalPages,
-    selectStartActor, setActorSearch
+    selectStartActor,
+    setActorSearch
   } = gameState;
 
   const {
@@ -66,6 +71,8 @@ export const GameProvider = ({ children }) => {
   } = boardState;
 
   const {
+    searchTerm,
+    setSearchTerm, // Make sure this is destructured from useSearch
     searchResults, setSearchResults,
     noMatchFound, setNoMatchFound,
     didYouMean, setDidYouMean,
@@ -116,64 +123,7 @@ export const GameProvider = ({ children }) => {
    * @returns {Array} - List of entities that can connect to the node
    */
   const fetchAllPossibleConnections = async (node) => {
-    let connections = [];
-
-    try {
-      if (node.type === 'person') {
-        // For an actor, fetch all movies and TV shows they've appeared in
-        const credits = await getPersonDetails(node.data.id);
-
-        if (credits) {
-          // Add movie credits
-          if (credits.movie_credits && credits.movie_credits.cast) {
-            connections = [...connections, ...credits.movie_credits.cast.map(movie => ({
-              ...movie,
-              media_type: 'movie'
-            }))];
-          }
-
-          // Add TV credits
-          if (credits.tv_credits && credits.tv_credits.cast) {
-            connections = [...connections, ...credits.tv_credits.cast.map(tv => ({
-              ...tv,
-              media_type: 'tv'
-            }))];
-          }
-        }
-      } else if (node.type === 'movie') {
-        // For a movie, fetch all actors who appeared in it
-        const credits = await getMovieDetails(node.data.id);
-
-        if (credits && credits.cast) {
-          connections = [...connections, ...credits.cast.map(person => ({
-            ...person,
-            media_type: 'person'
-          }))];
-        }
-      } else if (node.type === 'tv') {
-        // For a TV show, fetch all actors who appeared in it
-        const credits = await getTvShowDetails(node.data.id);
-
-        if (credits && credits.cast) {
-          connections = [...connections, ...credits.cast.map(person => ({
-            ...person,
-            media_type: 'person'
-          }))];
-        }
-      }
-
-      // Filter out any items without images for UI quality
-      connections = connections.filter(item => {
-        if (item.media_type === 'person' && !item.profile_path) return false;
-        if ((item.media_type === 'movie' || item.media_type === 'tv') && !item.poster_path) return false;
-        return true;
-      });
-
-      return connections;
-    } catch (error) {
-      console.error(`Error fetching connections for ${node.type} ${node.data.id}:`, error);
-      return [];
-    }
+    return fetchEntityConnections(node, { getPersonDetails, getMovieDetails, getTvShowDetails });
   };
 
   /**
@@ -257,102 +207,19 @@ export const GameProvider = ({ children }) => {
         }
       } else {
         // With nodes on the board beyond just starting actors, build a list of all connectable entities
-        let allConnectableEntities = [];
-
-        // Process each node on the board to find its potential connections
-        for (const node of nodes) {
-          // Skip if node data is incomplete
-          if (!node || !node.data || !node.id) continue;
-
-          let nodeConnections = [];
-
-          // Get connections based on node type
-          if (node.type === 'person') {
-            // For actors, get their movie and TV credits
-            if (node.data.movie_credits?.cast) {
-              nodeConnections.push(...node.data.movie_credits.cast.map(movie => ({
-                ...movie,
-                media_type: 'movie',
-                source_node: node.id
-              })));
-            }
-
-            if (node.data.tv_credits?.cast) {
-              nodeConnections.push(...node.data.tv_credits.cast.map(show => ({
-                ...show,
-                media_type: 'tv',
-                connection_type: show.is_guest_appearance ? 'guest' : 'cast',
-                source_node: node.id
-              })));
-            }
-
-            if (node.data.guest_appearances) {
-              nodeConnections.push(...node.data.guest_appearances.map(show => ({
-                ...show,
-                media_type: 'tv',
-                is_guest_appearance: true,
-                connection_type: 'guest',
-                source_node: node.id
-              })));
-            }
-          }
-          // For movies, get the cast
-          else if (node.type === 'movie' && node.data.credits?.cast) {
-            nodeConnections.push(...node.data.credits.cast.map(actor => ({
-              ...actor,
-              media_type: 'person',
-              source_node: node.id
-            })));
-          }
-          // For TV shows, get the cast
-          else if (node.type === 'tv' && node.data.credits?.cast) {
-            nodeConnections.push(...node.data.credits.cast.map(actor => ({
-              ...actor,
-              media_type: 'person',
-              source_node: node.id
-            })));
-
-            // Also include guest stars if available
-            if (node.data.guest_stars) {
-              nodeConnections.push(...node.data.guest_stars.map(actor => ({
-                ...actor,
-                media_type: 'person',
-                is_guest_star: true,
-                source_node: node.id
-              })));
-            }
-          }
-
-          // Filter connections to only include those with images
-          nodeConnections = nodeConnections.filter(item =>
-            item && item.id &&
-            ((item.media_type === 'person' && item.profile_path) ||
-              ((item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path))
-          );
-
-          allConnectableEntities.push(...nodeConnections);
-        }
-
-        // Remove duplicates by creating a map keyed by media_type-id
-        const uniqueEntitiesMap = new Map();
-        allConnectableEntities.forEach(item => {
-          const key = `${item.media_type}-${item.id}`;
-          uniqueEntitiesMap.set(key, item);
-        });
+        const allConnectableEntities = await fetchConnectableEntitiesFromBoard(
+          nodes, 
+          { getPersonDetails, getMovieDetails, getTvShowDetails }
+        );
 
         // Filter out entities that are already on the board
-        const existingNodeIds = new Set(nodes.map(n => n.id));
-        const filteredEntities = Array.from(uniqueEntitiesMap.values()).filter(item => {
-          const itemId = `${item.media_type}-${item.id}`;
-          return !existingNodeIds.has(itemId);
-        });
+        const filteredEntities = filterExistingBoardEntities(allConnectableEntities, nodes);
 
         console.log(`Found ${filteredEntities.length} connectable entities from board nodes`);
 
-        // Set filtered entities as search results
         setSearchResults(filteredEntities);
 
-        // Mark all these entities as connectable since we know they're connectable
+        // Mark all these entities as connectable
         const newConnectableItems = {};
         filteredEntities.forEach(item => {
           const itemKey = `${item.media_type}-${item.id}`;
@@ -376,37 +243,14 @@ export const GameProvider = ({ children }) => {
    * Makes multiple attempts if needed to avoid duplicates
    * 
    * @param {number} actorIndex - Index (0 or 1) of the actor position to fill
-   */  const randomizeActors = async (actorIndex) => {
+   */
+  const randomizeActors = async (actorIndex) => {
     setIsLoading(true);
-    setStartActorsError(null); // Clear any previous errors
+    setStartActorsError(null);
     
     try {
-      let randomActor = null;
-      let attempts = 0;
-      const maxAttempts = 5; // Limit attempts to avoid infinite loop
-
-      console.log(`Fetching random actor for position ${actorIndex}...`);
-
-      while (!randomActor && attempts < maxAttempts) {
-        attempts++;
-        console.log(`Attempt ${attempts} to fetch random actor...`);
-        
-        const actor = await fetchRandomPerson();
-        console.log('Fetched actor:', actor?.name, actor?.id);
-
-        // Check if this actor is already used in the other position
-        const otherIndex = actorIndex === 0 ? 1 : 0;
-        const otherActor = startActors[otherIndex];
-
-        // Only use this actor if it's not the same as the other position
-        if (!otherActor || otherActor.id !== actor.id) {
-          randomActor = actor;
-          console.log(`Successfully selected actor: ${actor.name}`);
-        } else {
-          console.log("Duplicate actor found, trying again...");
-        }
-      }
-
+      const randomActor = await fetchRandomUniqueActor(actorIndex, startActors, fetchRandomPerson);
+      
       if (randomActor) {
         const newStartActors = [...startActors];
         newStartActors[actorIndex] = randomActor;
@@ -416,12 +260,10 @@ export const GameProvider = ({ children }) => {
         const errorMsg = "Failed to find a unique actor after multiple attempts";
         console.error(errorMsg);
         setStartActorsError(errorMsg);
-        // Don't retry automatically to prevent infinite loops
       }
     } catch (error) {
       console.error("Error fetching random actor:", error);
       setStartActorsError(`Failed to load actor: ${error.message}`);
-      // Don't retry automatically to prevent infinite loops
     } finally {
       setIsLoading(false);
     }
@@ -465,57 +307,6 @@ export const GameProvider = ({ children }) => {
   };
 
   /**
-   * Checks if an actor has appeared in a TV show (including guest appearances)
-   * Handles different data sources based on whether actor is on board
-   * 
-   * @param {number} actorId - TMDB ID of the actor
-   * @param {number} tvShowId - TMDB ID of the TV show
-   * @returns {Promise<boolean>} - Whether actor has appeared in the show
-   */
-  const checkActorTvShowConnection = async (actorId, tvShowId) => {
-    try {
-      // First check if the actor is already on the board
-      const actorNodeId = `person-${actorId}`;
-      const actorNode = nodes.find(node => node.id === actorNodeId);
-
-      if (actorNode) {
-        // Actor is on board, check their credits directly from node data
-        const tvCredits = actorNode.data.tv_credits?.cast || [];
-
-        // Check regular cast credits
-        if (tvCredits.some(show => show.id === tvShowId)) {
-          return true;
-        }
-
-        // Also check guest appearances if they exist
-        const guestAppearances = actorNode.data.guest_appearances || [];
-        if (guestAppearances.some(show => show.id === tvShowId)) {
-          return true;
-        }
-
-        // Finally, if the actor has a flag indicating guest appearances were added to tv_credits
-        if (actorNode.data.guest_appearances_added) {
-          // Do a more thorough check of all tv_credits entries
-          return tvCredits.some(show => {
-            return show.id === tvShowId ||
-              (show.credit_id && show.credit_id.includes('guest')) ||
-              (show.character && show.character.toLowerCase().includes('guest'));
-          });
-        }
-
-        return false;
-      }
-
-      // If actor is not on board yet, use the API to check
-      const result = await checkActorInTvShow(actorId, tvShowId);
-      return result.appears;
-    } catch (error) {
-      console.error(`Error checking actor-TV connection: ${error}`);
-      return false;
-    }
-  };
-
-  /**
    * Main search function for finding movies, TV shows, or actors
    * Uses fuzzy search capabilities but without showing "Did you mean" prompts
    * 
@@ -547,11 +338,12 @@ export const GameProvider = ({ children }) => {
           // Use the exact title/name for our API search to get best results
           apiSearchTerm = matchTitle;
         }
-      }      // Search the API using either original term or corrected term from local database
+      }
+        // Search the API using either original term or corrected term from local database
       console.log(`Searching API with term: ${apiSearchTerm} ${similarityMatchFound ? '(from fuzzy search)' : '(original)'}`);
       let allResults = await searchMulti(apiSearchTerm);
 
-      processSearchResults(allResults, term, apiSearchTerm);
+      await processSearchResults(allResults, term, apiSearchTerm);
     } catch (error) {
       console.error("Error searching:", error);
       setNoMatchFound(true);
@@ -559,8 +351,7 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };  
-  
-  /**
+    /**
    * Processes and filters search results from the API
    * Handles exact matches and connectability checks, but without spelling suggestions UI
    * 
@@ -568,246 +359,84 @@ export const GameProvider = ({ children }) => {
    * @param {string} originalTerm - Original search term from user
    * @param {string} apiSearchTerm - Term used for API search (may differ after fuzzy search)
    */
-  const processSearchResults = (allResults, originalTerm, apiSearchTerm) => {
-    // Filter out results without ID or images
-    allResults = allResults.filter(item => {
-      if (!item.id) return false;
-
-      // Check for appropriate image path based on media type
-      if (item.media_type === 'person' && !item.profile_path) return false;
-      if ((item.media_type === 'movie' || item.media_type === 'tv') && !item.poster_path) return false;
-
-      return true;
-    });
-
-    console.log(`Search for "${apiSearchTerm}" returned ${allResults.length} results`);
-
-    // If no results, just set noMatchFound and exit
-    if (allResults.length === 0) {
-      setNoMatchFound(true);
-      return;
-    }
-
-    // Learn from successful search - add to our local database for future searches
-    searchState.learnFromSuccessfulSearch(apiSearchTerm, allResults);
-
-    // Check if there's an exact match
-    const exactMatchItem = searchState.findExactMatch(allResults, apiSearchTerm);
-
-    if (exactMatchItem) {
-      console.log("FOUND EXACT MATCH:", getItemTitle(exactMatchItem));
-      setExactMatch(exactMatchItem);
-
-      // Check if this exact match is connectable to the board
-      checkExactMatchConnectability(exactMatchItem);
-    }
-
-    // Process all search results for connectability
-    checkSearchResultsConnectability(allResults);
-
-    // Set all search results, not just connectable ones
-    setSearchResults(allResults);
-  };
-
-  /**
-   * Checks if an exact match from search can connect to the current board
-   * Uses different logic based on game state (initial vs. mid-game)
-   * 
-   * @param {Object} exactMatchItem - The exact match entity from search
-   */
-  const checkExactMatchConnectability = async (exactMatchItem) => {
-    let isConnectable = false;
-
-    // For the initial stage with just two starting actors
-    if (nodes.length <= 2 && nodes.every(node => node.type === 'person')) {
-      isConnectable = await checkInitialConnectability(exactMatchItem, startActors);
-      console.log(`Exact match connectable to starting actors: ${isConnectable}`);
+  const processSearchResults = async (allResults, originalTerm, apiSearchTerm) => {
+    // Determine which connectability function to use based on game state
+    let checkConnectability;
+    
+    if (nodes.length === 0 || !gameStarted) {
+      // If no nodes on board or game not started, nothing is connectable
+      checkConnectability = () => Promise.resolve(false);
+    } else if (nodes.length <= 2 && startActors.length === 2) {
+      // If only starting actors on board, check initial connectability
+      checkConnectability = (item) => checkInitialConnectability(item, startActors);
     } else {
-      // Enhanced: For TV shows, also check for guest appearances
-      if (exactMatchItem.media_type === 'tv') {
-        // Get all actor nodes on the board
-        const actorNodes = nodes.filter(node => node.type === 'person');
-
-        // Check if any actor on the board has appeared in this TV show (including guest appearances)
-        for (const actorNode of actorNodes) {
-          const actorId = actorNode.data.id;
-          const hasAppeared = await checkActorTvShowConnection(actorId, exactMatchItem.id);
-
-          if (hasAppeared) {
-            isConnectable = true;
-            break;
-          }
-        }
-      } else {
-        isConnectable = await checkItemConnectability(exactMatchItem);
-      }
-      console.log(`Exact match connectable to board: ${isConnectable}`);
+      // If there are other nodes on board, check general connectability
+      checkConnectability = checkItemConnectability;
     }
-
-    // Mark item as connectable in the state (for UI purposes)
-    const itemKey = `${exactMatchItem.media_type}-${exactMatchItem.id}`;
-    setConnectableItems(prev => ({
-      ...prev,
-      [itemKey]: isConnectable // Mark this item as connectable based on check
-    }));
+    
+    const gameContext = {
+      checkConnectability,
+      setConnectableItems
+    };
+    
+    return await processResults(allResults, originalTerm, apiSearchTerm, searchState, {
+      setNoMatchFound,
+      setExactMatch,
+      setSearchResults
+    }, gameContext);
   };
 
   /**
-   * Checks all search results to determine which ones can connect to the board
-   * Updates connectableItems state for UI rendering
+   * Checks if an actor has appeared in a TV show (including guest appearances)
+   * Handles different data sources based on whether actor is on board
    * 
-   * @param {Array} allResults - Search results to check for connectability
+   * @param {number} actorId - TMDB ID of the actor
+   * @param {number} tvShowId - TMDB ID of the TV show
+   * @returns {Promise<boolean>} - Whether actor has appeared in the show
    */
-  const checkSearchResultsConnectability = async (allResults) => {
-    let itemConnectability = {};
-
-    // For the initial stage of the game with only the two starting actors
-    if (nodes.length <= 2 && nodes.every(node => node.type === 'person')) {
-      // Process all search results to check connectability
-      await Promise.all(allResults.map(async (item) => {
-        const canConnect = await checkInitialConnectability(item, startActors);
-        const itemKey = `${item.media_type}-${item.id}`;
-        itemConnectability[itemKey] = canConnect;
-
-        // Add connectable items to our database for fuzzy search
-        if (canConnect) {
-          searchState.setConnectableEntities(prev => {
-            const exists = prev.some(e => e.id === item.id && e.media_type === item.media_type);
-            if (!exists) {
-              return [...prev, item];
-            }
-            return prev;
-          });
-        }
-      }));
-    } else {
-      // Check connectability for each search result in later game stages
-      await Promise.all(allResults.map(async (item) => {
-        // Enhanced: For TV shows, also check for guest appearances
-        let canConnect = false;
-
-        if (item.media_type === 'tv') {
-          // Get all actor nodes on the board
-          const actorNodes = nodes.filter(node => node.type === 'person');
-
-          // Check if any actor on the board has appeared in this TV show (including guest appearances)
-          for (const actorNode of actorNodes) {
-            const actorId = actorNode.data.id;
-            const hasAppeared = await checkActorTvShowConnection(actorId, item.id);
-
-            if (hasAppeared) {
-              canConnect = true;
-              break;
-            }
-          }
-        } else {
-          canConnect = await checkItemConnectability(item);
-        }
-
-        const itemKey = `${item.media_type}-${item.id}`;
-        itemConnectability[itemKey] = canConnect;
-
-        // Add connectable items to our database for fuzzy search
-        if (canConnect) {
-          searchState.setConnectableEntities(prev => {
-            const exists = prev.some(e => e.id === item.id && e.media_type === item.media_type);
-            if (!exists) {
-              return [...prev, item];
-            }
-            return prev;
-          });
-        }
-      }));
-    }
-
-    // Set all connectability states
-    setConnectableItems(itemConnectability);
+  const checkActorTvShowConnection = async (actorId, tvShowId) => {
+    return checkActorTvConnection(actorId, tvShowId, nodes, checkActorInTvShow);
   };
-
   /**
-   * Adds a selected item to the game board
-   * Handles special cases for TV shows with guest appearances
-   * Updates connectable entities after addition
-   * 
-   * @param {Object} item - Entity to add to the board
+   * Adds a person to the board and fetches their detailed information
+   * @param {Object} person - Person object to add
    */
-  const addToBoard = async (item) => {
-    // For TV shows, check for guest appearances
-    if (item.media_type === 'tv') {
-      const enhancedItem = {
-        ...item,
-        // Make sure these flags are preserved to identify guest appearances
-        hasGuestAppearances: item.hasGuestAppearances || item.is_guest_appearance || false,
-        is_guest_appearance: item.is_guest_appearance || false
-      };
-      await addToBoardFn(enhancedItem, exactMatch, connectableItems, setIsLoading);
-    } else {
-      await addToBoardFn(item, exactMatch, connectableItems, setIsLoading);
-    }
-
-    // After adding an item to the board, fetch all its potential connections
-    // and add them to our connectable entities list
-    const nodeId = `${item.media_type}-${item.id}`;
-    const nodeAdded = nodes.find(n => n.id === nodeId);
-
-    if (nodeAdded) {
-      // Define a function to fetch possible connections for the node
-      const fetchNodeConnections = async (node) => {
-        let connections = [];
-        try {
-          if (node.type === 'person') {
-            const credits = await getPersonDetails(node.data.id);
-            if (credits) {
-              if (credits.movie_credits && credits.movie_credits.cast) {
-                connections = [...connections, ...credits.movie_credits.cast.map(movie => ({ ...movie, media_type: 'movie' }))];
-              }
-              if (credits.tv_credits && credits.tv_credits.cast) {
-                connections = [...connections, ...credits.tv_credits.cast.map(tv => ({ ...tv, media_type: 'tv' }))];
-              }
-            }
-          } else if (node.type === 'movie') {
-            const credits = await getMovieDetails(node.data.id);
-            if (credits && credits.cast) {
-              connections = [...connections, ...credits.cast.map(person => ({ ...person, media_type: 'person' }))];
-            }
-          } else if (node.type === 'tv') {
-            const credits = await getTvShowDetails(node.data.id);
-            if (credits && credits.cast) {
-              connections = [...connections, ...credits.cast.map(person => ({ ...person, media_type: 'person' }))];
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching connections for node ${node.id}:`, error);
-        }
-
-        // Filter out connections without necessary data
-        return connections.filter(conn =>
-          conn && conn.id &&
-          ((conn.media_type === 'person' && conn.profile_path) ||
-            ((conn.media_type === 'movie' || conn.media_type === 'tv') && conn.poster_path))
-        );
-      };
-
-      // Update the connectable entities list
-      await searchState.updateConnectableEntitiesForNode(nodeAdded, fetchNodeConnections);
-
-      // If the sidebar is currently showing all searchable entities, refresh the list
-      if (showAllSearchable) {
-        // Short delay to allow the node to be fully added to the board
-        setTimeout(() => fetchAndSetAllSearchableEntities(), 300);
-      }
-    }
+  const addPersonToBoard = async (person) => {
+    return addToBoardFn(person, exactMatch, connectableItems, setIsLoading);
   };
 
   /**
-   * Wrapper for searching start actors
-   * Handles pagination and loading state
+   * Adds a movie to the board and fetches its detailed information
+   * @param {Object} movie - Movie object to add
+   */
+  const addMovieToBoard = async (movie) => {
+    return addToBoardFn(movie, exactMatch, connectableItems, setIsLoading);
+  };
+
+  /**
+   * Adds a TV show to the board and fetches its detailed information
+   * @param {Object} tvShow - TV show object to add
+   */
+  const addTvShowToBoard = async (tvShow) => {
+    return addToBoardFn(tvShow, exactMatch, connectableItems, setIsLoading);
+  };
+  /**
+   * Generic function to add any entity to the board
+   * @param {Object} entity - Entity to add (person, movie, or TV show)
+   */
+  const addToBoard = async (entity) => {
+    return addToBoardFn(entity, exactMatch, connectableItems, setIsLoading);
+  };
+
+  /**
+   * Wrapper function for searchStartActors that provides all required parameters
+   * This ensures the function is called with the correct state setters
    * 
-   * @param {string} query - Actor name to search for
-   * @param {number} actorIndex - Index position (0 or 1)
+   * @param {string} query - Search query for actors
+   * @param {number} actorIndex - Index of the actor position (0 or 1)
    * @param {number} page - Page number for pagination
    */
-  const searchStartActors = async (query, actorIndex, page = 1) => {
+  const searchStartActorsWrapper = (query, actorIndex, page) => {
     searchStartActorsFn(
       query,
       actorIndex,
@@ -818,102 +447,78 @@ export const GameProvider = ({ children }) => {
       setIsLoading
     );
   };
-  /**
-   * Effect to check for game completion when nodes or connections change
-   * Validates if starting actors are connected and updates game state
-   */
-  useEffect(() => {
-    if (nodes.length > 0 && connections.length > 0) {
-      checkGameCompletion(
-        startActors,
-        keepPlayingAfterWin,
-        setGameCompleted,
-        gameState.completeGame,
-        gameState.gameStartTime,
-        gameState.setShortestPathLength
-      );
-    }
-  }, [
-    nodes,
-    connections,
-    startActors,
-    keepPlayingAfterWin,
-    gameState.gameStartTime,
-    setGameCompleted,
-    gameState.completeGame,
-    gameState.setShortestPathLength
-  ]);
 
-  /**
-   * Effect to initialize spell checking database with popular entities
-   * Runs once when component mounts
-   */
-  useEffect(() => {
-    const initPopularEntities = async () => {
-      try {
-        await fetchPopularEntities();
-        console.log('Popular entities database initialized for spell checking');
-      } catch (error) {
-        console.error('Failed to initialize popular entities database:', error);
-      }
-    };
-
-    initPopularEntities();
-  }, []);
-  const providerValue = {
+  const contextValue = {
+    // Game state and actions
     isLoading,
     gameStarted,
-    gameStartTime: gameState.gameStartTime,
     startActors,
-    nodes,
-    nodePositions,
-    connections,
-    searchResults,
-    setSearchResults,
-    searchTerm,
     gameCompleted,
     keepPlayingAfterWin,
-    setKeepPlayingAfterWin,
-    connectableItems,
-    setConnectableItems,
-    didYouMean,
-    setDidYouMean,
-    originalSearchTerm,
-    setOriginalSearchTerm,
-    setSearchTerm,
-    randomizeActors,
-    startGame,
-    handleSearch,
-    addToBoard,
-    updateNodePosition,
-    resetGame,
-    noMatchFound,
-    setNoMatchFound,
-    exactMatch,
-    setExactMatch,
     actorSearchResults,
     actorSearchTerms,
-    searchStartActors,
-    setActorSearch,
-    selectStartActor,
     actorSearchPages,
     actorSearchTotalPages,
-    startActorsError,
-    checkActorTvShowConnection,
+    searchTerm, // Add this line - it was missing!
+    searchResults,
+    noMatchFound,
+    didYouMean,
+    exactMatch,
+    originalSearchTerm,
+    connectableItems,
+
+    // Board state
+    nodes,
+    connections,
+    nodePositions,
     selectedNode,
-    selectNode,
-    closeConnectionsPanel,
-    completeGame: gameState.completeGame,
-    bestScore: gameState.bestScore,
-    shortestPathLength: gameState.shortestPathLength,
     possibleConnections,
     isLoadingConnections,
     showAllSearchable,
-    toggleShowAllSearchable
+
+    // Functions
+    setIsLoading,
+    setGameStarted,
+    setStartActors,
+    setGameCompleted,
+    setKeepPlayingAfterWin,
+    setActorSearchResults,
+    setActorSearchPages,
+    setActorSearchTotalPages,
+    setSearchResults,
+    setNoMatchFound,
+    setDidYouMean,
+    setExactMatch,
+    setOriginalSearchTerm,
+    setConnectableItems,
+    setSearchTerm, // This is already here, which is good
+
+    // Board functions
+    addToBoard,
+    addPersonToBoard,
+    addMovieToBoard,
+    addTvShowToBoard,
+    checkItemConnectability,
+    checkInitialConnectability,
+    checkGameCompletion,
+    checkActorTvShowConnection,
+
+    // Custom hooks actions
+    startGame,
+    resetGame,
+    selectStartActor,
+    updateNodePosition,
+    selectNode,
+    closeConnectionsPanel,
+    toggleShowAllSearchable,
+    fetchAndSetAllSearchableEntities,    randomizeActors,    // Search functions
+    handleSearch,
+    searchStartActors: searchStartActorsWrapper,
+    setActorSearch
   };
 
   return (
-    <GameContext.Provider value={providerValue}>
+    <GameContext.Provider value={contextValue}>
       {children}
     </GameContext.Provider>
   );

@@ -22,11 +22,12 @@ import {
  * @returns {Object} - Search methods and state
  */
 export const useSearch = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [didYouMean, setDidYouMean] = useState(null);
   const [exactMatch, setExactMatch] = useState(null);
-  const [originalSearchTerm, setOriginalSearchTerm] = useState('');  const [previousSearches, setPreviousSearches] = useState(() => loadPreviousSearches());  const [knownEntities, setKnownEntities] = useState(() => loadKnownEntities());
+  const [originalSearchTerm, setOriginalSearchTerm] = useState('');const [previousSearches, setPreviousSearches] = useState(() => loadPreviousSearches());  const [knownEntities, setKnownEntities] = useState(() => loadKnownEntities());
   const [connectableItems, setConnectableItems] = useState({});
   
   // New state for tracking all possible connectable entities
@@ -176,8 +177,9 @@ export const useSearch = () => {
    */
   const addActorTvShowsToConnectableEntities = (actorData) => {
     return extractActorTvShows(actorData);
-  };
-  return {
+  };  return {
+    searchTerm,
+    setSearchTerm,
     searchResults,
     setSearchResults,
     noMatchFound,

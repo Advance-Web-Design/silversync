@@ -155,3 +155,54 @@ export const findPathBetweenNodes = (startNodeId, endNodeId, connections) => {
   // If we get here, no path exists
   return { found: false, path: [], pathNodes: [] };
 };
+
+/**
+ * Filters out entities that are already on the board
+ * @param {Array} entities - Array of entities to filter
+ * @param {Array} nodes - Current board nodes
+ * @returns {Array} - Filtered entities
+ */
+export const filterExistingBoardEntities = (entities, nodes) => {
+  const existingNodeIds = new Set(nodes.map(n => n.id));
+  return entities.filter(item => {
+    const itemId = `${item.media_type}-${item.id}`;
+    return !existingNodeIds.has(itemId);
+  });
+};
+
+/**
+ * Fetches a random actor for a starting position, avoiding duplicates
+ * @param {number} actorIndex - Index (0 or 1) of the actor position
+ * @param {Array} startActors - Current starting actors array
+ * @param {Function} fetchRandomPerson - TMDB service function
+ * @param {number} maxAttempts - Maximum attempts to avoid infinite loops
+ * @returns {Object|null} - Random actor or null if failed
+ */
+export const fetchRandomUniqueActor = async (actorIndex, startActors, fetchRandomPerson, maxAttempts = 5) => {
+  let randomActor = null;
+  let attempts = 0;
+
+  console.log(`Fetching random actor for position ${actorIndex}...`);
+
+  while (!randomActor && attempts < maxAttempts) {
+    attempts++;
+    console.log(`Attempt ${attempts} to fetch random actor...`);
+    
+    const actor = await fetchRandomPerson();
+    console.log('Fetched actor:', actor?.name, actor?.id);
+
+    // Check if this actor is already used in the other position
+    const otherIndex = actorIndex === 0 ? 1 : 0;
+    const otherActor = startActors[otherIndex];
+
+    // Only use this actor if it's not the same as the other position
+    if (!otherActor || otherActor.id !== actor.id) {
+      randomActor = actor;
+      console.log(`Successfully selected actor: ${actor.name}`);
+    } else {
+      console.log("Duplicate actor found, trying again...");
+    }
+  }
+
+  return randomActor;
+};

@@ -55,7 +55,6 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
   if (!showAllSearchable && (!searchResults || searchResults.length === 0)) {
     return null;
   }
-
   // Handle adding an item to the board
   const handleAddToBoard = (item) => {
     addToBoard(item);

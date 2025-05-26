@@ -1,6 +1,9 @@
 // Search-related utility functions for string matching and entity comparison
-import { stringSimilarity, getItemTitle } from './stringUtils';
+import { stringSimilarity } from './stringUtils';
+import { getItemTitle } from './entityUtils';
 import { SIMILARITY_THRESHOLDS } from './constants';
+import { filterValidEntities } from './tmdbUtils';
+import { sessionStorageManager } from './apiUtils';
 
 /**
  * Common words to ignore in search processing
@@ -10,13 +13,6 @@ export const COMMON_WORDS = ['the', 'and', 'movie', 'show', 'actor', 'star', 'fi
 /**
  * Check for possible misspellings based on known terms using string comparison
  * Prioritizes connectable entities that might match the user's input
- * 
- * @param {string} term - Term to check for misspellings
- * @param {Array} connectableEntities - List of entities that can be connected to the board
- * @param {Array} knownEntities - List of known entities from previous searches
- * @param {Array} previousSearches - List of previous search terms
- * @param {Object} connectableItems - Map of items that are connectable (by ID)
- * @returns {Object|null} - Suggested entity or null
  */
 export const checkForMisspelling = (
   term,
@@ -56,11 +52,6 @@ export const checkForMisspelling = (
 
 /**
  * Find partial matches in connectable entities
- * 
- * @param {string} normalizedTerm - Normalized search term
- * @param {Array} connectableEntities - List of connectable entities
- * @param {Object} connectableItems - Map of connectable items by ID
- * @returns {Object|null} - Best partial match or null
  */
 const findPartialMatch = (normalizedTerm, connectableEntities, connectableItems) => {
   const partialMatches = [];
@@ -100,14 +91,6 @@ const findPartialMatch = (normalizedTerm, connectableEntities, connectableItems)
 
 /**
  * Prepare a consolidated list of entities for similarity comparison
- * 
- * @param {Array} connectableEntities - List of connectable entities
- * @param {Array} knownEntities - List of known entities
- * @param {Array} previousSearches - List of previous search terms
- * @param {Object} connectableItems - Map of connectable items
- * @param {number} connectableThreshold - Threshold for connectable items
- * @param {number} normalThreshold - Threshold for normal items
- * @returns {Array} - Consolidated list of entities with thresholds
  */
 const prepareEntityList = (
   connectableEntities,
@@ -175,13 +158,6 @@ const prepareEntityList = (
 
 /**
  * Find the best match based on string similarity
- * 
- * @param {string} normalizedTerm - Normalized search term
- * @param {Array} allEntities - List of all entities to compare
- * @param {Array} connectableEntities - List of connectable entities
- * @param {Array} knownEntities - List of known entities
- * @param {Object} connectableItems - Map of connectable items
- * @returns {Object|null} - Best match or null
  */
 const findBestMatch = (
   normalizedTerm,
@@ -230,10 +206,6 @@ const findBestMatch = (
 
 /**
  * Find exact match from search results
- * 
- * @param {Array} results - Search results array
- * @param {string} term - Search term
- * @returns {Object|null} - Exact match object or null
  */
 export const findExactMatch = (results, term) => {
   if (!term || !results || results.length === 0) return null;
@@ -241,40 +213,14 @@ export const findExactMatch = (results, term) => {
   const normalizedTerm = term.toLowerCase().trim();
   
   // Perfect match (case insensitive)
-  const perfectMatch = findPerfectMatch(results, normalizedTerm);
-  if (perfectMatch) return perfectMatch;
-  
-  // Partial word match
-  const partialMatch = findPartialWordMatch(results, normalizedTerm);
-  if (partialMatch) return partialMatch;
-  
-  // Single word match
-  if (!normalizedTerm.includes(' ')) {
-    const singleWordMatch = findSingleWordMatch(results, normalizedTerm);
-    if (singleWordMatch) return singleWordMatch;
-  }
-  
-  // Similarity-based match
-  return findSimilarityMatch(results, normalizedTerm);
-};
-
-/**
- * Find perfect match (exact title match)
- */
-const findPerfectMatch = (results, normalizedTerm) => {
   for (const item of results) {
     const itemTitle = getItemTitle(item).toLowerCase().trim();
     if (itemTitle === normalizedTerm) {
       return item;
     }
   }
-  return null;
-};
-
-/**
- * Find partial word match (search term is part of title or vice versa)
- */
-const findPartialWordMatch = (results, normalizedTerm) => {
+  
+  // Partial word match
   for (const item of results) {
     const itemTitle = getItemTitle(item).toLowerCase().trim();
     
@@ -301,28 +247,20 @@ const findPartialWordMatch = (results, normalizedTerm) => {
       }
     }
   }
-  return null;
-};
-
-/**
- * Find single word match (exact match with first or last word)
- */
-const findSingleWordMatch = (results, normalizedTerm) => {
-  for (const item of results) {
-    const itemTitle = getItemTitle(item).toLowerCase().trim();
-    const titleWords = itemTitle.split(' ');
-    
-    if (titleWords[0] === normalizedTerm || titleWords[titleWords.length - 1] === normalizedTerm) {
-      return item;
+  
+  // Single word match
+  if (!normalizedTerm.includes(' ')) {
+    for (const item of results) {
+      const itemTitle = getItemTitle(item).toLowerCase().trim();
+      const titleWords = itemTitle.split(' ');
+      
+      if (titleWords[0] === normalizedTerm || titleWords[titleWords.length - 1] === normalizedTerm) {
+        return item;
+      }
     }
   }
-  return null;
-};
-
-/**
- * Find match based on string similarity
- */
-const findSimilarityMatch = (results, normalizedTerm) => {
+  
+  // Similarity-based match
   let bestMatch = null;
   let highestSimilarity = SIMILARITY_THRESHOLDS.EXACT_MATCH;
   
@@ -337,4 +275,86 @@ const findSimilarityMatch = (results, normalizedTerm) => {
   }
   
   return bestMatch;
+};
+
+/**
+ * Filters search results to only include items with images and valid IDs
+ */
+export const filterSearchResults = (results) => {
+  return filterValidEntities(results);
+};
+
+/**
+ * Processes search results and handles exact matches
+ * Also checks connectability and updates the connectableItems state
+ */
+export const processSearchResults = async (allResults, originalTerm, apiSearchTerm, searchState, setters, gameContext = null) => {
+  const { setNoMatchFound, setExactMatch, setSearchResults } = setters;
+
+  const filteredResults = filterValidEntities(allResults);
+  
+  console.log(`Search for "${apiSearchTerm}" returned ${filteredResults.length} results`);
+
+  if (filteredResults.length === 0) {
+    setNoMatchFound(true);
+    return { results: [], exactMatch: null };
+  }
+
+  searchState.learnFromSuccessfulSearch(apiSearchTerm, filteredResults);
+    // Cache successful search in session storage
+  const cacheKey = `search-results-${apiSearchTerm}`;
+  sessionStorageManager.setItem(cacheKey, {
+    results: filteredResults,
+    timestamp: Date.now()
+  });
+
+  const exactMatchItem = searchState.findExactMatch(filteredResults, apiSearchTerm);
+
+  if (exactMatchItem) {
+    console.log("FOUND EXACT MATCH:", getItemTitle(exactMatchItem));
+    setExactMatch(exactMatchItem);
+  }
+
+  // Check connectability for search results if we have game context
+  if (gameContext && gameContext.checkConnectability) {
+    const connectableItemsUpdate = {};
+    
+    console.log(`Checking connectability for ${filteredResults.length} search results`);
+    
+    for (const item of filteredResults) {
+      const itemKey = `${item.media_type}-${item.id}`;
+      try {
+        const isConnectable = await gameContext.checkConnectability(item);
+        connectableItemsUpdate[itemKey] = isConnectable;
+        
+        if (isConnectable) {
+          console.log(`✅ ${getItemTitle(item)} (${item.media_type}) is connectable`);
+        }
+      } catch (error) {
+        console.error(`Error checking connectability for ${getItemTitle(item)}:`, error);
+        connectableItemsUpdate[itemKey] = false;
+      }
+    }
+    
+    // Update the connectableItems state
+    if (gameContext.setConnectableItems) {
+      gameContext.setConnectableItems(prev => ({
+        ...prev,
+        ...connectableItemsUpdate
+      }));
+    }
+  }
+
+  setSearchResults(filteredResults);
+  return { results: filteredResults, exactMatch: exactMatchItem };
+};
+
+// Export additional functions that might be expected by other files
+export const normalizeSearchTerm = (term) => {
+  return term?.toLowerCase().trim() || '';
+};
+
+export const isValidSearchTerm = (term, minLength = 3) => {
+  const normalized = normalizeSearchTerm(term);
+  return normalized.length >= minLength && !COMMON_WORDS.includes(normalized);
 };
