@@ -61,10 +61,10 @@ function RegisterWindow() {
       })
       .catch(error => {
         console.error('Error registering user:', error);
-        alert('Registration failed. Please try again.');
+        alert('Registration failed. Please try again. error message: ' + error.message);
       });
 //    console.log("user side register log")
-    alert(`Email: ${email}\nUsername: ${username}\nPassword: ${password}`);
+    //alert(`Email: ${email}\nUsername: ${username}\nPassword: ${password}`);
   };
 
   return (

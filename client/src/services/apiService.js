@@ -22,6 +22,7 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
     // Build the backend URL - ALL calls go through backend now
     const backendUrl = `${config.backend.baseUrl}/tmdb/${cleanEndpoint}`;
     
+
     // Build query string from parameters
     const queryString = new URLSearchParams(params).toString();
     const finalUrl = queryString ? `${backendUrl}?${queryString}` : backendUrl;
@@ -32,6 +33,7 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
       'Accept': 'application/json',
       ...options.headers
     };
+    
     
     // Make the request to our backend proxy
     const response = await fetch(finalUrl, {
