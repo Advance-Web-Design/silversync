@@ -33,7 +33,7 @@ const ActorCard = ({
               }}
             />
           </div>
-          <div class="w-full px-2 text-center text-[1.2rem] font-bold text-slate-100 border-b border-cyan-400/70 pb-3 mb-4">
+          <div class="w-full px-2 text-center text-[1.2rem] font-bold text-slate-100 border-b border-cyan-400/70 pb-3 mb-4 ">
             {selectedActor.name}
           </div>
           <button 

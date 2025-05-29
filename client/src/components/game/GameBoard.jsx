@@ -151,7 +151,11 @@ const GameBoard = () => {
   return (
     <Box
       ref={boardRef}
-      className="game-board-container relative"
+      // className="game-board-container relative"
+      className="relative w-full h-screen bg-[#0a0a1a] bg-cover overflow-hidden flex justify-center items-center"
+      style={{
+        backgroundImage: "url('/game-bg2.png'), radial-gradient(circle, rgba(20,20,35,1) 0%, rgba(10,10,26,1) 100%)"
+      }}
       onWheel={handleWheel}  // capture wheel anywhere on board
     >
       {/*
