@@ -13,7 +13,7 @@ const ConnectionContent = ({
   isGuestStar
 }) => {
   return (
-    <div className="connections-content">
+    <div className="connections-content">W
       {nodeType === 'person' && (
         <>
           <ConnectionSection

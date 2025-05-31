@@ -56,7 +56,9 @@ export const GameProvider = ({ children }) => {
     actorSearchTerms, actorSearchPages, actorSearchTotalPages,
     setActorSearchPages, setActorSearchTotalPages,
     selectStartActor,
-    setActorSearch
+    setActorSearch,
+    gameStartTime,
+    shortestPathLength,
   } = gameState;
 
   const {
@@ -466,6 +468,8 @@ export const GameProvider = ({ children }) => {
     exactMatch,
     originalSearchTerm,
     connectableItems,
+    gameStartTime,
+    shortestPathLength, // ← This needs to be included
 
     // Board state
     nodes,

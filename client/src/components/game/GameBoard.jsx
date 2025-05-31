@@ -125,7 +125,8 @@ const GameBoard = () => {
    * @returns {string|number} Path length or placeholder
    */
   const getPathLength = () => {
-    if (!gameCompleted) return "???";
+    
+    if (!gameCompleted) return shortestPathLength//"???";
     // Use the calculated shortest path length if available
     if (shortestPathLength !== null) {
       return shortestPathLength;
