@@ -1,5 +1,6 @@
 import React from 'react';
 import ConnectionSection from './ConnectionSection';
+import * as contentStyle from '../../styles/connectionPanelStyle.js'; // Adjust the import path as necessary
 
 /**
  * ConnectionsContent - Renders different connection sections based on the type of node
@@ -13,7 +14,7 @@ const ConnectionContent = ({
   isGuestStar
 }) => {
   return (
-    <div className="connections-content">W
+    <div className={contentStyle.connectionsContentStyle}>
       {nodeType === 'person' && (
         <>
           <ConnectionSection
@@ -47,7 +48,7 @@ const ConnectionContent = ({
       
       {/* Empty state message */}
       {Object.values(connections).every(arr => !arr || arr.length === 0) && (
-        <div className="no-connections">
+        <div className={contentStyle.noConnectionsMessageStyle}>
           No connections found for this {
             nodeType === 'person' ? 'actor' : 
             nodeType === 'movie' ? 'movie' : 'TV show'
