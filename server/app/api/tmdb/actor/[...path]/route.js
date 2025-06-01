@@ -23,6 +23,7 @@ export async function GET(request, { params }) {
     searchParams.forEach((value, key) => {
       queryParams.append(key, value);
     });
+
     
     // Build the complete URL
     const tmdbUrl = `${TMDB_BASE_URL}${path ? '/' + path : ''}?${queryParams.toString()}`;

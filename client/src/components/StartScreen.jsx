@@ -125,7 +125,7 @@ const StartScreen = () => {
         <div className="flex flex-col items-center gap-4 w-full max-w-[300px] p-4">
           {/* Start game button - only enabled when two actors are selected */}
           <button
-            className="w-full cursor-pointer rounded-lg bg-cyan-400 py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             
             //className='!bg-[#ffb347] !text-black disabled:bg-blue-500 disabled:text-green-400 hover:bg-pink-500'
             onClick={startGame}

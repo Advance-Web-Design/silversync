@@ -20,7 +20,7 @@ const GameStats = ({
         data-has-results={hasSearchResults ? 'true' : 'false'}
       >
         <div className="stat-item best-score">BEST SCORE: {formattedBestScore}</div>
-        <div className="stat-item timer">TIMER: {formattedTime}</div>
+        <div className="stat-item timer text-[#4a6fa5]">TIMER: {formattedTime}</div>
         <div className="stat-item best-path">SHORTEST PATH: {pathLength}</div>
       </div>
       

@@ -10,6 +10,8 @@ export async function OPTIONS() {
 }
 
 export async function GET(request, { params }) {
+
+
   try {
     // AWAIT params before using it (Next.js 15 requirement)
     const resolvedParams = await params;

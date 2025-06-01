@@ -34,12 +34,8 @@ const ActorCard = ({
               }}
             />
           </div>
-          
-          {/* Name with fixed height */}
-          <div className="w-full h-[60px] px-2 text-center flex items-center justify-center">
-            <span className="text-[1.2rem] font-bold text-slate-100 line-clamp-2">
-              {selectedActor.name}
-            </span>
+          <div class="w-full px-2 text-center text-[1.2rem] font-bold text-slate-100 border-b border-cyan-400/70 pb-3 mb-4 ">
+            {selectedActor.name}
           </div>
           
           {/* Auto-expanding spacer */}

@@ -1,100 +1,38 @@
-/**
- * firebase Service
- * 
- * this handles all incoming firebase requests
- * and returns the data to the client
- */
-
-// rules_version = '2';
-
-
-// service cloud.firestore {
-
-//   match /databases/{database}/documents {
-
-//     match /{document=**} {
-
-//       allow read, write: if false;
-
-//     }
-
-//   }
-
-// }
-
-// Import the functions you need from the SDKs you need
+import config from '../config/api.config';
 
 
 
-import { get } from "firebase/database";
-
-import { getDatabase, ref, push, set } from "firebase/database";
-
-import { initializeApp } from "firebase/app";
-
-import { getAnalytics } from "firebase/analytics";
-
-// TODO: Add SDKs for Firebase products that you want to use
-
-// https://firebase.google.com/docs/web/setup#available-libraries
+// this service handles all Firebase-related API calls
+// to add new functions use one of the existing functions as a template
+// and then add a corresponding route in the server/app/api/firebase/[...path]/route.js file
+// for example regiser is in server/app/api/firebase/register/[...path]/route.js
+// and for it to be called the API_BASE neededs to be appended with /register/*
+// the * is a wildcard that allows any additional path to be passed, you can use it to pass additional parameters if needed
+// the * can be replaced with anything you want, but make sure there is something after the last slash
 
 
-// Your web app's Firebase configuration
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
-const firebaseConfig = {
-
-  apiKey: "AIzaSyBDxmC4dD1h5rSX4B0fYXdXyrfVkfRQfVA",
-
-  authDomain: "connect-the-shows.firebaseapp.com",
-
-  databaseURL: "https://connect-the-shows-default-rtdb.europe-west1.firebasedatabase.app",
-
-  projectId: "connect-the-shows",
-
-  storageBucket: "connect-the-shows.firebasestorage.app",
-
-  messagingSenderId: "664860565094",
-
-  appId: "1:664860565094:web:ec91285b3200b125a017a7",
-
-  measurementId: "G-XHY935VDBE"
-
-};
-
-
-// Initialize Firebase
-
-const app = initializeApp(firebaseConfig);
-
-const analytics = getAnalytics(app);
-
-const db = getDatabase(app);
-
-
+const API_BASE = `${config.backend.baseUrl}/firebase` ; 
 
 /**
- * Adds a new user to the database.
- * @param {string} username
- * @param {string} password
- * @param {string} email
- * @returns {Promise<string>} The new user's ID
+ * creates a new user in Firebase, in the firebase database it also adds an empty user_game_history object to the user
+ * @param {*} username 
+ * @param {*} password 
+ * @param {*} email 
+ * @returns {Promise<string>} The user ID of the newly created user
  */
 export async function addUser(username, password, email) {
-  const usersRef = ref(db, 'users');
-  const newUserRef = push(usersRef);
-  const userData = {
-    username,
-    password, // In production, hash the password!
-    email,
-    user_game_history: {} // Empty for now
-  };
 
-  await set(newUserRef, userData);
+  const res = await fetch(`${API_BASE}/register/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, email }),
+  });
 
-  return newUserRef.key; // Return the generated user ID
+  const data = await res.json();
+  return data.userId;
 }
+
 /** 
   * Records a game session in the database.
   * @param {string} user - The user ID of the player.
@@ -109,10 +47,19 @@ export async function addUser(username, password, email) {
   * @param {number} points - The points scored in the game.
   * @return {Promise<string>} The ID of the recorded game session.
   */
-export async function record_game_session(user, time_started, session_duration, winlose, num_connections,num_optimal_connections, actor1,actor2,challenge_type, points ) {
-  const game_sessions_ref = ref(db, 'game_sessions');
-  const newGameRef = push(game_sessions_ref);
-  const gameData = {
+export async function record_game_session(
+  user,
+  time_started,
+  session_duration,
+  winlose,
+  num_connections,
+  num_optimal_connections,
+  actor1,
+  actor2,
+  challenge_type,
+  points
+) {
+  const sessionData = {
     user,
     time_started,
     session_duration,
@@ -125,37 +72,31 @@ export async function record_game_session(user, time_started, session_duration, 
     points
   };
 
-  await set(game_sessions_ref, gameData);
+  const res = await fetch(`${API_BASE}/game-session/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sessionData),
+  });
 
-  add_Game_To_User(user, newGameRef.key); // Add the game to the user's game history
-
-  return newGameRef.key; // Return the generated game ID
+  const data = await res.json();
+  return data.gameId;
 }
 
-async function add_Game_To_User(userId, gameId) {
-  // Reference to the user's game history
-  const userGameHistoryRef = ref(db, `users/${userId}/user_game_history`);
-  // Add the gameId as a key with a value of true (because json stores key-value pairs)
-  await update(userGameHistoryRef, { [gameId]: true });
-}
 
+
+/**
+ * verifies a user by checking their username and password against the Firebase database.
+ * @param {*} username 
+ * @param {*} password 
+ * @returns {Promise<string>} The user ID if the login is successful
+ */
 export async function verifyUser(username, password) {
-  const usersRef = ref(db, 'users');
-  const snapshot = await get(usersRef);
-  if (snapshot.exists()) {
-    const users = snapshot.val();
-    for (const userId in users) {
-      const user = users[userId];
-      if (user.username === username && user.password === password) {
-        return userId; // Return the user ID if credentials match
-      }
-    }
-  }
-  return null; // Return null if no match found
+  const res = await fetch(`${API_BASE}/login/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await res.json();
+  return data.userId;
 }
 
-export default {
-  addUser,
-  record_game_session,
-  verifyUser
-};

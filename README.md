@@ -4,7 +4,7 @@ An interactive web game where players connect Hollywood actors through movies an
 
 ## 🚨 Known Issues
 
-1. **Shortest Path not Upadting*: the shortest path doesn't update if ater victory a shorter path is found
+1. **Shortest Path not Upadting**: the shortest path doesn't update if ater victory a shorter path is found
 2. **Cheat Sheet UI Bug**: Cheat sheet moves stat bar to the middle of the screen and gets it stuck there
 3. **Search Panel Bug**: If NOT selecting a movie from cheat sheet and hitting X, then searching for any character/string, everything from the cheat sheet is displayed as search results
 4. **Z-Index Issue**: When a card is behind the header, it cannot be clicked
@@ -14,14 +14,14 @@ An interactive web game where players connect Hollywood actors through movies an
 ### System Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │    │  Backend Server │    │   TMDB API      │
-│  (Port 5174)    │───▶│  (Port 3000)    │───▶│                 │
-│                 │    │                 │    │                 │
-│ • React/Vite    │    │ • Next.js 15    │    │ • External API  │
-│ • API calls     │    │ • Fetch API     │    │ • Images (CDN)  │
-│ • Image display │    │ • CORS headers  │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐     ┌─────────────────┐    ┌─────────────────┐
+│   Client App    │     │  Backend Server │    │   TMDB API      │
+│  (Port 5174)    │───▶ │   (Port 3000)  │───▶│                 │
+│                 │     │                 │    │                 │
+│ • React/Vite    │     │ • Next.js 15    │    │ • External API  │
+│ • API calls     │     │ • Fetch API     │    │ • Images (CDN)  │
+│ • Image display │     │ • CORS headers  │    │                 │
+└─────────────────┘     └─────────────────┘    └─────────────────┘
 ```
 
 ### Data Flow

@@ -1,10 +1,12 @@
 import React from 'react';
 import { getItemTitle } from '../../utils/stringUtils';
-import {getItemYear} from '../../utils/stringUtils';
+import { getItemYear } from '../../utils/stringUtils';
+import * as PanelStyles from '../../styles/PanelUIStyle.js';
+
 const SearchPanelUI = ({
   handleSubmit,
   inputRef,
-  searchTerm,
+  searchTerm = "", // Add default value here
   handleInputChange,
   isLoading,
   hasResults,
@@ -17,21 +19,21 @@ const SearchPanelUI = ({
   handleAddToBoard,
 }) => {
   return (
-    <div className={`search-panel-container ${hasResults ? 'with-results' : ''}`}>
-      <form onSubmit={handleSubmit} className="search-form">
+    <div className={`${PanelStyles.panelUIStyle} ${hasResults ? PanelStyles.panelUIWithResultsStyle : ''}`}>
+      <form onSubmit={handleSubmit} className={`${PanelStyles.searchFormStyle}`}>
         <input
           ref={inputRef}
-          className="in-game-search-input"
+          className={`${PanelStyles.searchInputStyle}`}
           type="text"
           placeholder="Search movies, TV shows, actors..."
-          value={searchTerm}
+          value={searchTerm || ""} // Add fallback here too
           onChange={handleInputChange}
           autoFocus
         />
         <button
           type="submit"
-          className="in-game-search-button"
-          disabled={isLoading || !searchTerm.trim()}
+          className={`${PanelStyles.searchButtonStyle}`}
+          disabled={isLoading || !searchTerm?.trim()} // Add optional chaining
         >
           {isLoading ? 'Searching...' : 'Search'}
         </button>
@@ -39,7 +41,7 @@ const SearchPanelUI = ({
       
       {/* No Results Message */}
       {noMatchFound && (
-        <div className="in-game-search-no-results">
+        <div className={`${PanelStyles.searchNoResultsStyle}`}>
           <p>No matches found for "{originalSearchTerm}"</p>
           <p style={{ fontSize: 'smaller' }}>Try a different search term or check your spelling.</p>
         </div>
@@ -47,30 +49,31 @@ const SearchPanelUI = ({
       
       {/* Loading indicator */}
       {isLoading && (
-        <div className="in-game-search-loading">
+        <div className={`${PanelStyles.searchLoadingStyle}`}>
           Searching...
         </div>
       )}
       
       {/* Search Results - only show if we have search term and results */}
       {shouldShowResults && (
-        <div className="in-game-search-results" ref={resultsContainerRef}>
-          {/* Only show connectable results - no need to separate into categories */}
+        <div className={`${PanelStyles.searchResultsStyle}`} ref={resultsContainerRef}>
           {organizedResults.connectable.map(item => (
             <div
               key={`${item.media_type}-${item.id}`}
-              className={`in-game-result-item ${connectableItems[`${item.media_type}-${item.id}`] ? 'can-connect' : ''}`}
+              // className={`in-game-result-item ${connectableItems[`${item.media_type}-${item.id}`] ? 'can-connect' : ''}`}
+              className={`${PanelStyles.resultItemStyle} ${connectableItems[`${item.media_type}-${item.id}`] ? PanelStyles.resultItemCanConnectStyle : ''} ${item.is_exact_match ? PanelStyles.resultItemExactMatchStyle : ''}`}
               onClick={() => handleAddToBoard(item)}
             >
-              <div className="in-game-result-image">
+              <div className={`${PanelStyles.resultImageStyle}`}>
                 <img
+                  className={`${PanelStyles.resultImageImgStyle}`}
                   src={`https://image.tmdb.org/t/p/w92${item.media_type === 'person' ? item.profile_path : item.poster_path}`}
                   alt={getItemTitle(item)}
                 />
               </div>
-              <div className="in-game-result-info">
-                <div className="in-game-result-title">{getItemTitle(item)+" " + getItemYear(item)} </div>
-                <div className="in-game-result-type">
+              <div className={`${PanelStyles.resultInfoStyle}`}>
+                <div className={`${PanelStyles.resultTitleStyle}`}>{getItemTitle(item) + " " + getItemYear(item)} </div>
+                <div className={`${PanelStyles.resultTypeStyle}`}>
                   {item.media_type === 'movie' ? 'Movie' : item.media_type === 'tv' ? 'TV Show' : 'Actor'}
                   {/* Show guest appearance tag if applicable */}
                   {item.media_type === 'tv' && (item.is_guest_appearance || item.hasGuestAppearances) && 
@@ -80,11 +83,9 @@ const SearchPanelUI = ({
                     <span style={{ color: '#FFC107' }}> (Guest)</span>
                   }
                 </div>
-                  
-
               </div>
               <button 
-                className="in-game-add-button"
+                className={`${PanelStyles.addButtonStyle}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddToBoard(item);
@@ -97,13 +98,12 @@ const SearchPanelUI = ({
           
           {/* Show message if no connectable items */}
           {organizedResults.connectable.length === 0 && organizedResults.notConnectable.length > 0 && (
-            <div className="in-game-search-no-results">
+            <div className={`${PanelStyles.searchNoResultsStyle}`}>
               <p>Found matches, but none can be connected to the board.</p>
             </div>
           )}
         </div>
       )}
-
     </div>
   );
 };
