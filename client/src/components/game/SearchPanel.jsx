@@ -20,6 +20,7 @@ const SearchPanel = () => {
     setNoMatchFound,
     setExactMatch,
     setDidYouMean,
+    toggleShowAllSearchable,
   } = useGameContext();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,20 +41,20 @@ const SearchPanel = () => {
     "KeyA",
   ];
 
+  const [konamiActivated, setKonamiActivated] = useState(false);
+
   useEffect(() => {
-    // Focus the search input when the component mounts
     if (inputRef.current) {
       inputRef.current.focus();
     }
 
-    // konami code part:
     const handleKeyDown = (event) => {
       if (document.activeElement !== inputRef.current) {
         return;
       }
       
       setKonamiSequence((prev) => {
-        const newSequence = [...prev, event.code]; // event.code register the key input
+        const newSequence = [...prev, event.code];
 
         // Keep only the last 10 key presses (length of Konami code)
         if (newSequence.length > konamiCode.length) {
@@ -67,9 +68,12 @@ const SearchPanel = () => {
           );
 
           if (codeMatch) {
-            // Konami code activated! Do something here
+            // Set flag to override input behavior
+            setKonamiActivated(true);
+            
+            // Activate immediately
             handleKonamiActivation();
-            return []; // Reset sequence
+            return [];
           }
         }
 
@@ -78,28 +82,67 @@ const SearchPanel = () => {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    // Explenation for the team :
-    // Without cleanup, this listener stays forever
-    // Even after component is not existing anymore
-    // and its will add more and more listeners
+    
+    // Cleanup function
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-
   }, []);
 
+  // Override input change when Konami is activated
+  const handleInputChange = (e) => {
+    if (konamiActivated) {
+      // Block the input change and reset flag
+      setKonamiActivated(false);
+      return;
+    }
+    
+    setSearchTerm(e.target.value);
 
-
-
-  // Function to handle Konami code activation
-  const handleKonamiActivation = () => {
-    // Replace this with whatever you want to happen when Konami code is entered
-    console.log("🎮 Konami Code Activated!");
-
-    alert("🎮 Konami Code Activated! You found the secret!");
+    // If the search term is emptied, clear the search results in the context
+    if (e.target.value.trim() === "") {
+      // Reset all search-related states when the input is cleared
+      if (typeof setSearchResults === "function") {
+        setSearchResults([]);
+      }
+      // Also reset the suggestion and no match found states
+      setNoMatchFound(false);
+      setDidYouMean(null);
+      setExactMatch(null);
+    }
   };
 
+// Function to handle Konami code activation
+const handleKonamiActivation = () => {
+  console.log("🎮 Konami Code Activated! Opening cheat sheet...");
+
+  // Clear everything
+  setSearchTerm("");
   
+  // Force clear the input
+  if (inputRef.current) {
+    inputRef.current.value = "";
+  }
+  
+  // Clear search states
+  if (typeof setSearchResults === "function") {
+    setSearchResults([]);
+  }
+  setNoMatchFound(false);
+  setDidYouMean(null);
+  setExactMatch(null);
+  
+  // Open sidebar
+  if (typeof toggleShowAllSearchable === "function") {
+    if (!showAllSearchable) {
+      toggleShowAllSearchable();
+    }
+  } else {
+    setSidebarOpen(true);
+  }
+  
+  console.log("Cheat sheet activated!");
+};
 
   // Determine if search has results AND there's an active search term
   const hasResults =
@@ -130,22 +173,6 @@ const SearchPanel = () => {
     e.preventDefault();
     if (searchTerm.trim()) {
       handleSearch(searchTerm);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setSearchTerm(e.target.value);
-
-    // If the search term is emptied, clear the search results in the context
-    if (e.target.value.trim() === "") {
-      // Reset all search-related states when the input is cleared
-      if (typeof setSearchResults === "function") {
-        setSearchResults([]);
-      }
-      // Also reset the suggestion and no match found states
-      setNoMatchFound(false);
-      setDidYouMean(null);
-      setExactMatch(null);
     }
   };
 
@@ -204,7 +231,7 @@ const SearchPanel = () => {
         handleAddToBoard={handleAddToBoard}
       />
       {/*==================================================================================*/}
-      {/* remove this part before final release!!! */}
+      {/* will be triggered by the konami code only at release */}
       <SearchEntitiesSidebar
         isOpen={sidebarOpen}
         onClose={handleCloseSidebar}
