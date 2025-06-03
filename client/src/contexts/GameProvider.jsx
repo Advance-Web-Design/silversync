@@ -45,6 +45,8 @@ export const GameProvider = ({ children }) => {
   const [possibleConnections, setPossibleConnections] = useState([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [showAllSearchable, setShowAllSearchable] = useState(false);
+  const [cheatSheetResults, setCheatSheetResults] = useState([]);
+  
   // Destructure state from hooks for easier access
   const {
     isLoading, setIsLoading,
@@ -74,7 +76,7 @@ export const GameProvider = ({ children }) => {
 
   const {
     searchTerm,
-    setSearchTerm, // Make sure this is destructured from useSearch
+    setSearchTerm,
     searchResults, setSearchResults,
     noMatchFound, setNoMatchFound,
     didYouMean, setDidYouMean,
@@ -141,11 +143,15 @@ export const GameProvider = ({ children }) => {
    * When enabled, fetches and displays all entities that can connect to the board
    */
   const toggleShowAllSearchable = () => {
-    setShowAllSearchable(!showAllSearchable);
+    const newShowAllSearchable = !showAllSearchable;
+    setShowAllSearchable(newShowAllSearchable);
 
     // If turning on, fetch all connectable entities
-    if (!showAllSearchable) {
+    if (newShowAllSearchable) {
       fetchAndSetAllSearchableEntities();
+    } else {
+      // If turning off, clear the cheat sheet results
+      setCheatSheetResults([]);
     }
   };
 
@@ -157,56 +163,62 @@ export const GameProvider = ({ children }) => {
     setIsLoading(true);
     try {
       if (nodes.length === 0 || !gameStarted) {
-        setSearchResults([]);
+        setCheatSheetResults([]);
         return;
       }
       else if (nodes.length <= 2 && startActors.length === 2) {
-        if (showAllSearchable) {
-          const relevantEntities = [];
+        const relevantEntities = [];
 
-          // Check if we have data for the starting actors
-          for (const node of nodes) {
-            if (node.type === 'person' && node.data) {
-              // For actors, get their movie and TV credits
-              if (node.data.movie_credits?.cast) {
-                relevantEntities.push(...node.data.movie_credits.cast.map(movie => ({
-                  ...movie,
-                  media_type: 'movie',
-                  source_node: node.id
-                })));
-              }
+        // Check if we have data for the starting actors
+        for (const node of nodes) {
+          if (node.type === 'person' && node.data) {
+            // For actors, get their movie and TV credits
+            if (node.data.movie_credits?.cast) {
+              relevantEntities.push(...node.data.movie_credits.cast.map(movie => ({
+                ...movie,
+                media_type: 'movie',
+                source_node: node.id
+              })));
+            }
 
-              if (node.data.tv_credits?.cast) {
-                relevantEntities.push(...node.data.tv_credits.cast.map(show => ({
-                  ...show,
-                  media_type: 'tv',
-                  source_node: node.id
-                })));
-              }
+            if (node.data.tv_credits?.cast) {
+              relevantEntities.push(...node.data.tv_credits.cast.map(show => ({
+                ...show,
+                media_type: 'tv',
+                source_node: node.id
+              })));
             }
           }
-
-          // Filter for images and mark as connectable
-          const filteredEntities = relevantEntities.filter(entity =>
-            entity && entity.id && ((entity.media_type === 'movie' || entity.media_type === 'tv') && entity.poster_path)
-          );
-
-          // Mark all these entities as connectable
-          const newConnectableItems = {};
-          filteredEntities.forEach(item => {
-            const itemKey = `${item.media_type}-${item.id}`;
-            newConnectableItems[itemKey] = true;
-          });
-
-          setConnectableItems(prev => ({
-            ...prev,
-            ...newConnectableItems
-          }));
-
-          setSearchResults(filteredEntities);
-        } else {
-          setSearchResults([]);
         }
+
+        // Filter for images and remove duplicates
+        const filteredEntities = relevantEntities.filter(entity =>
+          entity && entity.id && ((entity.media_type === 'movie' || entity.media_type === 'tv') && entity.poster_path)
+        );
+
+        // Remove duplicates based on id and media_type
+        const uniqueEntities = filteredEntities.filter((entity, index, self) =>
+          index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
+        );
+
+        // Filter out entities already on board
+        const finalEntities = uniqueEntities.filter(entity => 
+          !nodes.some(node => 
+            node.id === `${entity.media_type}-${entity.id}`
+          )
+        );
+
+        // Set cheat sheet results instead of search results
+        setCheatSheetResults(finalEntities);
+
+        // Mark all these entities as connectable
+        const newConnectableItems = {};
+        finalEntities.forEach(item => {
+          const itemKey = `${item.media_type}-${item.id}`;
+          newConnectableItems[itemKey] = true;
+        });
+
+        setConnectableItems(newConnectableItems);
       } else {
         // With nodes on the board beyond just starting actors, build a list of all connectable entities
         const allConnectableEntities = await fetchConnectableEntitiesFromBoard(
@@ -217,21 +229,23 @@ export const GameProvider = ({ children }) => {
         // Filter out entities that are already on the board
         const filteredEntities = filterExistingBoardEntities(allConnectableEntities, nodes);
 
-        console.log(`Found ${filteredEntities.length} connectable entities from board nodes`);
+        // Remove duplicates
+        const uniqueEntities = filteredEntities.filter((entity, index, self) =>
+          index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
+        );
 
-        setSearchResults(filteredEntities);
+        console.log(`Found ${uniqueEntities.length} connectable entities from board nodes`);
 
-        // Mark all these entities as connectable
+        // Set cheat sheet results instead of search results
+        setCheatSheetResults(uniqueEntities);
+
         const newConnectableItems = {};
-        filteredEntities.forEach(item => {
+        uniqueEntities.forEach(item => {
           const itemKey = `${item.media_type}-${item.id}`;
           newConnectableItems[itemKey] = true;
         });
 
-        setConnectableItems(prev => ({
-          ...prev,
-          ...newConnectableItems
-        }));
+        setConnectableItems(newConnectableItems);
       }
     } catch (error) {
       console.error("Error fetching connectable entities:", error);
@@ -353,6 +367,7 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };  
+
     /**
    * Processes and filters search results from the API
    * Handles exact matches and connectability checks, but without spelling suggestions UI
@@ -427,7 +442,40 @@ export const GameProvider = ({ children }) => {
    * @param {Object} entity - Entity to add (person, movie, or TV show)
    */
   const addToBoard = async (entity) => {
-    return addToBoardFn(entity, exactMatch, connectableItems, setIsLoading);
+    console.log('Adding to board:', entity); // Debug log
+    console.log('Cheat sheet results before:', cheatSheetResults.length); // Debug log
+    
+    const nodeCountBefore = nodes.length;
+    
+    const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading);
+    
+    console.log('Board function completed, assuming success and removing from results'); // Debug log
+    
+    // Remove from regular search results
+    setSearchResults(prev => 
+      prev.filter(item => 
+        !(item.id === entity.id && item.media_type === entity.media_type)
+      )
+    );
+    
+    // Remove from cheat sheet results
+    setCheatSheetResults(prev => {
+      const filtered = prev.filter(item => 
+        !(item.id === entity.id && item.media_type === entity.media_type)
+      );
+      console.log('Cheat sheet results after filter:', filtered.length); // Debug log
+      return filtered;
+    });
+    
+    // Remove from connectable items tracking
+    const itemKey = `${entity.media_type}-${entity.id}`;
+    setConnectableItems(prev => {
+      const updated = { ...prev };
+      delete updated[itemKey];
+      return updated;
+    });
+    
+    return result;
   };
 
   /**
@@ -461,7 +509,7 @@ export const GameProvider = ({ children }) => {
     actorSearchTerms,
     actorSearchPages,
     actorSearchTotalPages,
-    searchTerm, // Add this line - it was missing!
+    searchTerm,
     searchResults,
     noMatchFound,
     didYouMean,
@@ -469,7 +517,7 @@ export const GameProvider = ({ children }) => {
     originalSearchTerm,
     connectableItems,
     gameStartTime,
-    shortestPathLength, // ← This needs to be included
+    shortestPathLength,
 
     // Board state
     nodes,
@@ -495,7 +543,7 @@ export const GameProvider = ({ children }) => {
     setExactMatch,
     setOriginalSearchTerm,
     setConnectableItems,
-    setSearchTerm, // This is already here, which is good
+    setSearchTerm,
 
     // Board functions
     addToBoard,
@@ -515,10 +563,15 @@ export const GameProvider = ({ children }) => {
     selectNode,
     closeConnectionsPanel,
     toggleShowAllSearchable,
-    fetchAndSetAllSearchableEntities,    randomizeActors,    // Search functions
+    fetchAndSetAllSearchableEntities,    
+    randomizeActors,
     handleSearch,
     searchStartActors: searchStartActorsWrapper,
-    setActorSearch
+    setActorSearch,
+
+    // Cheat sheet results
+    cheatSheetResults,
+    setCheatSheetResults,
   };
 
   return (

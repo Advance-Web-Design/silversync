@@ -1,8 +1,3 @@
-// ==================================================================================================== //
-// ==================== this component is a developer tool to help us test the code =================== //
-// ==================== it will be removed in the final version of the game         =================== //
-// ==================================================================================================== //
-
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import { getItemTitle } from '../../utils/stringUtils';
@@ -11,7 +6,7 @@ import './SearchEntitiesSidebar.css';
 const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
   const { 
     nodes, 
-    searchResults, 
+    cheatSheetResults, // Changed from searchResults to cheatSheetResults
     isLoading, 
     showAllSearchable, 
     toggleShowAllSearchable, 
@@ -19,14 +14,14 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
     connectableItems // Assuming connectableItems is provided by context
   } = useGameContext();
 
-  // Moved React.useMemo hooks to be called unconditionally at the top level
+  // Updated to use cheatSheetResults instead of searchResults
   const connectableEntities = React.useMemo(() => {
-    if (!searchResults || !connectableItems) return [];
-    return searchResults.filter(item => {
+    if (!cheatSheetResults || !connectableItems) return [];
+    return cheatSheetResults.filter(item => {
       const itemKey = `${item.media_type}-${item.id}`;
       return connectableItems[itemKey];
     });
-  }, [searchResults, connectableItems]);
+  }, [cheatSheetResults, connectableItems]); // Updated dependency
 
   const groupedEntities = React.useMemo(() => {
     const groups = {
@@ -51,8 +46,8 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Early exit or loading state
-  if (!showAllSearchable && (!searchResults || searchResults.length === 0)) {
+  // Updated condition to use cheatSheetResults
+  if (!showAllSearchable && (!cheatSheetResults || cheatSheetResults.length === 0)) {
     return null;
   }
   // Handle adding an item to the board
