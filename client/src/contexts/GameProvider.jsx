@@ -12,7 +12,7 @@
  * - Board state management including connections between entities
  * - Game progression and win state tracking
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
@@ -169,7 +169,7 @@ export const GameProvider = ({ children }) => {
       else if (nodes.length <= 2 && startActors.length === 2) {
         const relevantEntities = [];
 
-        // Check if we have data for the starting actors
+        // Check if we have data for the starting actors AND any movies/TV shows on the board
         for (const node of nodes) {
           if (node.type === 'person' && node.data) {
             // For actors, get their movie and TV credits
@@ -188,12 +188,34 @@ export const GameProvider = ({ children }) => {
                 source_node: node.id
               })));
             }
+          } else if (node.type === 'movie' && node.data) {
+            // For movies, get their cast members (actors)
+            if (node.data.credits?.cast) {
+              relevantEntities.push(...node.data.credits.cast.map(actor => ({
+                ...actor,
+                media_type: 'person',
+                source_node: node.id
+              })));
+            }
+          } else if (node.type === 'tv' && node.data) {
+            // For TV shows, get their cast members (actors)
+            if (node.data.credits?.cast) {
+              relevantEntities.push(...node.data.credits.cast.map(actor => ({
+                ...actor,
+                media_type: 'person',
+                source_node: node.id
+              })));
+            }
           }
         }
 
         // Filter for images and remove duplicates
         const filteredEntities = relevantEntities.filter(entity =>
-          entity && entity.id && ((entity.media_type === 'movie' || entity.media_type === 'tv') && entity.poster_path)
+          entity && entity.id && (
+            (entity.media_type === 'movie' && entity.poster_path) ||
+            (entity.media_type === 'tv' && entity.poster_path) ||
+            (entity.media_type === 'person' && entity.profile_path)
+          )
         );
 
         // Remove duplicates based on id and media_type
@@ -438,7 +460,7 @@ export const GameProvider = ({ children }) => {
       )
     );
     
-    // Remove from cheat sheet results
+    // Remove from cheat sheet results immediately (to provide instant feedback)
     setCheatSheetResults(prev => 
       prev.filter(item => 
         !(item.id === entity.id && item.media_type === entity.media_type)
@@ -551,6 +573,13 @@ export const GameProvider = ({ children }) => {
     cheatSheetResults,
     setCheatSheetResults,
   };
+
+  // Auto-refresh cheat sheet when nodes change (if it's currently open)
+  useEffect(() => {
+    if (showAllSearchable && gameStarted && nodes.length > 0) {
+      fetchAndSetAllSearchableEntities();
+    }
+  }, [nodes, showAllSearchable, gameStarted]);
 
   return (
     <GameContext.Provider value={contextValue}>
