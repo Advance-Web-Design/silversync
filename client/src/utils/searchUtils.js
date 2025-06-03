@@ -292,8 +292,6 @@ export const processSearchResults = async (allResults, originalTerm, apiSearchTe
   const { setNoMatchFound, setExactMatch, setSearchResults } = setters;
 
   const filteredResults = filterValidEntities(allResults);
-  
-  console.log(`Search for "${apiSearchTerm}" returned ${filteredResults.length} results`);
 
   if (filteredResults.length === 0) {
     setNoMatchFound(true);
@@ -301,7 +299,8 @@ export const processSearchResults = async (allResults, originalTerm, apiSearchTe
   }
 
   searchState.learnFromSuccessfulSearch(apiSearchTerm, filteredResults);
-    // Cache successful search in session storage
+  
+  // Cache successful search in session storage
   const cacheKey = `search-results-${apiSearchTerm}`;
   sessionStorageManager.setItem(cacheKey, {
     results: filteredResults,
@@ -311,7 +310,6 @@ export const processSearchResults = async (allResults, originalTerm, apiSearchTe
   const exactMatchItem = searchState.findExactMatch(filteredResults, apiSearchTerm);
 
   if (exactMatchItem) {
-    console.log("FOUND EXACT MATCH:", getItemTitle(exactMatchItem));
     setExactMatch(exactMatchItem);
   }
 
@@ -319,19 +317,12 @@ export const processSearchResults = async (allResults, originalTerm, apiSearchTe
   if (gameContext && gameContext.checkConnectability) {
     const connectableItemsUpdate = {};
     
-    console.log(`Checking connectability for ${filteredResults.length} search results`);
-    
     for (const item of filteredResults) {
       const itemKey = `${item.media_type}-${item.id}`;
       try {
         const isConnectable = await gameContext.checkConnectability(item);
         connectableItemsUpdate[itemKey] = isConnectable;
-        
-        if (isConnectable) {
-          console.log(`✅ ${getItemTitle(item)} (${item.media_type}) is connectable`);
-        }
       } catch (error) {
-        console.error(`Error checking connectability for ${getItemTitle(item)}:`, error);
         connectableItemsUpdate[itemKey] = false;
       }
     }

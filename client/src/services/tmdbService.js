@@ -649,71 +649,51 @@ export const searchPeople = async (query, page = 1) => {
  * @param {number} personPages - The number of pages of popular people to fetch
  * @returns {Promise<Array>} - List of popular entities
  */
-export const fetchPopularEntities = async (moviePages = 3, tvPages = 3, personPages = 3) => {
-  return withErrorHandling(
-    async () => {
-      console.log('Fetching popular entities for spell checking database...');
-      
-      // Check if we have cached entities in session storage
-      const cachedEntities = getFromSession('popularEntities');
-      const lastFetchTime = getFromSession('popularEntitiesLastFetch');
-      
-      if (cachedEntities && lastFetchTime && 
-          (Date.now() - parseInt(lastFetchTime)) < SIX_HOURS) {
-        console.log('Using cached popular entities from session storage');
-        return cachedEntities;
-      }
-      
-      // Create arrays of promises for each page request
-      const moviePromises = Array.from({ length: moviePages }, (_, i) => 
-        callApi('/movie/popular', { page: i + 1 })
-      );
-      
-      const tvPromises = Array.from({ length: tvPages }, (_, i) => 
-        callApi('/tv/popular', { page: i + 1 })
-      );
-      
-      const personPromises = Array.from({ length: personPages }, (_, i) => 
-        callApi('/person/popular', { page: i + 1 })
-      );
-      
-      // Execute all requests in parallel by media type
-      console.log(`Fetching ${moviePages} movie pages, ${tvPages} TV pages, and ${personPages} person pages in parallel`);
-      const [movieResults, tvResults, personResults] = await Promise.all([
-        Promise.all(moviePromises),
-        Promise.all(tvPromises),
-        Promise.all(personPromises)
-      ]);
-      
-      // Process results using utility functions from tmdbUtils
-      const movieEntities = processMovieResults(movieResults);
-      const tvEntities = processTvResults(tvResults);
-      const personEntities = processPersonResults(personResults);
-      
-      // Combine all entities
-      const allEntities = [...movieEntities, ...tvEntities, ...personEntities];
-      
-      // Filter entities and ensure they have required fields
-      const filteredEntities = filterValidEntities(allEntities);
-      
-      console.log(`Fetched ${filteredEntities.length} unique entities for spell checking`);
-      
-      // Store in session storage
-      storeInSession('popularEntities', filteredEntities);
-      storeInSession('popularEntitiesLastFetch', Date.now().toString());
-      
-      return filteredEntities;
-    },
-    // Fallback to cached data on error
-    () => {
-      const cachedEntities = getFromSession('popularEntities');
-      if (cachedEntities) {
-        console.log('Falling back to cached entities due to fetch error');
-        return cachedEntities;
-      }
-      return [];
-    }
-  );
+export const fetchPopularEntities = async () => {
+  try {
+    // Define how many pages to fetch for each media type
+    const moviePages = 10;
+    const tvPages = 10; 
+    const personPages = 10;
+    
+    // Prepare movie requests
+    const moviePromises = Array.from({ length: moviePages }, (_, i) => 
+      callApi('/movie/popular', { page: i + 1 })
+    );
+    
+    // Prepare TV requests
+    const tvPromises = Array.from({ length: tvPages }, (_, i) => 
+      callApi('/tv/popular', { page: i + 1 })
+    );
+    
+    // Prepare person requests
+    const personPromises = Array.from({ length: personPages }, (_, i) => 
+      callApi('/person/popular', { page: i + 1 })
+    );
+    
+    // Execute all requests in parallel by media type
+    const [movieResults, tvResults, personResults] = await Promise.all([
+      Promise.all(moviePromises),
+      Promise.all(tvPromises),
+      Promise.all(personPromises)
+    ]);
+    
+    // Process results using utility functions from tmdbUtils
+    const movieEntities = processMovieResults(movieResults);
+    const tvEntities = processTvResults(tvResults);
+    const personEntities = processPersonResults(personResults);
+    
+    // Combine all entities
+    const allEntities = [...movieEntities, ...tvEntities, ...personEntities];
+    
+    // Filter entities and ensure they have required fields
+    const filteredEntities = filterValidEntities(allEntities);
+    
+    return filteredEntities;
+  } catch (error) {
+    console.error('Error fetching popular entities:', error);
+    return [];
+  }
 };
 
 // Export the getImageUrl directly from tmdbUtils

@@ -64,7 +64,7 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
     
     return data;
   } catch (error) {
-    console.error('API call error:', error);
+    console.error(`API call to ${endpoint} failed:`, error);
     throw error;
   }
 };

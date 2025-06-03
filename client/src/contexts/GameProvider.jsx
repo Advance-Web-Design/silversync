@@ -234,9 +234,7 @@ export const GameProvider = ({ children }) => {
           index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
         );
 
-        console.log(`Found ${uniqueEntities.length} connectable entities from board nodes`);
-
-        // Set cheat sheet results instead of search results
+        // Set cheat sheet results instead of search results  
         setCheatSheetResults(uniqueEntities);
 
         const newConnectableItems = {};
@@ -271,10 +269,8 @@ export const GameProvider = ({ children }) => {
         const newStartActors = [...startActors];
         newStartActors[actorIndex] = randomActor;
         setStartActors(newStartActors);
-        console.log(`Actor set for position ${actorIndex}:`, randomActor.name);
       } else {
         const errorMsg = "Failed to find a unique actor after multiple attempts";
-        console.error(errorMsg);
         setStartActorsError(errorMsg);
       }
     } catch (error) {
@@ -290,18 +286,12 @@ export const GameProvider = ({ children }) => {
    * Initializes the board with starting nodes
    */
   const startGame = async () => {
-    console.log("StartGame called. Current gameStarted state:", gameStarted);
     setIsLoading(true);
     try {
-      console.log("Starting game with actors:", startActors);
       await gameState.startGame(setNodes, setNodePositions);
-      console.log("Game started successfully. gameStarted should now be true");
-      // Force an update to gameStarted to ensure it's set properly
       setGameStarted(true);
-      console.log("Current gameStarted after explicit set:", true);
     } catch (error) {
       console.error("Error starting game:", error);
-      console.error("Error details:", error.message, error.stack);
       setStartActorsError("Error starting game. Please try again: " + error.message);
     } finally {
       setIsLoading(false);
@@ -340,23 +330,20 @@ export const GameProvider = ({ children }) => {
       // First check if there's a string similarity match in our local database
       const similarityMatch = searchState.checkForMisspelling(term);
       let apiSearchTerm = term; // Default to original term
-      let similarityMatchFound = false;
 
       // If we found a match in the local database
       if (similarityMatch && typeof similarityMatch === 'object' && similarityMatch.id) {
         const matchTitle = getItemTitle(similarityMatch);
-        console.log(`Local database match found: ${matchTitle} (${similarityMatch.media_type})`);
 
         // If the match is different from what the user typed, use it automatically
         // without showing "Did you mean" prompt
         if (matchTitle.toLowerCase() !== term.toLowerCase()) {
-          similarityMatchFound = true;
           // Use the exact title/name for our API search to get best results
           apiSearchTerm = matchTitle;
         }
       }
-        // Search the API using either original term or corrected term from local database
-      console.log(`Searching API with term: ${apiSearchTerm} ${similarityMatchFound ? '(from fuzzy search)' : '(original)'}`);
+
+      // Search the API using either original term or corrected term from local database
       let allResults = await searchMulti(apiSearchTerm);
 
       await processSearchResults(allResults, term, apiSearchTerm);
@@ -442,14 +429,7 @@ export const GameProvider = ({ children }) => {
    * @param {Object} entity - Entity to add (person, movie, or TV show)
    */
   const addToBoard = async (entity) => {
-    console.log('Adding to board:', entity); // Debug log
-    console.log('Cheat sheet results before:', cheatSheetResults.length); // Debug log
-    
-    const nodeCountBefore = nodes.length;
-    
     const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading);
-    
-    console.log('Board function completed, assuming success and removing from results'); // Debug log
     
     // Remove from regular search results
     setSearchResults(prev => 
@@ -459,13 +439,11 @@ export const GameProvider = ({ children }) => {
     );
     
     // Remove from cheat sheet results
-    setCheatSheetResults(prev => {
-      const filtered = prev.filter(item => 
+    setCheatSheetResults(prev => 
+      prev.filter(item => 
         !(item.id === entity.id && item.media_type === entity.media_type)
-      );
-      console.log('Cheat sheet results after filter:', filtered.length); // Debug log
-      return filtered;
-    });
+      )
+    );
     
     // Remove from connectable items tracking
     const itemKey = `${entity.media_type}-${entity.id}`;

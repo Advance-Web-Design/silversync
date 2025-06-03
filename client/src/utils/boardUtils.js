@@ -54,45 +54,39 @@ export const calculateNodePosition = (connections, nodePositions, nodeId) => {
 /**
  * Save an entity to local database for future fuzzy searches
  * 
- * @param {Object} item - Entity to save
+ * @param {Object} entity - Entity to save
  */
-export const saveEntityToLocalDatabase = (item) => {
+export const saveEntityToLocalDatabase = (entity) => {
   try {
-    const itemType = item.media_type;
-    const localStorageKey = `${itemType}History`;
+    const storedEntities = localStorage.getItem('searchableEntities');
+    let entities = storedEntities ? JSON.parse(storedEntities) : [];
     
-    // Get existing history
-    const existingHistory = JSON.parse(localStorage.getItem(localStorageKey) || '[]');
-    
-    // Check if this item already exists in history
-    const exists = existingHistory.some(historyItem => 
-      historyItem.id === item.id && historyItem.media_type === item.media_type
+    // Check if entity already exists
+    const existingIndex = entities.findIndex(e => 
+      e.id === entity.id && e.media_type === entity.media_type
     );
     
-    if (!exists) {
-      // Add to history and save back to local storage
-      const simplifiedItem = {
-        id: item.id,
-        media_type: item.media_type,
-        name: item.name || item.title,
-        title: item.title,
-        poster_path: item.poster_path,
-        profile_path: item.profile_path,
-        popularity: item.popularity
-      };
-      
-      existingHistory.push(simplifiedItem);
-      
-      // Sort by popularity (most popular first) and limit size
-      existingHistory.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-      const MAX_HISTORY_SIZE = 100;
-      const trimmedHistory = existingHistory.slice(0, MAX_HISTORY_SIZE);
-      
-      localStorage.setItem(localStorageKey, JSON.stringify(trimmedHistory));
-      console.log(`Saved ${getItemTitle(item)} to ${localStorageKey}`);
+    const entityToSave = {
+      id: entity.id,
+      name: entity.name || entity.title || '',
+      title: entity.title || entity.name || '',
+      profile_path: entity.profile_path,
+      poster_path: entity.poster_path,
+      media_type: entity.media_type,
+      popularity: entity.popularity || 50
+    };
+    
+    if (existingIndex >= 0) {
+      // Update existing entity
+      entities[existingIndex] = entityToSave;
+    } else {
+      // Add new entity
+      entities.push(entityToSave);
     }
+    
+    localStorage.setItem('searchableEntities', JSON.stringify(entities));
   } catch (error) {
-    console.error("Error saving to local database:", error);
+    console.error('Error saving entity to local database:', error);
   }
 };
 
