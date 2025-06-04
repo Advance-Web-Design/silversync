@@ -1,8 +1,35 @@
 import { NextResponse } from 'next/server';
-import { handlePreflight, withCors } from '../../../utils/cors.js';
 
 // TMDB API configurations
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3/tv';
+
+// CORS utility functions (inlined to avoid import issues in serverless)
+function getCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Max-Age': '86400', // 24 hours
+  };
+}
+
+function withCors(response) {
+  const corsHeaders = getCorsHeaders();
+  
+  // Add CORS headers to the response
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  
+  return response;
+}
+
+function handlePreflight() {
+  return new Response(null, {
+    status: 200,
+    headers: getCorsHeaders(),
+  });
+}
 
 // Handle preflight OPTIONS requests
 export async function OPTIONS() {
