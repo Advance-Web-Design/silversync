@@ -19,11 +19,5 @@
       "source": "/api/(.*)",
       "destination": "/server/api/$1"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/client/$1"
-    }
   ]
 }
