@@ -14,6 +14,12 @@
       "use": "@vercel/next"
     }
   ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/server/api/$1"
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
