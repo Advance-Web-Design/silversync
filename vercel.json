@@ -1,27 +1,8 @@
 {
   "version": 2,
   "name": "connect-the-shows",
-  "builds": [
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "../client/dist"
-      }
-    },
-    {
-      "src": "server/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server/app/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/client/$1"
-    }
-  ]
+  "buildCommand": "cd server && npm run build",
+  "outputDirectory": "server/.next",
+  "framework": "nextjs",
+  "rootDirectory": "server"
 }
