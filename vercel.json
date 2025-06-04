@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "connect-the-shows",
   "builds": [
     {
       "src": "client/package.json",
@@ -12,16 +11,6 @@
     {
       "src": "server/package.json",
       "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server/app/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/client/$1"
     }
   ]
 }
