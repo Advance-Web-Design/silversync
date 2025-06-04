@@ -3,6 +3,5 @@
   "name": "connect-the-shows",
   "buildCommand": "cd server && npm run build",
   "outputDirectory": "server/.next",
-  "framework": "nextjs",
-  "rootDirectory": "server"
+  "framework": "nextjs"
 }
