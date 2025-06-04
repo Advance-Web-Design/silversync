@@ -11,7 +11,7 @@ const isDevelopment = import.meta.env.DEV;
 
 // Get backend URL based on environment
 const getBackendUrl = () => {
-  // If running in production, use relative path
+  // For same-domain deployment, use relative paths in production
   if (isProduction) {
     return '/api';
   }
@@ -51,9 +51,9 @@ const config = {
       images: '/tmdb'             // For image-related endpoints
     }
   },
-    // Feature flags - force backend usage
+  // Feature flags - force backend usage
   features: {
-    useBackend: true,          // ALWAYS use backend - no direct TMDB calls
+    useBackend: import.meta.env.VITE_USE_BACKEND !== 'false', // Default true, can be disabled via env
     cacheResponses: true,
     enableLogging: isDevelopment
   },
