@@ -119,19 +119,18 @@ const GameBoard = () => {
     if (!bestScore) return "???";
     return bestScore.toLocaleString();
   };
-
   /**
    * Get the length of the shortest path between the starting actors
    * @returns {string|number} Path length or placeholder
    */
   const getPathLength = () => {
-    
-    if (!gameCompleted) return shortestPathLength//"???";
-    // Use the calculated shortest path length if available
+    // Always use the calculated shortest path length if available
     if (shortestPathLength !== null) {
       return shortestPathLength;
     }
-    // Fallback to old method
+    // Show placeholder if game is not completed
+    if (!gameCompleted) return "???";
+    // Fallback to old method as last resort
     return nodes.length - 2;
   };
 

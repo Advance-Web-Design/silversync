@@ -426,9 +426,8 @@ export const GameProvider = ({ children }) => {
   /**
    * Adds a person to the board and fetches their detailed information
    * @param {Object} person - Person object to add
-   */
-  const addPersonToBoard = async (person) => {
-    return addToBoardFn(person, exactMatch, connectableItems, setIsLoading);
+   */  const addPersonToBoard = async (person) => {
+    return addToBoardFn(person, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
   };
 
   /**
@@ -436,7 +435,7 @@ export const GameProvider = ({ children }) => {
    * @param {Object} movie - Movie object to add
    */
   const addMovieToBoard = async (movie) => {
-    return addToBoardFn(movie, exactMatch, connectableItems, setIsLoading);
+    return addToBoardFn(movie, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
   };
 
   /**
@@ -444,14 +443,13 @@ export const GameProvider = ({ children }) => {
    * @param {Object} tvShow - TV show object to add
    */
   const addTvShowToBoard = async (tvShow) => {
-    return addToBoardFn(tvShow, exactMatch, connectableItems, setIsLoading);
+    return addToBoardFn(tvShow, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
   };
   /**
    * Generic function to add any entity to the board
    * @param {Object} entity - Entity to add (person, movie, or TV show)
-   */
-  const addToBoard = async (entity) => {
-    const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading);
+   */  const addToBoard = async (entity) => {
+    const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
     
     // Remove from regular search results
     setSearchResults(prev => 

@@ -85,8 +85,7 @@ export const useGame = () => {
    * @param {function} setConnections - Function to set connections
    * @param {function} setSearchResults - Function to set search results
    * @param {function} setConnectableItems - Function to set connectable items
-   */
-  const resetGame = (
+   */  const resetGame = (
     setNodes, 
     setNodePositions, 
     setConnections, 
@@ -99,6 +98,7 @@ export const useGame = () => {
     setGameStartTime(null);
     setKeepPlayingAfterWin(false);
     setStartActors([null, null]);
+    setShortestPathLength(null); // Reset shortest path length when starting a new game
     
     // Reset board state using initial values
     const initialState = getInitialGameState();

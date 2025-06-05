@@ -88,17 +88,22 @@ export const useBoard = () => {
       console.error("Error checking initial connectability:", error);
       return false;
     }
-  };
-  /**
+  };  /**
    * Add an item to the board and create necessary connections
    * 
    * @param {Object} item - Item to add (person, movie, TV)
    * @param {boolean} exactMatch - Whether it's an exact match
    * @param {Object} connectableItems - Map of connectable items
    * @param {Function} setIsLoading - Function to set loading state
+   * @param {Array} startActors - The starting actors (needed for path calculation)
+   * @param {boolean} gameCompleted - Whether the game is already completed
+   * @param {Function} setShortestPathLength - Function to update shortest path length
+   * @param {Function} completeGame - Function to handle game completion and score tracking
+   * @param {number} gameStartTime - When the game started (for score calculation)
+   * @param {Function} setGameCompleted - Function to set game completion state
    * @returns {Promise<void>} - Promise that resolves when item is added
    */
-  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading) => {
+  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, setShortestPathLength, completeGame, gameStartTime, setGameCompleted) => {
     if (!item) return;
 
     setIsLoading(true);
@@ -164,10 +169,49 @@ export const useBoard = () => {
         ...prevPositions,
         [nodeId]: newNodePosition
       }));
-      
-      // Add new connections
+        // Add new connections
       if (newConnections.length > 0) {
         setConnections(prev => [...prev, ...newConnections]);
+      }      // Always check for path between starting actors when adding new nodes
+      if (startActors && startActors[0] && startActors[1] && setShortestPathLength) {
+        const startActorId1 = `person-${startActors[0].id}`;
+        const startActorId2 = `person-${startActors[1].id}`;
+        
+        // Get updated nodes list including the new node
+        const updatedNodes = [...nodes, newNode];
+        
+        // Check if both starting actors exist in the updated nodes
+        const startActor1Exists = updatedNodes.some(node => node.id === startActorId1);
+        const startActor2Exists = updatedNodes.some(node => node.id === startActorId2);
+        
+        if (startActor1Exists && startActor2Exists) {
+          // Get updated connections including the new ones
+          const updatedConnections = [...connections, ...newConnections];
+          
+          // Calculate the new shortest path
+          const { found, path } = findPathBetweenNodes(startActorId1, startActorId2, updatedConnections);
+          
+          if (found) {
+            // Path length is the number of connections (nodes - 1)
+            const pathLength = path.length - 1;
+            
+            // Update the shortest path length
+            setShortestPathLength(pathLength);
+              // If the game wasn't already completed, complete it now
+            if (!gameCompleted) {
+              // Calculate score based on path length and time taken
+              if (gameStartTime && completeGame) {
+                const completionTime = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+                const finalScore = completionTime * pathLength;
+                completeGame(finalScore);
+              }
+              // Mark game as completed
+              if (setGameCompleted) {
+                setGameCompleted(true);
+              }
+            }
+          }
+        }
       }
 
       // Save this entity to our local database for future fuzzy searches
