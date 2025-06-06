@@ -13,7 +13,7 @@ const isDevelopment = import.meta.env.DEV;
 const getBackendUrl = () => {
   // For production, use the environment variable
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_BACKEND_URL || '/api';
+    return import.meta.env.VITE_BACKEND_URL || 'https://connect-the-shows-server-eight.vercel.app';
   }
   
   // Check for custom backend URL in development
@@ -25,7 +25,7 @@ const getBackendUrl = () => {
   }
   
   // Default development backend URL
-  return 'http://localhost:3000/api';
+  return 'http://localhost:3000';
 };
 
 // API Endpoints Configuration
@@ -43,11 +43,11 @@ const config = {
     baseUrl: getBackendUrl(),
     // Endpoints that map to our backend API routes
     endpoints: {
-      person: '/tmdb/actor',      // Maps to server/app/api/tmdb/actor/[...path]/route.js
-      movie: '/tmdb/movie',       // Maps to server/app/api/tmdb/movie/[...path]/route.js
-      tv: '/tmdb/tv-show',        // Maps to server/app/api/tmdb/tv-show/[...path]/route.js
-      search: '/tmdb/search',     // Maps to server/app/api/tmdb/search/[...path]/route.js
-      images: '/tmdb'             // For image-related endpoints
+      person: '/api/tmdb/actor',      // Maps to server/app/api/tmdb/actor/[...path]/route.js
+      movie: '/api/tmdb/movie',       // Maps to server/app/api/tmdb/movie/[...path]/route.js
+      tv: '/api/tmdb/tv-show',        // Maps to server/app/api/tmdb/tv-show/[...path]/route.js
+      search: '/api/tmdb/search',     // Maps to server/app/api/tmdb/search/[...path]/route.js
+      images: '/api/tmdb'             // For image-related endpoints
     }
   },
   // Feature flags - force backend usage
