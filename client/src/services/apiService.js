@@ -19,13 +19,39 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
     // Remove leading slash if present to avoid double slashes
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
     
-    // Build the backend URL - ALL calls go through backend now
-    const backendUrl = `${config.backend.baseUrl}/tmdb/${cleanEndpoint}`;
-    
+    // Map TMDB endpoints to our backend API routes
+    let backendEndpoint;
+    if (cleanEndpoint.startsWith('person/')) {
+      // Map person endpoints to actor endpoints
+      backendEndpoint = cleanEndpoint.replace('person/', '');
+      backendEndpoint = `${config.backend.endpoints.person}/${backendEndpoint}`;
+    } else if (cleanEndpoint.startsWith('movie/')) {
+      // Map movie endpoints
+      backendEndpoint = cleanEndpoint.replace('movie/', '');
+      backendEndpoint = `${config.backend.endpoints.movie}/${backendEndpoint}`;
+    } else if (cleanEndpoint.startsWith('tv/')) {
+      // Map TV endpoints
+      backendEndpoint = cleanEndpoint.replace('tv/', '');
+      backendEndpoint = `${config.backend.endpoints.tv}/${backendEndpoint}`;
+    } else if (cleanEndpoint.startsWith('search/')) {
+      // Map search endpoints
+      backendEndpoint = cleanEndpoint.replace('search/', '');
+      backendEndpoint = `${config.backend.endpoints.search}/${backendEndpoint}`;
+    } else {
+      // Default fallback
+      backendEndpoint = `/api/tmdb/${cleanEndpoint}`;
+    }
+      // Build the backend URL
+    const backendUrl = `${config.backend.baseUrl}${backendEndpoint}`;
 
     // Build query string from parameters
     const queryString = new URLSearchParams(params).toString();
     const finalUrl = queryString ? `${backendUrl}?${queryString}` : backendUrl;
+    
+    // Debug logging in development
+    if (config.features.enableLogging) {
+      console.log(`API Call: ${endpoint} -> ${finalUrl}`);
+    }
     
     // Set up headers for backend request
     const headers = {
