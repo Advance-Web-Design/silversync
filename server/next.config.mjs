@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static optimization for functions
-  output: 'standalone',
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push('firebase/app', 'firebase/firestore');

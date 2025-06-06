@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "echo 'No build needed for Vercel Functions'",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
