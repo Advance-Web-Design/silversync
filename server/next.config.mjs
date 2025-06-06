@@ -1,20 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static generation since this is API-only
+  // Disable static optimization for functions
   output: 'standalone',
-  
-  // Optional: Add CORS headers globally if needed
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
-    ];
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('firebase/app', 'firebase/firestore');
+    }
+    config.externals = [...(config.externals || []), 'canvas', 'jsdom'];
+    return config;
   },
 };
 

@@ -1,77 +1,59 @@
 import { NextResponse } from 'next/server';
 
-// TMDB API configurations
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3/search';
 
-// CORS utility functions (inlined to avoid import issues in serverless)
+// CORS utility functions for Vercel Functions
 function getCorsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' 
+      ? process.env.ALLOWED_ORIGIN || '*' 
+      : '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Max-Age': '86400', // 24 hours
+    'Access-Control-Max-Age': '86400',
   };
 }
 
 function withCors(response) {
   const corsHeaders = getCorsHeaders();
-  
-  // Add CORS headers to the response
   Object.entries(corsHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
-  
   return response;
 }
 
-function handlePreflight() {
+export async function OPTIONS() {
   return new Response(null, {
     status: 200,
     headers: getCorsHeaders(),
   });
 }
 
-// Handle preflight OPTIONS requests
-export async function OPTIONS() {
-  return handlePreflight();
-}
-
-export async function GET(request, { params }) {
+export async function GET(request) {
   try {
-    // AWAIT params before using it (Next.js 15 requirement)
-    const resolvedParams = await params;
-    const path = resolvedParams.path ? resolvedParams.path.join('/') : '';
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    const path = pathSegments.slice(3).join('/'); // Remove 'api', 'tmdb', 'search'
     
     // Extract query parameters
-    const { searchParams } = new URL(request.url);
     const queryParams = new URLSearchParams();
-    
-    // Copy all query parameters from the original request
-    searchParams.forEach((value, key) => {
+    url.searchParams.forEach((value, key) => {
       queryParams.append(key, value);
     });
     
-    // Build the complete URL
     const tmdbUrl = `${TMDB_BASE_URL}${path ? '/' + path : ''}?${queryParams.toString()}`;
     
-    // Log the request in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Search API: ${tmdbUrl}`);
-    }
-    
-    // Use Bearer token for authentication
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`
     };
     
-    // Forward the request to TMDB using fetch
     const response = await fetch(tmdbUrl, {
       method: 'GET',
       headers,
-      next: { revalidate: 60 } // Cache for 60 seconds
     });
-      if (!response.ok) {
+    
+    if (!response.ok) {
       const errorData = await response.json();
       console.error('Search API error:', errorData);
       return withCors(NextResponse.json(errorData, { status: response.status }));

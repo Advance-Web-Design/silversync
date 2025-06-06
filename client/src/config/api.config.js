@@ -11,14 +11,13 @@ const isDevelopment = import.meta.env.DEV;
 
 // Get backend URL based on environment
 const getBackendUrl = () => {
-  // For same-domain deployment, use relative paths in production
-  if (isProduction) {
-    return '/api';
+  // For production, use the environment variable
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_BACKEND_URL || '/api';
   }
   
-  // In development, check if we have a custom backend URL
+  // Check for custom backend URL in development
   if (typeof window !== 'undefined') {
-    // Allow override via localStorage for testing different backend URLs
     const customBackendUrl = localStorage.getItem('customBackendUrl');
     if (customBackendUrl) {
       return customBackendUrl;

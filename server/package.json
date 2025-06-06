@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "echo 'No build needed for Vercel Functions'",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,14 +12,17 @@
     "cors": "^2.8.5",
     "firebase": "^11.8.1",
     "memory-cache": "^0.2.0",
-    "next": "^15.3.2",
+    "next": "^15.0.0",
     "node-cache": "^5.1.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "eslint": "^9",
     "eslint-config-next": "15.3.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

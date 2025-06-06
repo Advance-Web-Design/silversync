@@ -8,7 +8,9 @@ import { NextResponse } from 'next/server';
 // CORS utility functions (inlined to avoid import issues in serverless)
 function getCorsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' 
+      ? process.env.ALLOWED_ORIGIN || '*' 
+      : '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Max-Age': '86400', // 24 hours
@@ -37,41 +39,36 @@ function handlePreflight() {
 export async function OPTIONS() {
   return handlePreflight();
 }
-export async function GET(request, { params }) {
+export async function GET(request) {
   try {
-    // AWAIT params before using it (Next.js 15 requirement)
-    const resolvedParams = await params;
-    const path = resolvedParams.path.join('/');
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    const path = pathSegments.slice(2).join('/'); // Remove 'api', 'tmdb'
     
     // Extract query parameters
-    const { searchParams } = new URL(request.url);
     const queryParams = new URLSearchParams();
-    
-    // Copy existing query parameters
-    searchParams.forEach((value, key) => {
+    url.searchParams.forEach((value, key) => {
       queryParams.append(key, value);
     });
     
-    // Use Bearer token for authentication (recommended by TMDB)
     const apiUrl = `https://api.themoviedb.org/3/${path}?${queryParams.toString()}`;
     
-    // Set up headers for TMDB request
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`
     };
-      // Make the request to TMDB API
+    
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers,
-      next: { revalidate: 60 } // Cache for 60 seconds
     });
     
     if (!response.ok) {
       const errorData = await response.json();
       return withCors(NextResponse.json(errorData, { status: response.status }));
     }
-      const data = await response.json();
+    
+    const data = await response.json();
     return withCors(NextResponse.json(data));
     
   } catch (error) {
