@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addUser } from '../../utils/firebaseLogic.js';
+import { isFirebaseAvailable } from '../../utils/firebaseAdmin.js';
 
 // CORS utility functions for Vercel Functions
 function getCorsHeaders() {
@@ -30,6 +30,17 @@ export async function OPTIONS() {
 
 export async function POST(request) {
   try {
+    // Check if Firebase is available before importing/using firebaseLogic
+    if (!isFirebaseAvailable()) {
+      return withCors(NextResponse.json(
+        { error: 'Firebase service not available' }, 
+        { status: 503 }
+      ));
+    }
+
+    // Dynamically import firebaseLogic only when Firebase is available
+    const { addUser } = await import('../../utils/firebaseLogic.js');
+    
     const body = await request.json();
     const { username, password, email } = body;
     const userId = await addUser(username, password, email);
