@@ -36,16 +36,15 @@ const config = {
     baseUrl: 'https://api.themoviedb.org/3',
     imageBaseUrl: 'https://image.tmdb.org/t/p',
     // Remove API key and token from client - now handled by backend
-  },
-  // Backend configuration - all calls go through here
+  },  // Backend configuration - all calls go through here
   backend: {
     // Backend server URL
     baseUrl: getBackendUrl(),
     // Endpoints that map to our backend API routes
     endpoints: {
-      person: '/api/tmdb/actor',      // Maps to server/app/api/tmdb/actor/[...path]/route.js
+      person: '/api/tmdb/actor',      // Maps to existing server/app/api/tmdb/actor/[...path]/route.js
       movie: '/api/tmdb/movie',       // Maps to server/app/api/tmdb/movie/[...path]/route.js
-      tv: '/api/tmdb/tv-show',        // Maps to server/app/api/tmdb/tv-show/[...path]/route.js
+      tv: '/api/tmdb/tv-show',        // Maps to existing server/app/api/tmdb/tv-show/[...path]/route.js
       search: '/api/tmdb/search',     // Maps to server/app/api/tmdb/search/[...path]/route.js
       images: '/api/tmdb'             // For image-related endpoints
     }
