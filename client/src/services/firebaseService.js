@@ -12,7 +12,7 @@ import config from '../config/api.config';
 
 
 
-const API_BASE = `${config.backend.baseUrl}/firebase` ; 
+const API_BASE = `${config.backend.baseUrl}/api/firebase` ; 
 
 /**
  * creates a new user in Firebase, in the firebase database it also adds an empty user_game_history object to the user

@@ -22,35 +22,40 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
     // Map TMDB endpoints to our backend API routes
     let backendEndpoint;
     if (cleanEndpoint.startsWith('person/')) {
-      // Map person endpoints to actor endpoints
-      backendEndpoint = cleanEndpoint.replace('person/', '');
-      backendEndpoint = `${config.backend.endpoints.person}/${backendEndpoint}`;
+      // Map person endpoints to actor endpoints: person/popular -> /api/tmdb/actor/popular
+      const path = cleanEndpoint.replace('person/', '');
+      backendEndpoint = `${config.backend.endpoints.person}/${path}`;
     } else if (cleanEndpoint.startsWith('movie/')) {
-      // Map movie endpoints
-      backendEndpoint = cleanEndpoint.replace('movie/', '');
-      backendEndpoint = `${config.backend.endpoints.movie}/${backendEndpoint}`;
+      // Map movie endpoints: movie/popular -> /api/tmdb/movie/popular
+      const path = cleanEndpoint.replace('movie/', '');
+      backendEndpoint = `${config.backend.endpoints.movie}/${path}`;
     } else if (cleanEndpoint.startsWith('tv/')) {
-      // Map TV endpoints
-      backendEndpoint = cleanEndpoint.replace('tv/', '');
-      backendEndpoint = `${config.backend.endpoints.tv}/${backendEndpoint}`;
+      // Map TV endpoints: tv/popular -> /api/tmdb/tv-show/popular
+      const path = cleanEndpoint.replace('tv/', '');
+      backendEndpoint = `${config.backend.endpoints.tv}/${path}`;
     } else if (cleanEndpoint.startsWith('search/')) {
-      // Map search endpoints
-      backendEndpoint = cleanEndpoint.replace('search/', '');
-      backendEndpoint = `${config.backend.endpoints.search}/${backendEndpoint}`;
+      // Map search endpoints: search/multi -> /api/tmdb/search/multi
+      const path = cleanEndpoint.replace('search/', '');
+      backendEndpoint = `${config.backend.endpoints.search}/${path}`;
     } else {
       // Default fallback
       backendEndpoint = `/api/tmdb/${cleanEndpoint}`;
     }
-      // Build the backend URL
+    
+    // Build the backend URL
     const backendUrl = `${config.backend.baseUrl}${backendEndpoint}`;
 
     // Build query string from parameters
     const queryString = new URLSearchParams(params).toString();
     const finalUrl = queryString ? `${backendUrl}?${queryString}` : backendUrl;
     
-    // Debug logging in development
-    if (config.features.enableLogging) {
-      console.log(`API Call: ${endpoint} -> ${finalUrl}`);
+    // Debug logging - always log in development for debugging
+    if (import.meta.env.DEV) {
+      console.log(`🔍 API Call Mapping:`);
+      console.log(`  Original: ${endpoint}`);
+      console.log(`  Clean: ${cleanEndpoint}`);
+      console.log(`  Backend endpoint: ${backendEndpoint}`);
+      console.log(`  Final URL: ${finalUrl}`);
     }
     
     // Set up headers for backend request
