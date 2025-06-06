@@ -1,9 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs22.x"
-    }
+    "app/api/**/*.js": {}
   },
   "routes": [
     {
