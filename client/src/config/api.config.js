@@ -13,7 +13,7 @@ const isDevelopment = import.meta.env.DEV;
 const getBackendUrl = () => {
   // For production, use the environment variable
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_BACKEND_URL || 'https://connect-the-shows-server-eight.vercel.app';
+    return import.meta.env.VITE_BACKEND_URL || 'https://connect-the-shows-server.vercel.app';
   }
   
   // Check for custom backend URL in development
