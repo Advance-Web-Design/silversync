@@ -23,8 +23,7 @@ const getBackendUrl = () => {
       return customBackendUrl;
     }
   }
-  
-  // Default development backend URL
+    // Default development backend URL
   return 'http://localhost:3000';
 };
 

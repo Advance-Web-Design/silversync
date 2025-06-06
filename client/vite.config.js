@@ -14,8 +14,7 @@ export default defineConfig({
         manualChunks: undefined
       }
     }
-  },
-  server: {
-    port: 3000
+  },  server: {
+    port: 5173  // Standard Vite port, different from Next.js default
   }
 })
