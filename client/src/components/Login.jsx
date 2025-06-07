@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
-import './Login.css';
 import { verifyUser } from "../services/firebaseService";
+import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
 
 
 function LoginWindow() {
@@ -50,22 +50,22 @@ function LoginWindow() {
 
   return (
     <>
-      {isOpen && (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <button className="popup-close-button" onClick={handleClose}>
-              <CloseIcon />
+      {isOpen && ( 
+        <div className={FormStyles.formOverlayStyle} onClick={handleClose}>
+          <div className={FormStyles.formContentStyle} onClick={(e) => e.stopPropagation()}>
+            <button className={FormStyles.formCloseButtonStyle} onClick={handleClose}>
+              <CloseIcon fontSize="small" />
             </button>
-            <div className="popup-body">
-              <h2>Welcome</h2>
-              <form onSubmit={handleLogin}>
+            <div className={FormStyles.formBodyStyle}>
+              <h2 className={FormStyles.formTitleStyle}>Welcome Back</h2>
+              <form onSubmit={handleLogin} className={FormStyles.formStyle}>
                 <input
                   type="text"
                   placeholder="Username"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
-                  style={{ display: 'block', margin: '10px 0', width: '100%' }}
+                  className={FormStyles.formInputStyle}
                 />
                 <input
                   type="password"
@@ -73,12 +73,20 @@ function LoginWindow() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  style={{ display: 'block', margin: '10px 0', width: '100%' }}
+                  className={FormStyles.formInputStyle}
                 />
-                <button type="submit" style={{ width: '100%' }}>Login</button>
+                <button type="submit" className={FormStyles.formSubmitButtonStyle}>
+                  Login
+                </button>
               </form>
 
-              <button type="submit" style={{ width: '100%' }} onClick={forgotPassword}>Forgot password</button>
+              <button 
+                type="button" 
+                className={FormStyles.formSecondaryButtonStyle} 
+                onClick={forgotPassword}
+              >
+                Forgot password?
+              </button>
                 
             </div>
           </div>

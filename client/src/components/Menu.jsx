@@ -1,190 +1,157 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
-import './Menu.css';
-import { useGameContext } from '../contexts/gameContext'; // Import useGameContext
+// import './Menu.css'; // Remove this line
+import * as MenuStyles from '../styles/menuStyle.js'; // Import the styles
+import { useGameContext } from '../contexts/gameContext';
 import HowToPlay from './HowToPlay';
 import About from './About';
-import LoginWindow from './Login'; // Import Login component
-import RegisterWindow from './Register'; // Import Register component
+import LoginWindow from './Login';
+import RegisterWindow from './Register';
 
 function Menu(props) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [showHowToPlay, setShowHowToPlay] = useState(false); // State for HowToPlay visibility
-    const [showAbout, setShowAbout] = useState(false); // State for About visibility
-    const [showLoginWindow, setShowLoginWindow] = useState(false); // State for Login window visibility
-    const [showRegisterWindow, setShowRegisterWindow] = useState(false); // State for Register window visibility
+    const [showHowToPlay, setShowHowToPlay] = useState(false);
+    const [showAbout, setShowAbout] = useState(false);
+    const [showLoginWindow, setShowLoginWindow] = useState(false);
+    const [showRegisterWindow, setShowRegisterWindow] = useState(false);
 
     const menuRef = useRef(null);
-    // Destructure login-related states and functions from context
     const { 
         toggleShowAllSearchable, 
         resetGame,
-        isLoggedIn, // Get isLoggedIn state from context
-        login,      // Get login function from context
-        logout,     // Get logout function from context
-        register    // Get register function from context
+        isLoggedIn,
+        logout,
     } = useGameContext(); 
 
     const handleMenuToggle = () => {
         setMenuOpen(prev => !prev);
-        if (showHowToPlay) setShowHowToPlay(false); // Close HowToPlay if menu is toggled
-        if (showAbout) setShowAbout(false); // Close About if menu is toggled
-        if (showLoginWindow) setShowLoginWindow(false); // Close Login if menu is toggled
-        if (showRegisterWindow) setShowRegisterWindow(false); // Close Register if menu is toggled
-
+        if (showHowToPlay) setShowHowToPlay(false);
+        if (showAbout) setShowAbout(false);
+        if (showLoginWindow) setShowLoginWindow(false);
+        if (showRegisterWindow) setShowRegisterWindow(false);
     };
 
-    // Action handlers using context functions
     const handleLogin = () => {
-        console.log('Login action triggered');
-        // if (login) login(); // Call login function from context
-        setShowLoginWindow(prev => !prev); // Toggle login visibility
+        setShowLoginWindow(prev => !prev);
         setMenuOpen(false);
     };
 
-    // Logout action handler
     const handleLogout = () => {
-        console.log('Logout action triggered');
-        if (logout) logout(); // Call logout function from context
+        if (logout) logout();
         setMenuOpen(false);
     };
 
-    // Register action handler
     const handleRegister = () => {
-        console.log('Register action triggered');
-        //if (register) register(); // Call register function from context
-        setShowRegisterWindow(prev => !prev); // Toggle login visibility
+        setShowRegisterWindow(prev => !prev);
         setMenuOpen(false);
     };
 
-    // Other action handlers
     const handleHowToPlay = () => {
-        setShowHowToPlay(prev => !prev); // Toggle HowToPlay visibility
-        setMenuOpen(false); // Close the main menu
+        setShowHowToPlay(prev => !prev);
+        setMenuOpen(false);
     };
 
-    // Leaderboard action handler
     const handleLeaderboard = () => {
         console.log('Leaderboard action triggered');
         setMenuOpen(false);
     };
 
-    // Challenge Mode action handler
     const handleChallengeMode = () => {
         console.log('Challenge Mode action triggered');
         setMenuOpen(false);
     };
 
-    // About action handler
     const handleAbout = () => {
-        setShowAbout(prev => !prev); // Toggle About visibility
-        setMenuOpen(false); // Close the main menu
+        setShowAbout(prev => !prev);
+        setMenuOpen(false);
     };
 
-    // New Game action handler
     const handleNewGame = () => {
-        resetGame(); // Call the resetGame function from context
+        resetGame();
         setMenuOpen(false);
     };
 
-    // Cheat Sheet action handler
-    // this will need to be removed later
-    // as it is not a part of the final game
     const handleCheatSheet = () => {
-        toggleShowAllSearchable(); // Call the function from context
+        toggleShowAllSearchable();
         setMenuOpen(false);
     };
 
-    // Effect to close the menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setMenuOpen(false);
-                // Optionally close HowToPlay as well if it's open and click is outside
-                // if (showHowToPlay && !event.target.closest('.how-to-play-container')) { // Assuming HowToPlay has a container with this class
-                //    setShowHowToPlay(false);
-                // }
             }
         };
-        // Add event listener only when menu is open
-        if (menuOpen || showHowToPlay) { // Listen if either menu or HowToPlay is open
+        if (menuOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [menuOpen, showHowToPlay]); // Re-run effect if menuOpen or showHowToPlay changes
+    }, [menuOpen]);
 
-    // Function to be passed to HowToPlay component to close it
-    const closeHowToPlay = () => {
-        setShowHowToPlay(false);
-    };
+    const closeHowToPlay = () => setShowHowToPlay(false);
+    const closeLoginWindow = () => setShowLoginWindow(false);
+    const closeRegisterWindow = () => setShowRegisterWindow(false);
+    const closeAbout = () => setShowAbout(false);
 
-    const closeLoginWindow = () => {
-        setShowLoginWindow(false);
+    // Helper to apply border to all but the last visible menu item
+    const getMenuItemClasses = (isLastItem) => {
+        return isLastItem ? MenuStyles.menuItemStyle : MenuStyles.menuItemWithBorderStyle;
     };
+    
+    const menuItemsConfig = [];
+    if (isLoggedIn === undefined || !isLoggedIn) {
+        menuItemsConfig.push({ label: 'Login', handler: handleLogin });
+        menuItemsConfig.push({ label: 'Register', handler: handleRegister });
+    } else {
+        menuItemsConfig.push({ label: 'Logout', handler: handleLogout });
+    }
 
-    const closeRegisterWindow = () => {
-        setShowRegisterWindow(false);
-    };
+    if (props.parentName === 'StartScreen') {
+        menuItemsConfig.push(
+            { label: 'Challenge Mode', handler: handleChallengeMode },
+            { label: 'Leaderboard', handler: handleLeaderboard },
+            { label: 'About', handler: handleAbout }
+        );
+    } else if (props.parentName === 'BoardHeader') {
+        menuItemsConfig.push(
+            { label: 'New Game', handler: handleNewGame },
+            { label: 'Leaderboard', handler: handleLeaderboard },
+            { label: 'How to Play', handler: handleHowToPlay },
+            { label: 'Cheat Sheet', handler: handleCheatSheet }
+        );
+    }
 
-    // Function to be passed to About component to close it
-    const closeAbout = () => {
-        setShowAbout(false);
-    };
 
     return (
-        <> {/* Use React Fragment to allow HowToPlay to be a sibling */}
-            <div className="menu-container" ref={menuRef}>
+        <>
+            <div className={MenuStyles.menuContainerStyle} ref={menuRef}>
                 <button
-                    className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-[#3b3b3b] text-white shadow-md hover:bg-black transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-75"
+                    className={MenuStyles.menuButtonStyle}
                     onClick={handleMenuToggle}
                 >
-                    <MenuIcon fontSize="medium" /> {/* Adjusted icon size for better fit */}
-                    <span className="mt-1 text-xs">Menu</span> {/* Text below icon, smaller */}
+                    <MenuIcon fontSize="medium" />
+                    <span className={MenuStyles.menuButtonIconTextStyle}>Menu</span>
                 </button>
 
                 {menuOpen && (
-                    <div className="menu-dropdown">
-                        {/* Use isLoggedIn from context for conditional rendering */}
-                        {isLoggedIn === undefined || !isLoggedIn ? ( // Handle undefined case during initial load
-                            <>
-                                <button onClick={handleLogin} className="menu-item">Login</button>
-                                <button onClick={handleRegister} className="menu-item">Register</button>
-                            </>
-                        ) : (
-                            <button onClick={handleLogout} className="menu-item">Logout</button>
-                        )}
-
-                        {/* Conditionally render items based on parentName prop */}
-                        {props.parentName === 'StartScreen' && (
-                            <>
-                            <button onClick={handleChallengeMode} className="menu-item">Challenge Mode</button>
-                            <button onClick={handleLeaderboard} className="menu-item">Leaderboard</button>
-                            <button onClick={handleAbout} className="menu-item">About</button>
-                            </>)}
-                        {props.parentName === 'BoardHeader' && (
-                            <>
-                            <button onClick={handleNewGame} className="menu-item">New Game</button>
-                            <button onClick={handleLeaderboard} className="menu-item">Leaderboard</button>
-                            <button onClick={handleHowToPlay} className="menu-item">How to Play</button>
-                            <button onClick={handleCheatSheet} className="menu-item">Cheat Sheet</button>
-                            </>)}
+                    <div className={MenuStyles.menuDropdownStyle}>
+                        {menuItemsConfig.map((item, index) => (
+                            <button 
+                                key={item.label} 
+                                onClick={item.handler} 
+                                className={getMenuItemClasses(index === menuItemsConfig.length - 1)}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>
-            {/* Conditionally render the HowToPlay component */}
             {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
-
-            {/* Conditionally render the About component */}
             {showAbout && <About onClose={closeAbout}/>}
-
-
-            
-            {/* Conditionally render the login component */}
             {showLoginWindow && <LoginWindow onClose={closeLoginWindow} />}
-
-            {/* Conditionally render the register component */}
             {showRegisterWindow && <RegisterWindow onClose={closeRegisterWindow} />}
         </>
     );

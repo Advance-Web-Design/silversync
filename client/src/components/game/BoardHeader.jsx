@@ -15,7 +15,7 @@ const BoardHeader = () => {
       {/* Logo and title */}
       <div className={BoardHeaderStyles.logoContainerStyle}>
         <span className={BoardHeaderStyles.starLogoStyle}>★</span> 
-        <h1 className={BoardHeader.gameTitleStyle}>Connect the Shows</h1>
+        <h1 className={BoardHeaderStyles.gameTitleStyle}>Connect the Shows</h1>
       </div>
       
       {/* Actor names display (if game started) */}

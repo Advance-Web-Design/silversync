@@ -4,7 +4,8 @@ import { addUser } from "../services/firebaseService";
 
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
-import './Login.css';
+import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
+
 
 function RegisterWindow() {
   const [isOpen, setIsOpen] = useState(true);
@@ -70,21 +71,21 @@ function RegisterWindow() {
   return (
     <>
       {isOpen && (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <button className="popup-close-button" onClick={handleClose}>
-              <CloseIcon />
+        <div className={FormStyles.formOverlayStyle} onClick={handleClose}>
+          <div className={FormStyles.formContentStyle} onClick={(e) => e.stopPropagation()}>
+            <button className={FormStyles.formCloseButtonStyle} onClick={handleClose}>
+              <CloseIcon fontSize="small" />
             </button>
-            <div className="popup-body">
-              <h2>Registration</h2>
-              <form onSubmit={handleRegister}>
+            <div className={FormStyles.formBodyStyle}>
+              <h2 className={FormStyles.formTitleStyle}>Create Account</h2>
+              <form onSubmit={handleRegister} className={FormStyles.formStyle}>
                 <input
-                  type="text"
+                  type="text" // Changed to text for email, can also be type="email"
                   placeholder="Email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  style={{ display: 'block', margin: '10px 0', width: '100%' }}
+                  className={FormStyles.formInputStyle}
                 />
                 <input
                   type="text"
@@ -92,7 +93,7 @@ function RegisterWindow() {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
-                  style={{ display: 'block', margin: '10px 0', width: '100%' }}
+                  className={FormStyles.formInputStyle}
                 />
                 <input
                   type="password"
@@ -100,9 +101,11 @@ function RegisterWindow() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  style={{ display: 'block', margin: '10px 0', width: '100%' }}
+                  className={FormStyles.formInputStyle}
                 />
-                <button type="submit" style={{ width: '100%' }}>Register</button>
+                <button type="submit" className={FormStyles.formSubmitButtonStyle}>
+                  Register
+                </button>
               </form>
             </div>
           </div>

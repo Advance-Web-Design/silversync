@@ -1,4 +1,3 @@
-export const backgroundStyle = "bg-white w-full relative";//TBC
 
 export const gameHeaderStyle = "absolute top-0 left-0 right-0 py-3 px-5 z-[100] bg-transparent flex justify-between items-center";
 

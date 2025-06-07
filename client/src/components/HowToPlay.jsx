@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
-import './HowToPlay.css';
+import * as PopupStyles from '../styles/AboutStyles.js'; // Using a generic name like PopupStyles
 
 function HowToPlay() {
   const [isOpen, setIsOpen] = useState(true);
@@ -9,20 +9,27 @@ function HowToPlay() {
     setIsOpen(false);
   };
 
+  
+
   return (
     <>
-      {isOpen && (
-        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex justify-center items-center z-[1000]">
-          <div className="bg-white p-5 rounded-lg shadow-lg relative w-4/5 max-w-lgb h-1/5 border-4 border-[#9ab0c3]">
-            <button className="absolute top-[10px] right-[10px] bg-transparent border-none cursor-pointer text-[#666] hover:text-black" onClick={handleClose}>
-              <CloseIcon />
+      {/* The isOpen check here is redundant due to the early return, but kept for consistency if you prefer this pattern */}
+      {isOpen && ( 
+        <div className={PopupStyles.popupOverlayStyle} onClick={handleClose}>
+          <div className={PopupStyles.popupContentStyle} onClick={(e) => e.stopPropagation()}>
+            <button className={PopupStyles.popupCloseButtonStyle} onClick={handleClose}>
+              <CloseIcon fontSize="small" /> {/* Consider adjusting icon size if needed */}
             </button>
-            <div className="mt-5 text-center">
-              <h2>How to Play</h2>
-              <p>Welcome to Connect the Shows! This game challenges you to find connections between TV shows and movies through actors.</p>
-              <p>1. Select actors that connect different shows</p>
-              <p>2. Build a path between shows using common actors</p>
-              <p>3. Try to make connections with the fewest steps!</p>
+            <div className={PopupStyles.popupBodyStyle}>
+              <h2 className={PopupStyles.popupBodyH2Style}>How to Play</h2>
+              <p className={PopupStyles.popupBodyPStyle}>
+                Welcome to Connect the Shows! This game challenges you to find connections between TV shows and movies through actors.
+              </p>
+              <ul className="list-disc list-inside mt-4 space-y-2"> {/* Added ul for better list formatting */}
+                <li className={PopupStyles.popupBodyPStyle}>Select actors that connect different shows.</li>
+                <li className={PopupStyles.popupBodyPStyle}>Build a path between shows using common actors.</li>
+                <li className={PopupStyles.popupBodyPStyle}>Try to make connections with the fewest steps!</li>
+              </ul>
             </div>
           </div>
         </div>
