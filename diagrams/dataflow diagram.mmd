@@ -1,0 +1,111 @@
+flowchart TD
+    subgraph INIT["INIT"]
+        I1[Load]
+        I2[Context]
+        I3[Route]
+        I4[Fetch]
+        I5[Select]
+        I6[Begin]
+    end
+    
+    subgraph SEARCH["SEARCH"]
+        S1[Input]
+        S2[Query]
+        S3[API]
+        S4[Results]
+        S5[Filter]
+        S6[Store]
+    end
+    
+    subgraph PLACE["PLACE"]
+        P1[Create]
+        P2[Position]
+        P3[Update]
+        P4[Visual]
+        P5[Drag]
+        P6[Done]
+    end
+    
+    subgraph VALIDATE["VALIDATE"]
+        V1[Check]
+        V2[Algorithm]
+        V3[Connect]
+        V4[Paths]
+        V5[Win]
+        V6[Result]
+    end
+    
+    subgraph IMAGES["IMAGES"]
+        G1[Need]
+        G2[URL]
+        G3[CDN]
+        G4[Cache]
+        G5[Display]
+        G6[Optimize]
+    end
+    
+    subgraph AUTH["AUTH"]
+        A1[Login]
+        A2[Firebase]
+        A3[Call]
+        A4[Token]
+        A5[Profile]
+        A6[State]
+    end
+    
+    subgraph PERSIST["PERSIST"]
+        E1[Change]
+        E2[Score]
+        E3[Data]
+        E4[Save]
+        E5[Update]
+        E6[Feedback]
+    end
+    
+    subgraph BACKEND["BACKEND"]
+        B1[Request]
+        B2[Edge]
+        B3[Headers]
+        B4[Route]
+        B5[Cache]
+        B6[Return]
+    end
+    
+    %% Vertical flows within each column
+    I1 --> I2 --> I3 --> I4 --> I5 --> I6
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    V1 --> V2 --> V3 --> V4 --> V5 --> V6
+    G1 --> G2 --> G3 --> G4 --> G5 --> G6
+    A1 --> A2 --> A3 --> A4 --> A5 --> A6
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6
+    B1 --> B2 --> B3 --> B4 --> B5 --> B6
+    
+    %% Essential cross-connections only
+    I6 --> S1
+    S6 --> P1
+    P6 --> V1
+    V6 --> E1
+    B6 --> S4
+    B6 --> G3
+    A6 --> E1
+    
+    %% Compact styling
+    classDef default fill:#2d3748,stroke:#4a5568,stroke-width:1px,color:#e2e8f0,font-size:10px
+    classDef initStyle fill:#1a202c,stroke:#2d3748
+    classDef searchStyle fill:#2a4365,stroke:#3182ce
+    classDef placeStyle fill:#2f855a,stroke:#48bb78
+    classDef validateStyle fill:#c53030,stroke:#f56565
+    classDef imageStyle fill:#553c9a,stroke:#805ad5
+    classDef authStyle fill:#d69e2e,stroke:#ecc94b
+    classDef persistStyle fill:#e53e3e,stroke:#fc8181
+    classDef backendStyle fill:#319795,stroke:#4fd1c7
+    
+    class I1,I2,I3,I4,I5,I6 initStyle
+    class S1,S2,S3,S4,S5,S6 searchStyle
+    class P1,P2,P3,P4,P5,P6 placeStyle
+    class V1,V2,V3,V4,V5,V6 validateStyle
+    class G1,G2,G3,G4,G5,G6 imageStyle
+    class A1,A2,A3,A4,A5,A6 authStyle
+    class E1,E2,E3,E4,E5,E6 persistStyle
+    class B1,B2,B3,B4,B5,B6 backendStyle

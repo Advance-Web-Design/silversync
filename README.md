@@ -9,7 +9,55 @@ An interactive web game where players connect Hollywood actors through movies an
 3. **Search Panel Bug**: If NOT selecting a movie from cheat sheet and hitting X, then searching for any character/string, everything from the cheat sheet is displayed as search results
 4. **Z-Index Issue**: When a card is behind the header, it cannot be clicked
 
-## 🏗️ Architecture & Data Flow
+## 🏗️ Architecture
+
+Connect the Stars follows a layered architecture pattern with clear separation of concerns across four distinct layers:
+
+![Architecture Diagram](./diagrams/Editor%20_%20Mermaid%20Chart-2025-06-07-165032.svg)
+
+### 🎨 Presentation Layer (Client-Side)
+The user interface layer built with React components, organized into logical groups:
+
+- **Core Application**: App.jsx, GameContent.jsx - Main application shell
+- **Main UI Components**: StartScreen, GameplayArea, BoardHeader, Menu, Modals
+- **Game Engine**: GameBoard, NodeLayer, ConnectionLines, DraggableNode, ActorCard
+- **Search Components**: SearchPanel, ConnectionsPanel, SearchEntitiesSidebar
+- **Authentication UI**: Login, Register, Profile components
+- **Information Pages**: HowToPlay, About, Leaderboard, ChallengeMode
+
+### 🧠 Business Logic Layer (Client-Side)
+The core application logic and state management:
+
+- **State Management**: GameProvider.jsx, gameContext.js - React Context for global state
+- **Custom Hooks**: useGame, useBoard, useSearch, useZoom - Reusable business logic
+- **Utilities**: Helper functions for entities, board operations, search, and API handling
+
+### 🔧 Service Layer (Client-Side)
+Abstraction layer for external communications:
+
+- **apiService.js**: Generic API communication utilities
+- **tmdbService.js**: TMDB API integration for movie/actor data
+- **firebaseService.js**: Firebase backend integration
+
+### ☁️ Cloud Layer (Server-Side)
+External services and backend infrastructure:
+
+- **Firebase Backend**: Authentication, Firestore database, Cloud Functions
+- **External APIs**: TMDB API for entertainment data, TMDB Images CDN
+
+### Data Flow
+
+1. **User Interaction**: Users interact with Presentation Layer components
+2. **State Management**: Components trigger actions through Custom Hooks
+3. **Service Calls**: Hooks communicate with external services via Service Layer
+4. **Backend Integration**: Services connect to Firebase and TMDB APIs
+5. **State Updates**: Data flows back through the layers to update the UI
+
+This architecture ensures:
+- **Separation of Concerns**: Each layer has a specific responsibility
+- **Maintainability**: Changes in one layer don't affect others
+- **Testability**: Each layer can be tested independently
+- **Scalability**: New features can be added without restructuring
 
 ### System Architecture
 
