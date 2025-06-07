@@ -1,6 +1,7 @@
 import React from 'react';
 import ActorSelectionSlot from './ActorSelectionSlot';
 import { getImageUrlSync } from '../../services/tmdbService';
+import * as actorCardStyles from '../../styles/ActorsCardStyle.js'; 
 
 const ActorCard = ({
   index,
@@ -20,13 +21,13 @@ const ActorCard = ({
   callbackUpdateSearchTerm,
 }) => {
   return (
-    <div className="relative flex min-h-[325px] w-[230px] flex-col text-white items-center rounded-xl bg-slate-800 p-4 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400">
+    <div className={actorCardStyles.actorCardStyle}>
       {selectedActor ? (
-        <div className="flex flex-col h-full w-full">
+        <div className={actorCardStyles.actorContainerStyle}>
           {/* Image container with fixed height */}
-          <div className="h-[200px] w-[150px] overflow-hidden rounded mt-2 mb-4 mx-auto border border-slate-600">
+          <div className={actorCardStyles.actorImageContainerStyle}>
             <img
-              className="h-full w-full object-cover"
+              className={actorCardStyles.actorImageStyle}
               src={getImageUrlSync(selectedActor.profile_path, 'profile')}
               alt={selectedActor.name}
               onError={(e) => {
@@ -34,7 +35,7 @@ const ActorCard = ({
               }}
             />
           </div>
-          <div class="w-full px-2 text-center text-[1.2rem] font-bold text-slate-100 border-b border-cyan-400/70 pb-3 mb-4 ">
+          <div class={actorCardStyles.actorNameStyle}>
             {selectedActor.name}
           </div>
           
@@ -44,7 +45,7 @@ const ActorCard = ({
           {/* Button in fixed position at bottom */}
           <div className="w-full mt-auto">
             <button 
-              className="w-full cursor-pointer rounded-md border-none bg-cyan-600 px-6 py-2 text-white transition-colors duration-300 hover:bg-cyan-500 disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed"
+              className={actorCardStyles.actorSearchButtonStyle}
               onClick={() => onSearchAgain(index)}
               disabled={isLoading}
             >

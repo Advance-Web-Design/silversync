@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
-import './InfoBar.css';
+import * as InfoBarStyles from '../../styles/InfoBarStyles.js'; // Import the styles
+
 
 const InfoBar = () => {
   const { gameStarted, gameCompleted } = useGameContext();
@@ -8,12 +9,12 @@ const InfoBar = () => {
   if (!gameStarted) return null;
 
   return (
-    <div className="info-bar">
-      <div className="game-status">
+    <div className={InfoBarStyles.infoBar}>
+      <div className={InfoBarStyles.gameStatusStyle}>
         {gameCompleted ? (
-          <div className="success-message">Connection Successful! 🎉</div>
+          <div className={InfoBarStyles.successMessageStyle}>Connection Successful! 🎉</div>
         ) : (
-          <div className="goal-message">Find a connection between the actors!</div>
+          <div className={InfoBarStyles.successMessageStyle}>Find a connection between the actors!</div>
         )}
       </div>
     </div>

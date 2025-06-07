@@ -11,7 +11,7 @@ const NodeLayer = ({
   zoomLevel
 }) => {
   return (
-    <Box className="nodes-container">
+    <Box>
       {nodes.map(node => {
         // Check if this node is one of the starting actors
         const isStartActor = startActors.some(actor => 

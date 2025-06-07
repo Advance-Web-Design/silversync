@@ -1,27 +1,26 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import { getItemTitle } from '../../utils/stringUtils';
-import './SearchEntitiesSidebar.css';
+import * as SidebarStyles from '../../styles/SearchSIderbar.js'; // Import the styles
 
 const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
   const { 
     nodes, 
-    cheatSheetResults, // Changed from searchResults to cheatSheetResults
+    cheatSheetResults,
     isLoading, 
     showAllSearchable, 
     toggleShowAllSearchable, 
     addToBoard,
-    connectableItems // Assuming connectableItems is provided by context
+    connectableItems
   } = useGameContext();
 
-  // Updated to use cheatSheetResults instead of searchResults
   const connectableEntities = React.useMemo(() => {
     if (!cheatSheetResults || !connectableItems) return [];
     return cheatSheetResults.filter(item => {
       const itemKey = `${item.media_type}-${item.id}`;
       return connectableItems[itemKey];
     });
-  }, [cheatSheetResults, connectableItems]); // Updated dependency
+  }, [cheatSheetResults, connectableItems]);
 
   const groupedEntities = React.useMemo(() => {
     const groups = {
@@ -36,7 +35,6 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
       }
     });
     
-    // Sort each group by name/title
     groups.person.sort((a, b) => getItemTitle(a).localeCompare(getItemTitle(b)));
     groups.movie.sort((a, b) => getItemTitle(a).localeCompare(getItemTitle(b)));
     groups.tv.sort((a, b) => getItemTitle(a).localeCompare(getItemTitle(b)));
@@ -46,245 +44,134 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Updated condition to use cheatSheetResults
   if (!showAllSearchable && (!cheatSheetResults || cheatSheetResults.length === 0)) {
     return null;
   }
-  // Handle adding an item to the board
+
   const handleAddToBoard = (item) => {
     addToBoard(item);
-    // No need to close sidebar after adding - let user continue browsing
   };
 
-  // Close the sidebar and toggle the state in context
   const handleClose = () => {
-    toggleShowAllSearchable(); // This will set showAllSearchable to false
+    toggleShowAllSearchable();
     onClose();
   };
 
-  // Find the source node(s) that an entity can connect with
   const getConnectedNodes = (item) => {
-    // If entity has source_node property directly (from fetchAndSetAllSearchableEntities)
     if (item.source_node) {
       const sourceNode = nodes.find(node => node.id === item.source_node);
-      if (sourceNode) {
-        return [sourceNode];
-      }
+      if (sourceNode) return [sourceNode];
     }
-
-    // Otherwise determine based on media type
-    const connectedNodes = [];
-    
-    // For a person, check which movie or TV show nodes they connect with
+    const connectedNodesList = [];
     if (item.media_type === 'person') {
-      // Check movie credits
       const movieNodes = nodes.filter(node => node.type === 'movie');
       movieNodes.forEach(movieNode => {
         const cast = movieNode.data.credits?.cast || [];
-        if (cast.some(actor => actor.id === item.id)) {
-          connectedNodes.push(movieNode);
-        }
+        if (cast.some(actor => actor.id === item.id)) connectedNodesList.push(movieNode);
       });
-      
-      // Check TV show credits
       const tvNodes = nodes.filter(node => node.type === 'tv');
       tvNodes.forEach(tvNode => {
         const cast = tvNode.data.credits?.cast || [];
         const guestStars = tvNode.data.guest_stars || [];
-        if (cast.some(actor => actor.id === item.id) || 
-            guestStars.some(actor => actor.id === item.id)) {
-          connectedNodes.push(tvNode);
+        if (cast.some(actor => actor.id === item.id) || guestStars.some(actor => actor.id === item.id)) {
+          connectedNodesList.push(tvNode);
         }
       });
-    } 
-    // For a movie/TV, check which actor nodes have appeared in it
-    else if (item.media_type === 'movie' || item.media_type === 'tv') {
+    } else if (item.media_type === 'movie' || item.media_type === 'tv') {
       const actorNodes = nodes.filter(node => node.type === 'person');
       actorNodes.forEach(actorNode => {
-        // For movies, check movie credits
         if (item.media_type === 'movie' && actorNode.data.movie_credits?.cast) {
-          if (actorNode.data.movie_credits.cast.some(movie => movie.id === item.id)) {
-            connectedNodes.push(actorNode);
-          }
-        }
-        // For TV shows, check TV credits and guest appearances
-        else if (item.media_type === 'tv') {
-          const hasRegularAppearance = actorNode.data.tv_credits?.cast &&
-            actorNode.data.tv_credits.cast.some(show => show.id === item.id);
-          
-          const hasGuestAppearance = actorNode.data.guest_appearances &&
-            actorNode.data.guest_appearances.some(show => show.id === item.id);
-          
-          if (hasRegularAppearance || hasGuestAppearance) {
-            connectedNodes.push(actorNode);
-          }
+          if (actorNode.data.movie_credits.cast.some(movie => movie.id === item.id)) connectedNodesList.push(actorNode);
+        } else if (item.media_type === 'tv') {
+          const hasRegularAppearance = actorNode.data.tv_credits?.cast?.some(show => show.id === item.id);
+          const hasGuestAppearance = actorNode.data.guest_appearances?.some(show => show.id === item.id);
+          if (hasRegularAppearance || hasGuestAppearance) connectedNodesList.push(actorNode);
         }
       });
     }
-    
-    return connectedNodes;
+    return connectedNodesList;
+  };
+
+  const renderEntitySection = (title, entities, mediaType) => {
+    if (entities.length === 0) return null;
+    let h4Style = SidebarStyles.entityTypeSectionH4BaseStyle;
+    if (mediaType === 'person') h4Style = SidebarStyles.entityTypeSectionH4PersonStyle;
+    if (mediaType === 'movie') h4Style = SidebarStyles.entityTypeSectionH4MovieStyle;
+    if (mediaType === 'tv') h4Style = SidebarStyles.entityTypeSectionH4TvStyle;
+
+    return (
+      <div className={SidebarStyles.entityTypeSectionStyle}>
+        <h4 className={h4Style}>{title} ({entities.length})</h4>
+        <div className={SidebarStyles.searchEntitiesListStyle}>
+          {entities.map(item => {
+            const connectedNodes = getConnectedNodes(item);
+            const imagePath = item.media_type === 'person' ? item.profile_path : item.poster_path;
+            return (
+              <div
+                key={`${item.media_type}-${item.id}`}
+                className={SidebarStyles.searchEntityItemStyle}
+                onClick={() => handleAddToBoard(item)}
+              >
+                <div className={SidebarStyles.searchEntityImageStyle}>
+                  <img
+                    src={`https://image.tmdb.org/t/p/w92${imagePath}`}
+                    alt={getItemTitle(item)}
+                    className={SidebarStyles.searchEntityImageImgStyle}
+                  />
+                </div>
+                <div className={SidebarStyles.searchEntityInfoStyle}>
+                  <div className={SidebarStyles.searchEntityTitleStyle}>{getItemTitle(item)}</div>
+                  <div className={SidebarStyles.searchEntityTypeStyle}>
+                    {mediaType === 'person' ? 'Actor' : mediaType === 'movie' ? 'Movie' : 'TV Show'}
+                    {(item.is_guest_star || item.is_guest_appearance || item.hasGuestAppearances) && 
+                      <span className={SidebarStyles.guestTagStyle}> (Guest)</span>
+                    }
+                  </div>
+                  {connectedNodes.length > 0 && (
+                    <div className={SidebarStyles.sourceNodeIndicatorStyle}>
+                      Connects with: {connectedNodes.map(node => getItemTitle(node.data)).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <button 
+                  className={SidebarStyles.addToBoardButtonStyle}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToBoard(item);
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="search-entities-sidebar-overlay">
-      <div className="search-entities-sidebar">
-        <div className="search-entities-sidebar-header">
-          <h3>Connectable Entities</h3>
-          <button className="close-btn" onClick={handleClose}>×</button>
+    <div className={SidebarStyles.sidebarOverlayStyle} onClick={handleClose}>
+      <div className={SidebarStyles.sidebarStyle} onClick={(e) => e.stopPropagation()}>
+        <div className={SidebarStyles.sidebarHeaderStyle}>
+          <h3 className={SidebarStyles.sidebarHeaderH3Style}>Connectable Entities</h3>
+          <button className={SidebarStyles.closeBtnStyle} onClick={handleClose}>×</button>
         </div>
-        <div className="search-entities-sidebar-content">
+        <div className={SidebarStyles.sidebarContentStyle}>
           {isLoading ? (
-            <div className="search-entities-loading">Loading connectable entities...</div>
+            <div className={SidebarStyles.searchEntitiesLoadingStyle}>Loading connectable entities...</div>
           ) : (
             <>
               {connectableEntities.length > 0 ? (
                 <>
-                  {/* Actors Section */}
-                  {groupedEntities.person.length > 0 && (
-                    <div className="entity-type-section person">
-                      <h4>Actors ({groupedEntities.person.length})</h4>
-                      <div className="search-entities-list">
-                        {groupedEntities.person.map(item => {
-                          const connectedNodes = getConnectedNodes(item);
-                          return (
-                            <div
-                              key={`${item.media_type}-${item.id}`}
-                              className="search-entity-item connectable"
-                              onClick={() => handleAddToBoard(item)}
-                            >
-                              <div className="search-entity-image">
-                                <img
-                                  src={`https://image.tmdb.org/t/p/w92${item.profile_path}`}
-                                  alt={getItemTitle(item)}
-                                />
-                              </div>
-                              <div className="search-entity-info">
-                                <div className="search-entity-title">{getItemTitle(item)}</div>
-                                <div className="search-entity-type">
-                                  Actor
-                                  {item.is_guest_star && 
-                                    <span className="guest-tag"> (Guest)</span>
-                                  }
-                                </div>
-                                {connectedNodes.length > 0 && (
-                                  <div className="source-node-indicator">
-                                    Connects with: {connectedNodes.map(node => getItemTitle(node.data)).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                              <button 
-                                className="add-to-board-button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddToBoard(item);
-                                }}
-                              >
-                                Add
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Movies Section */}
-                  {groupedEntities.movie.length > 0 && (
-                    <div className="entity-type-section movie">
-                      <h4>Movies ({groupedEntities.movie.length})</h4>
-                      <div className="search-entities-list">
-                        {groupedEntities.movie.map(item => {
-                          const connectedNodes = getConnectedNodes(item);
-                          return (
-                            <div
-                              key={`${item.media_type}-${item.id}`}
-                              className="search-entity-item connectable"
-                              onClick={() => handleAddToBoard(item)}
-                            >
-                              <div className="search-entity-image">
-                                <img
-                                  src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
-                                  alt={getItemTitle(item)}
-                                />
-                              </div>
-                              <div className="search-entity-info">
-                                <div className="search-entity-title">{getItemTitle(item)}</div>
-                                <div className="search-entity-type">Movie</div>
-                                {connectedNodes.length > 0 && (
-                                  <div className="source-node-indicator">
-                                    Connects with: {connectedNodes.map(node => getItemTitle(node.data)).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                              <button 
-                                className="add-to-board-button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddToBoard(item);
-                                }}
-                              >
-                                Add
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TV Shows Section */}
-                  {groupedEntities.tv.length > 0 && (
-                    <div className="entity-type-section tv">
-                      <h4>TV Shows ({groupedEntities.tv.length})</h4>
-                      <div className="search-entities-list">
-                        {groupedEntities.tv.map(item => {
-                          const connectedNodes = getConnectedNodes(item);
-                          return (
-                            <div
-                              key={`${item.media_type}-${item.id}`}
-                              className="search-entity-item connectable"
-                              onClick={() => handleAddToBoard(item)}
-                            >
-                              <div className="search-entity-image">
-                                <img
-                                  src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
-                                  alt={getItemTitle(item)}
-                                />
-                              </div>
-                              <div className="search-entity-info">
-                                <div className="search-entity-title">{getItemTitle(item)}</div>
-                                <div className="search-entity-type">
-                                  TV Show
-                                  {(item.is_guest_appearance || item.hasGuestAppearances) && 
-                                    <span className="guest-tag"> (Guest)</span>
-                                  }
-                                </div>
-                                {connectedNodes.length > 0 && (
-                                  <div className="source-node-indicator">
-                                    Connects with: {connectedNodes.map(node => getItemTitle(node.data)).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                              <button 
-                                className="add-to-board-button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddToBoard(item);
-                                }}
-                              >
-                                Add
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {renderEntitySection("Actors", groupedEntities.person, "person")}
+                  {renderEntitySection("Movies", groupedEntities.movie, "movie")}
+                  {renderEntitySection("TV Shows", groupedEntities.tv, "tv")}
                 </>
               ) : (
-                <div className="no-entities-message">
-                  <p>No connectable entities available.</p>
-                  <p>There are no movies, TV shows, or actors that can be connected to the board at this moment.</p>
+                <div className={SidebarStyles.noEntitiesMessageStyle}>
+                  <p className={SidebarStyles.noEntitiesMessagePStyle}>No connectable entities available.</p>
+                  <p className={SidebarStyles.noEntitiesMessagePStyle}>There are no movies, TV shows, or actors that can be connected to the board at this moment.</p>
                 </div>
               )}
             </>

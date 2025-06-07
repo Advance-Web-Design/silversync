@@ -1,5 +1,6 @@
 import React from 'react';
 import ConnectionItem from './ConnectionItem';
+import * as sectionStyles from '../../styles/connectionPanelStyle.js';
 
 /**
  * ConnectionSection - Renders a section of connections with a title and grid of items
@@ -15,9 +16,9 @@ const ConnectionSection = ({
   if (!items || items.length === 0) return null;
   
   return (
-    <div className="connection-section">
-      <h3>{title} ({items.length})</h3>
-      <div className="connections-grid">
+    <div className={`${sectionStyles.connectionSectionStyle} ${sectionStyles[mediaType]}`}>
+      <h3 className={sectionStyles.connectionSectionH3Style}>{title} ({items.length})</h3>
+      <div className={sectionStyles.connectionsGridStyle}>
         {items.map((item, index) => {
           // Determine if this is a guest appearance
           const isGuest = determineGuestStatus ? 

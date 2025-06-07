@@ -1,5 +1,6 @@
 import React from 'react';
-import './GameBoard.css';
+// import './GameBoard.css'; // You can remove this if GameStats no longer uses direct classes from it
+import * as GameStatStyles from '../../styles/GameStatStyles.js';
 
 /**
  * GameStats component - Displays game statistics and guest appearances message
@@ -12,21 +13,40 @@ const GameStats = ({
   hasGuestAppearances, 
   hasSearchResults
 }) => {
+
+  const statsDisplayClasses = [
+    GameStatStyles.statsDisplayStyle,
+    hasSearchResults 
+      ? GameStatStyles.statsDisplaySearchResultsModifier 
+      : (hasGuestAppearances ? GameStatStyles.statsDisplayGuestModifier : '')
+  ].filter(Boolean).join(' ');
+
+  const guestMessageClasses = [
+    GameStatStyles.guestAppearancesMessageStyle,
+    hasSearchResults ? GameStatStyles.guestAppearancesMessageSearchResultsModifier : ''
+  ].filter(Boolean).join(' ');
+
   return (
     <>
       {/* Stats display */}
       <div 
-        className={`stats-display ${hasGuestAppearances ? 'with-guest-appearances' : ''} ${hasSearchResults ? 'with-search-results' : ''}`}
-        data-has-results={hasSearchResults ? 'true' : 'false'}
+        className={statsDisplayClasses}
+        data-has-results={hasSearchResults ? 'true' : 'false'} // This attribute is not for CSS class styling
       >
-        <div className="stat-item best-score">BEST SCORE: {formattedBestScore}</div>
-        <div className="stat-item timer text-[#4a6fa5]">TIMER: {formattedTime}</div>
-        <div className="stat-item best-path">SHORTEST PATH: {pathLength}</div>
+        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestScoreStyle}`}>
+          BEST SCORE: {formattedBestScore}
+        </div>
+        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemTimerStyle}`}>
+          TIMER: {formattedTime}
+        </div>
+        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestPathStyle}`}>
+          SHORTEST PATH: {pathLength}
+        </div>
       </div>
       
       {/* Guest Appearances Message */}
       {hasGuestAppearances && (
-        <div className={`guest-appearances-message ${hasSearchResults ? 'with-search-results' : ''}`}>
+        <div className={guestMessageClasses}>
           <span>Dashed lines = Guest Star Appearances</span>
         </div>
       )}

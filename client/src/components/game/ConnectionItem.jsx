@@ -1,5 +1,6 @@
 import React from 'react';
 import { getImageUrlSync } from '../../services/tmdbService';
+import * as connectionItemStyles from '../../styles/connectionPanelStyle.js';
 
 /**
  * ConnectionItem - Renders a single connection item (movie, TV show, or actor)
@@ -25,28 +26,29 @@ const ConnectionItem = ({
   
   return (
     <div 
-      className={`connection-item ${isOnBoard ? 'already-on-board' : ''} ${isGuestAppearance ? 'guest-appearance' : ''}`}
+      className={`${connectionItemStyles.connectionItemStyle} ${isOnBoard ? connectionItemStyles.alreadyOnBoardStyle : ''} ${isGuestAppearance ? connectionItemStyles.guestAppearanceStyle : ''}`}
     >
-      <div className="connection-image">
+      <div className={connectionItemStyles.connectionImageStyle}>
         <img 
+          className={connectionItemStyles.connectionImageImgStyle}
           src={getImageUrlSync(imagePath, imageType)} 
           alt={title} 
           onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image' }}
         />
-        {isGuestAppearance && <div className="guest-badge">Guest</div>}
+        {isGuestAppearance && <div className={connectionItemStyles.guestBadgeStyle}>Guest</div>}
       </div>
-      <div className="connection-info">
-        <div className="connection-title">{title}</div>
-        {character && <div className="connection-detail"><span>as {character}</span></div>}
+      <div className={connectionItemStyles.connectionInfoStyle}>
+        <div className={connectionItemStyles.connectionTitleStyle}>{title}</div>
+        {character && <div className={connectionItemStyles.connectionDetailStyle}><span>as {character}</span></div>}
         {!isOnBoard ? (
           <button 
-            className="add-connection-button"
+            className={connectionItemStyles.addConnectionButtonStyle}
             onClick={() => onAdd(item, mediaType)}
           >
             Add
           </button>
         ) : (
-          <div className="on-board-indicator">On Board</div>
+          <div className={connectionItemStyles.onBoardIndicatorStyle}>On Board</div>
         )}
       </div>
     </div>

@@ -17,6 +17,7 @@ import NodeLayer from './NodeLayer';
 import ConnectionLines from './ConnectionLines';
 import { Box } from '@mui/material';
 import { useZoom } from '../../hooks/useZoom';
+import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
 import './GameBoard.css';
 
 const GameBoard = () => {
@@ -151,39 +152,24 @@ const GameBoard = () => {
   return (
     <Box
       ref={boardRef}
-      // className="game-board-container relative"
-      className="relative w-full h-screen bg-[#0a0a1a] bg-cover overflow-hidden flex justify-center items-center"
+      className={BoardStyles.gameBoardContainerStyle} // Use style from BoardStyle.js
       style={{
+        // backgroundImage remains inline due to its complexity with multiple layers
         backgroundImage: "url('/game-bg2.png'), radial-gradient(circle, rgba(20,20,35,1) 0%, rgba(10,10,26,1) 100%)"
       }}
-      onWheel={handleWheel}  // capture wheel anywhere on board
+      onWheel={handleWheel}
     >
-      {/*
-        Zoom wrapper remains full-screen.
-       scale only the inner .zoom-content, so the board area stays 100% of viewport.
-      */}
       <div
-        className="zoom-wrapper"
-        style={{
-          width:    '100%',
-          height:   '100%',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
+        className={BoardStyles.zoomWrapperStyle} // Use style from BoardStyle.js
+        // Removed inline styles: width, height, position, overflow (now in zoomWrapperStyle)
       >
-        {/*
-          This inner container *shrinks/grows* by zoomLevel.
-          Node positions and connection-lines use the unscaled boardSize.
-        */}
         <div
-          className="zoom-content"
+          className={BoardStyles.zoomContentBaseStyle} // Use base style from BoardStyle.js
           style={{
-            width:           `${boardSize.width}px`,
-            height:          `${boardSize.height}px`,
-            position:        'relative',
-            transform:       `scale(${zoomLevel})`,
-            transformOrigin: 'top left',
-            transition:      'transform 0.1s ease-in-out'
+            width:           `${boardSize.width}px`,  // Dynamic, remains inline
+            height:          `${boardSize.height}px`, // Dynamic, remains inline
+            transform:       `scale(${zoomLevel})`,   // Dynamic, remains inline
+            // Removed: position, transformOrigin, transition (now in zoomContentBaseStyle)
           }}
         >
           {/* Connection lines behind nodes */}
@@ -220,16 +206,8 @@ const GameBoard = () => {
 
       {/* Zoom percentage indicator */}
       <div
-        className="absolute text-sm z-50"
-        style={{
-          top:             '12px',
-          right:           '12px',
-          backgroundColor: 'white',
-          color:           'black',
-          padding:         '4px 10px',
-          borderRadius:    '6px',
-          fontWeight:      500
-        }}
+        className={BoardStyles.zoomIndicatorStyle} // Use style from BoardStyle.js
+        // Removed inline styles (now in zoomIndicatorStyle)
       >
         Zoom: {(zoomLevel * 100).toFixed(0)}%
       </div>

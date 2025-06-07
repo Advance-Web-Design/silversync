@@ -1,5 +1,6 @@
 import React from 'react';
 import { getImageUrlSync } from '../../services/tmdbService';
+import * as actorInterfaceStyles from '../../styles/ActorsCardStyle.js'; 
 
 const ActorSearchInterface = ({
   index,
@@ -19,15 +20,15 @@ const ActorSearchInterface = ({
 }) => {
   return (
     <>
-      <div className="loading-actor">
+      <div className={actorInterfaceStyles.loadingActorsStyle}>
         {isLoading && activeInputIndex !== index ? 'Loading...' : 'Select an actor'}
       </div>
       
-      <div className="actor-search-panel">
+      <div className={actorInterfaceStyles.actorSearchPanelStyle}>
         <input
           ref={searchInputRef}
           type="text"
-          className="w-full py-2.5 px-2.5 rounded border border-gray-300 text-base mb-1.5"
+          className={actorInterfaceStyles.actorSearchInputStyle}
           placeholder="Search actor name..."
           value={localSearchTerm}
           onChange={onSearchChange}
@@ -40,19 +41,20 @@ const ActorSearchInterface = ({
         />
         
         {localSearchTerm && actorSearchResultsList && actorSearchResultsList.length > 0 && (
-          <div className="actor-search-results">
+          <div className={actorInterfaceStyles.actorSearchResultsStyle}>
             {actorSearchResultsList.map(actor => (
               <div 
                 key={actor.id}
-                className="flex items-center p-2 cursor-pointer border-b border-gray-100 text-black hover:bg-gray-300"
+                className={actorInterfaceStyles.actorSearchResultItemStyle}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onSelectActor(actor.id); // Call with actor.id only
                 }}
                 tabIndex={0}
               >
-                <div className="actor-search-image">
+                <div className={actorInterfaceStyles.actorSearchImageStyle}>
                   <img
+                    className={actorInterfaceStyles.actorSearchImageImgStyle}
                     src={getImageUrlSync(actor.profile_path, 'profile')}
                     alt={actor.name}
                     onError={(e) => {
@@ -60,7 +62,7 @@ const ActorSearchInterface = ({
                     }}
                   />
                 </div>
-                <div className="actor-search-name">
+                <div className={actorInterfaceStyles.actorSearchNameStyle}>
                   {actor.name}
                 </div>
               </div>
@@ -68,7 +70,7 @@ const ActorSearchInterface = ({
             
             {actorSearchPageNum < actorSearchTotalPagesNum && (
               <div 
-                className="actor-search-item" 
+                className={actorInterfaceStyles.actorSearchItemStyle}
                 style={{ justifyContent: 'center', color: '#4a6fa5', fontWeight: 'bold' }}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -83,7 +85,7 @@ const ActorSearchInterface = ({
       </div>
       
       <button 
-        className="w-full mt-2 cursor-pointer rounded border-none bg-cyan-600 py-2 px-4 text-white transition-colors duration-300 hover:bg-[#0f3460] disabled:bg-[#cccccc] disabled:cursor-not-allowed"
+        className={actorInterfaceStyles.randomButtonStyle}
         onClick={onRandomize} // Call without arguments
         disabled={isLoading && activeInputIndex !== index}
       >
