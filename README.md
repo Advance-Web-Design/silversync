@@ -201,10 +201,6 @@ npm start        # Start production server
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - [The Movie Database (TMDB)](https://www.themoviedb.org/) for providing the comprehensive movie and TV data
@@ -219,4 +215,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete production deployment guide
 - **[Architecture Diagrams](./diagrams/)** - Visual system architecture documentation
 
-**Live Demo**: [https://connect-the-shows-client-git-dev-idshay16s-projects.vercel.app](https://connect-the-shows-client-git-dev-idshay16s-projects.vercel.app)
+**Live Demo**: [https://connect-the-shows-client.vercel.app](https://connect-the-shows-client.vercel.app)
