@@ -41,9 +41,9 @@ export async function POST(request) {
     // Dynamically import firebaseLogic only when Firebase is available
     const { verifyUser } = await import('../../utils/firebaseLogic.js');
     
-    const { username, password } = await request.json();
-    const userId = await verifyUser(username, password);
-    return withCors(NextResponse.json({ userId }));
+    const { username, hashedPassword } = await request.json();
+    const userProfile = await verifyUser(username, hashedPassword);
+    return withCors(NextResponse.json({ userProfile }));
   } catch (err) {
     console.error('Error logging in user:', err);
     return withCors(NextResponse.json({ error: err.message }, { status: 500 }));

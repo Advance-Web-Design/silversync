@@ -23,10 +23,12 @@ const API_BASE = `${config.backend.baseUrl}/api/firebase` ;
  */
 export async function addUser(username, password, email) {
 
+  // hash the password before sending it to the server
+  const hashedPassword = await hashPassword(password);
   const res = await fetch(`${API_BASE}/register/*`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, email }),
+    body: JSON.stringify({ username, hashedPassword, email }),
   });
 
   const data = await res.json();
@@ -83,6 +85,14 @@ export async function record_game_session(
 }
 
 
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join('');
+}
 
 /**
  * verifies a user by checking their username and password against the Firebase database.
@@ -91,12 +101,16 @@ export async function record_game_session(
  * @returns {Promise<string>} The user ID if the login is successful
  */
 export async function verifyUser(username, password) {
+
+  // Hash the password before sending it to the server
+  const hashedPassword = await hashPassword(password);
   const res = await fetch(`${API_BASE}/login/*`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, hashedPassword }),
   });
   const data = await res.json();
-  return data.userId;
+  
+  return data.userProfile;
 }
 

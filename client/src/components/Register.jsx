@@ -1,4 +1,3 @@
-//TODO: THIS IMPORT IS TEMPORARY, REMOVE WHEN CLIENT AND SERVER ARE SEPARATED
 import { addUser } from "../services/firebaseService";
 
 
@@ -7,8 +6,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
 
 
-function RegisterWindow() {
-  const [isOpen, setIsOpen] = useState(true);
+function RegisterWindow({onClose}) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +15,7 @@ function RegisterWindow() {
 
 
   const handleClose = () => {
-    setIsOpen(false);
+    if (onClose) onClose();
   };
   
   // Function to validate password
@@ -70,11 +68,11 @@ function RegisterWindow() {
 
   return (
     <>
-      {isOpen && (
-        <div className={FormStyles.formOverlayStyle} onClick={handleClose}>
-          <div className={FormStyles.formContentStyle} onClick={(e) => e.stopPropagation()}>
-            <button className={FormStyles.formCloseButtonStyle} onClick={handleClose}>
-              <CloseIcon fontSize="small" />
+      { (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <button className="popup-close-button" onClick={handleClose}>
+              <CloseIcon />
             </button>
             <div className={FormStyles.formBodyStyle}>
               <h2 className={FormStyles.formTitleStyle}>Create Account</h2>

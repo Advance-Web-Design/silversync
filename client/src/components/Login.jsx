@@ -4,14 +4,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import { verifyUser } from "../services/firebaseService";
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
 
-
-function LoginWindow() {
-  const [isOpen, setIsOpen] = useState(true);
+function LoginWindow({ onClose, setLoginID }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleClose = () => {
-    setIsOpen(false);
+    if (onClose) onClose();
   };
 
   const forgotPassword = () => {
@@ -28,10 +26,11 @@ function LoginWindow() {
 
 
     verifyUser(username, password)
-      .then(userId => {
-        if (userId) {
-          console.log('User logged in with ID:', userId);
+      .then(userProfile => {
+        if (userProfile) {
+          console.log('User logged in with ID:', userProfile.userId);
           alert('Login successful!');
+          setLoginID(userProfile);
           handleClose(); // Close the popup after successful login
         } else {
           alert('Invalid username or password.');
@@ -44,13 +43,12 @@ function LoginWindow() {
 
 
 
-    //alert(`Username: ${username}\nPassword: ${password}`);
   };
   
 
   return (
     <>
-      {isOpen && ( 
+      {( 
         <div className={FormStyles.formOverlayStyle} onClick={handleClose}>
           <div className={FormStyles.formContentStyle} onClick={(e) => e.stopPropagation()}>
             <button className={FormStyles.formCloseButtonStyle} onClick={handleClose}>

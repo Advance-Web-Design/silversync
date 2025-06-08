@@ -42,8 +42,9 @@ export async function POST(request) {
     const { addUser } = await import('../../utils/firebaseLogic.js');
     
     const body = await request.json();
-    const { username, password, email } = body;
-    const userId = await addUser(username, password, email);
+
+    const { username, hashedPassword, email } = body;
+    const userId = await addUser(username, hashedPassword, email);
 
     return withCors(NextResponse.json({ userId }));
   } catch (err) {
