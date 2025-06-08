@@ -1,334 +1,222 @@
-# Connect The Stars
+# Connect The Shows 🎬
 
-An interactive web game where players connect Hollywood actors through movies and TV shows they've appeared in. Starting with two actors, players must find connections between them by adding movies, TV shows, and other actors to the board. The game is won when a path exists between the two starting actors.
+A web application that challenges users to find connections between actors through their movie and TV show appearances. Built with React and Next.js, powered by The Movie Database (TMDB) API.
 
 ## 🚨 Known Issues
+1. **Z-Index Issue**: When a card is behind the header, it cannot be clicked
 
-1. **Shortest Path not Upadting**: the shortest path doesn't update if ater victory a shorter path is found
-2. **Cheat Sheet UI Bug**: Cheat sheet moves stat bar to the middle of the screen and gets it stuck there
-3. **Search Panel Bug**: If NOT selecting a movie from cheat sheet and hitting X, then searching for any character/string, everything from the cheat sheet is displayed as search results
-4. **Z-Index Issue**: When a card is behind the header, it cannot be clicked
+## 🎯 What is Connect The Shows?
 
-## 🏗️ Architecture
+Connect The Shows is an interactive game where players:
+1. **Search** for actors, movies, or TV shows
+2. **Place** items on a visual board
+3. **Connect** actors through shared movies/shows
+4. **Validate** connections using our pathfinding algorithm
+5. **Score** points based on connection difficulty
 
-Connect the Stars follows a layered architecture pattern with clear separation of concerns across four distinct layers:
+Think of it as "Six Degrees of Kevin Bacon" but for any actors, with a visual interface and scoring system!
 
-![Architecture Diagram](./diagrams/Editor%20_%20Mermaid%20Chart-2025-06-07-165032.svg)
+## 🏗️ System Architecture
 
-### 🎨 Presentation Layer (Client-Side)
-The user interface layer built with React components, organized into logical groups:
+![Architecture Overview](./diagrams/Architecture_Diagram.svg)
 
-- **Core Application**: App.jsx, GameContent.jsx - Main application shell
-- **Main UI Components**: StartScreen, GameplayArea, BoardHeader, Menu, Modals
-- **Game Engine**: GameBoard, NodeLayer, ConnectionLines, DraggableNode, ActorCard
-- **Search Components**: SearchPanel, ConnectionsPanel, SearchEntitiesSidebar
-- **Authentication UI**: Login, Register, Profile components
-- **Information Pages**: HowToPlay, About, Leaderboard, ChallengeMode
-
-### 🧠 Business Logic Layer (Client-Side)
-The core application logic and state management:
-
-- **State Management**: GameProvider.jsx, gameContext.js - React Context for global state
-- **Custom Hooks**: useGame, useBoard, useSearch, useZoom - Reusable business logic
-- **Utilities**: Helper functions for entities, board operations, search, and API handling
-
-### 🔧 Service Layer (Client-Side)
-Abstraction layer for external communications:
-
-- **apiService.js**: Generic API communication utilities
-- **tmdbService.js**: TMDB API integration for movie/actor data
-- **firebaseService.js**: Firebase backend integration
-
-### ☁️ Cloud Layer (Server-Side)
-External services and backend infrastructure:
-
-- **Firebase Backend**: Authentication, Firestore database, Cloud Functions
-- **External APIs**: TMDB API for entertainment data, TMDB Images CDN
+### Tech Stack
+- **Frontend**: React 18 + Vite + Tailwind CSS
+- **Backend**: Next.js 14 API Routes
+- **Database**: Firebase Firestore
+- **Authentication**: Firebase Auth
+- **External API**: The Movie Database (TMDB)
+- **Deployment**: Vercel (both client and server)
+- **Image CDN**: TMDB image service
 
 ### Data Flow
+![Data Flow](./diagrams/Data_Flow_Diagram.svg)
 
-1. **User Interaction**: Users interact with Presentation Layer components
-2. **State Management**: Components trigger actions through Custom Hooks
-3. **Service Calls**: Hooks communicate with external services via Service Layer
-4. **Backend Integration**: Services connect to Firebase and TMDB APIs
-5. **State Updates**: Data flows back through the layers to update the UI
+The application follows a structured flow:
+1. **Initialization**: Load context, routes, and fetch initial data
+2. **Search**: Query TMDB API for actors/movies with caching
+3. **Placement**: Visual drag-and-drop interface for game board
+4. **Validation**: Algorithm validates connections between actors
+5. **Authentication**: Firebase handles user login and profiles
+6. **Persistence**: Save scores, progress, and user data
 
-This architecture ensures:
-- **Separation of Concerns**: Each layer has a specific responsibility
-- **Maintainability**: Changes in one layer don't affect others
-- **Testability**: Each layer can be tested independently
-- **Scalability**: New features can be added without restructuring
+## 🚀 Quick Start
 
-### System Architecture
+### 🖥️ Local Development
 
+```bash
+# Clone the repository
+git clone <repository-url>
+cd Connect-the-shows
+
+# Install dependencies for both client and server
+cd client && npm install
+cd ../server && npm install
+
+# Set up environment variables (see LOCAL_DEVELOPMENT.md)
+cp server/.env.example server/.env.local
+# Edit server/.env.local with your API keys
+
+# Start both servers
+# Terminal 1:
+cd server && npm run dev  # http://localhost:3000
+
+# Terminal 2:  
+cd client && npm run dev  # http://localhost:5173
 ```
-┌─────────────────┐     ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │     │  Backend Server │    │   TMDB API      │
-│  (Port 5174)    │───▶ │   (Port 3000)  │───▶│                 │
-│                 │     │                 │    │                 │
-│ • React/Vite    │     │ • Next.js 15    │    │ • External API  │
-│ • API calls     │     │ • Fetch API     │    │ • Images (CDN)  │
-│ • Image display │     │ • CORS headers  │    │                 │
-└─────────────────┘     └─────────────────┘    └─────────────────┘
-```
 
-### Data Flow
+📖 **For detailed local setup instructions, see [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md)**
 
-1. **API Data**: Client → `apiService.js` → Backend API Routes → TMDB API
-2. **Images**: Client → `tmdbUtils.js` → TMDB CDN (direct)
+### 🌐 Production Deployment
 
-### Technical Stack
+The application is currently deployed on Vercel:
+- **Live App**: https://connect-the-shows-client-git-dev-idshay16s-projects.vercel.app
+- **API Server**: https://connect-the-shows-server-eight.vercel.app
 
-- **Frontend**: React + Vite
-- **Backend**: Next.js 15 (Serverless Architecture)
-- **State Management**: React Context API + Custom Hooks
-- **Styling**: Tailwind CSS
-- **API**: The Movie Database (TMDB)
-- **Visualization**: Custom draggable components
-- **HTTP Client**: Native Fetch API (no dependencies)
+🚀 **For complete deployment instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
 
 ## 📁 Project Structure
 
 ```
 Connect-the-shows/
-├── client/                 # Frontend React application
+├── client/                 # React frontend application
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   │   └── game/       # Game-specific components
-│   │   ├── contexts/       # React Context providers
+│   │   ├── components/     # Reusable UI components
+│   │   ├── context/        # React context providers
 │   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API services
-│   │   ├── utils/          # Utility functions
-│   │   └── config/         # Configuration files
-│   ├── public/             # Static assets
-│   └── package.json        # Client dependencies
-└── server/                 # Backend Next.js server
-    ├── app/
-    │   ├── api/            # API routes
-    │   │   ├── tmdb/       # TMDB proxy routes
-    │   │   └── utils/      # API utilities
-    │   └── layout.js       # Next.js layout
-    ├── middleware.js       # CORS middleware
-    └── package.json        # Server dependencies
+│   │   ├── services/       # API communication layer
+│   │   └── utils/          # Helper functions
+│   ├── public/            # Static assets
+│   └── package.json
+├── server/                # Next.js backend API
+│   ├── pages/api/         # API route handlers
+│   │   ├── tmdb/          # TMDB API proxy endpoints
+│   │   ├── game/          # Game logic endpoints
+│   │   └── auth/          # Authentication endpoints
+│   ├── lib/               # Server utilities
+│   ├── middleware.js      # CORS and request handling
+│   └── package.json
+├── diagrams/              # Architecture documentation
+│   ├── Architecture_Diagram.svg
+│   └── Data_Flow_Diagram.svg
+├── DEPLOYMENT_GUIDE.md    # Production deployment guide
+├── LOCAL_DEVELOPMENT.md   # Local development setup
+└── README.md
+```
+
+## 🎮 How to Play
+
+1. **Search**: Use the search bar to find actors, movies, or TV shows
+2. **Place**: Drag items from search results onto the game board
+3. **Connect**: Click between two actors to attempt a connection
+4. **Validate**: The system checks if actors share any movies/shows
+5. **Score**: Earn points based on connection difficulty and speed
+
+### Game Features
+- **Visual Game Board**: Drag-and-drop interface for placing items
+- **Real-time Search**: Instant results from TMDB database
+- **Smart Validation**: Algorithm finds shortest paths between actors
+- **User Profiles**: Save progress and track high scores
+- **Image Optimization**: Cached images from TMDB CDN
+
+## 🔧 Configuration
+
+### Required Environment Variables
+
+#### Server (.env.local)
+```env
+TMDB_API_KEY=your_tmdb_api_key
+TMDB_ACCESS_TOKEN=your_tmdb_access_token
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_PRIVATE_KEY=your_firebase_private_key
+FIREBASE_CLIENT_EMAIL=your_firebase_client_email
+ALLOWED_ORIGIN=http://localhost:5173  # or production URL
+```
+
+#### Client (.env.local)
+```env
+VITE_BACKEND_URL=http://localhost:3000  # or production server URL
+```
+
+### API Keys Setup
+
+1. **TMDB API**: Get your API key from [The Movie Database](https://www.themoviedb.org/settings/api)
+2. **Firebase**: Create a project at [Firebase Console](https://console.firebase.google.com/) and generate service account credentials
+
+## 🛠️ Development
+
+### Available Scripts
+
+**Client:**
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+```
+
+**Server:**
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm start        # Start production server
 ```
 
 ### Key Components
 
-#### Frontend (`client/src/`)
+- **GameBoard**: Main game interface with drag-and-drop
+- **SearchResults**: TMDB API integration with image loading
+- **ConnectionValidator**: Algorithm for validating actor connections
+- **UserProfile**: Firebase auth integration
+- **ScoreTracker**: Game scoring and persistence
 
-**Core Components:**
-- `App.jsx` - Root component with routing
-- `StartScreen.jsx` - Game setup and actor selection
-- `GameBoard.jsx` - Main game board with drag & drop
-- `DraggableNode.jsx` - Individual entity cards
-- `SearchPanel.jsx` - Search interface
-- `ConnectionsPanel.jsx` - Connection visualization
+## 🌐 API Endpoints
 
-**State Management:**
-- `contexts/GameProvider.jsx` - Central game state
-- `hooks/useBoard.js` - Board management logic
-- `hooks/useGame.js` - Game mechanics
-- `hooks/useSearch.js` - Search functionality
+### TMDB Proxy Endpoints
+- `GET /api/tmdb/search` - Search for actors/movies/shows
+- `GET /api/tmdb/person/:id` - Get person details
+- `GET /api/tmdb/movie/:id` - Get movie details
+- `GET /api/tmdb/tv/:id` - Get TV show details
 
-**Services:**
-- `services/apiService.js` - Backend API client
-- `services/tmdbService.js` - TMDB data processing
-- `utils/tmdbUtils.js` - TMDB utility functions
+### Game Endpoints
+- `POST /api/game/validate` - Validate actor connections
+- `POST /api/game/score` - Submit and save scores
 
-#### Backend (`server/app/api/`)
+### Authentication
+- `POST /api/auth/login` - User authentication
+- `GET /api/auth/profile` - Get user profile
 
-**API Routes:**
-- `tmdb/[...path]/route.js` - Catch-all TMDB proxy
-- `tmdb/actor/[...path]/route.js` - Actor-specific endpoints
-- `tmdb/movie/[...path]/route.js` - Movie-specific endpoints
-- `tmdb/search/[...path]/route.js` - Search endpoints
-- `tmdb/tv-show/[...path]/route.js` - TV show endpoints
+## 🚀 Performance Features
 
-**Utilities:**
-- `utils/cors.js` - CORS handling utilities
-- `middleware.js` - Global CORS middleware
+- **Image CDN**: TMDB images served through optimized CDN
+- **Response Caching**: API responses cached for improved performance
+- **Code Splitting**: Dynamic imports for better load times
+- **Edge Functions**: Server deployed on Vercel Edge Network
 
-## 🎮 Game Mechanics
+## 🤝 Contributing
 
-1. **Game Setup**: Players select or are assigned two random starting actors
-2. **Search & Discovery**: Players search for movies, TV shows, or other actors
-3. **Building Connections**: Players add entities to the board to create a connection path
-4. **Win Condition**: Game is won when a path exists between the two starting actors
-5. **Scoring**: Based on completion time and the length of the connecting path
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### Connection Logic
+## 📄 License
 
-- Actors connect to movies/shows they've appeared in
-- Movies/shows connect to actors who appeared in them
-- Two actors can connect if they've both appeared in the same production
-- Guest appearances in TV shows are considered valid connections
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔧 Server Features
+## 🙏 Acknowledgments
 
-### API & Security
-- **Serverless Architecture**: Built on Next.js 15 serverless functions
-- **TMDB API Proxy**: All external API calls routed through secure backend
-- **Bearer Token Authentication**: Secure TMDB API access
-- **Request Caching**: 60-second cache for improved performance
-- **CORS Support**: Comprehensive cross-origin request handling
-- **Environment Security**: API keys secured server-side only
+- [The Movie Database (TMDB)](https://www.themoviedb.org/) for providing the comprehensive movie and TV data
+- [Firebase](https://firebase.google.com/) for authentication and database services
+- [Vercel](https://vercel.com/) for seamless deployment and hosting
 
-### Technical Features
-- **Native Fetch API**: No external HTTP dependencies
-- **Global Middleware**: Automatic CORS headers on all API routes
-- **Preflight Handling**: Full OPTIONS request support for complex CORS scenarios
-- **Error Handling**: Graceful error responses with proper HTTP status codes
-- **Next.js 15 Compliance**: Async params handling for future compatibility
+---
 
-### API Endpoints
+### 📚 Additional Documentation
 
-All TMDB API calls are proxied through the backend for security:
+- **[LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md)** - Detailed local development setup
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete production deployment guide
+- **[Architecture Diagrams](./diagrams/)** - Visual system architecture documentation
 
-- `GET /api/tmdb/search/person?query=<name>` - Search for actors
-- `GET /api/tmdb/search/movie?query=<title>` - Search for movies  
-- `GET /api/tmdb/search/tv?query=<title>` - Search for TV shows
-- `GET /api/tmdb/actor/<id>` - Get actor details
-- `GET /api/tmdb/actor/<id>/movie_credits` - Get actor's movie credits
-- `GET /api/tmdb/actor/<id>/tv_credits` - Get actor's TV credits
-- `GET /api/tmdb/movie/<id>` - Get movie details
-- `GET /api/tmdb/movie/<id>/credits` - Get movie cast
-- `GET /api/tmdb/tv-show/<id>` - Get TV show details
-- `GET /api/tmdb/tv-show/<id>/credits` - Get TV show cast
-
-## 💻 Client Features
-
-### Game Features
-- **Interactive Gameplay**: Drag & drop entity positioning
-- **Real-time Search**: Instant search results from TMDB
-- **Connection Validation**: Automatic path finding between actors
-- **Victory Detection**: Smart win condition checking
-- **Game Statistics**: Time tracking and path length scoring
-
-### UI/UX Features
-- **Responsive Design**: Works on desktop and mobile devices
-- **Image Optimization**: Direct loading from TMDB CDN for fast performance
-- **Error Handling**: Graceful error states and loading indicators
-- **Search Autocomplete**: Dynamic search suggestions
-- **Visual Feedback**: Loading states, hover effects, and animations
-
-### Technical Features
-- **Environment Detection**: Automatic backend URL configuration
-- **Custom Backend Override**: Development testing with different backend URLs
-- **State Management**: Centralized game state with React Context
-- **Custom Hooks**: Reusable business logic separation
-- **Modern React**: Latest React 19 with Vite for fast development
-
-## 🖥️ Server Setup
-
-### Prerequisites
-
-- Node.js 18+ 
-- NPM or Yarn
-- TMDB API Bearer Token
-
-### Installation
-
-1. **Navigate to server directory:**
-   ```powershell
-   cd server
-   ```
-
-2. **Install dependencies:**
-   ```powershell
-   npm install
-   ```
-
-3. **Environment Configuration:**
-   Create a `.env` file in the server directory:
-   ```bash
-   TMDB_API_TOKEN=your_bearer_token_here
-   NEXT_PUBLIC_API_URL=http://localhost:3000
-   ```
-
-4. **Start development server:**
-   ```powershell
-   npm run dev
-   ```   The server will be available at `http://localhost:3000`
-
-### CORS Configuration
-
-The server includes comprehensive CORS support:
-- Global middleware in `middleware.js`
-- Per-route CORS headers
-- Preflight OPTIONS request handling
-- Support for cross-origin requests
-
-### Security Features
-
-- ✅ API keys secured server-side only
-- ✅ All TMDB calls proxied through backend
-- ✅ CORS headers configured properly
-- ✅ Bearer token authentication
-- ✅ Request caching (60 seconds)
-
-## 💻 Client Setup
-
-### Prerequisites
-
-- Node.js 18+
-- NPM or Yarn
-
-### Installation
-
-1. **Navigate to client directory:**
-   ```powershell
-   cd client
-   ```
-
-2. **Install dependencies:**
-   ```powershell
-   npm install
-   ```
-
-3. **Start development server:**
-   ```powershell
-   npm run dev
-   ```
-
-   The client will be available at `http://localhost:5174`
-
-### Build for Production
-
-```powershell
-npm run build
-```
-
-### Configuration
-
-The client automatically detects the environment and configures the backend URL:
-
-- **Development**: `http://localhost:3000/api`
-- **Production**: `/api` (relative path)
-
-You can override the backend URL in development by setting it in localStorage:
-```javascript
-localStorage.setItem('customBackendUrl', 'http://your-backend-url/api');
-```
-
-## 🚀 Deployment
-
-### Production Checklist
-
-1. **Environment Variables**: Set production TMDB API token
-2. **CORS Origins**: Update CORS to specific domains instead of `*`
-3. **API URLs**: Configure production backend URLs
-4. **Build Optimization**: Run production builds for both client and server
-5. **Security Headers**: Ensure all security headers are configured
-
-### Recent Improvements
-
-- ✅ Removed axios dependency (using native fetch)
-- ✅ Fixed CORS issues for cross-platform compatibility
-- ✅ Enhanced security with backend-only API access
-- ✅ Next.js 15 compatibility
-- ✅ Improved error handling and logging
-- ✅ Optimized bundle size and performance
-
-The application now works consistently across all machines and environments without CORS errors!
-
-
+**Live Demo**: [https://connect-the-shows-client-git-dev-idshay16s-projects.vercel.app](https://connect-the-shows-client-git-dev-idshay16s-projects.vercel.app)
