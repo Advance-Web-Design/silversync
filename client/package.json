@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "vercel-build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
