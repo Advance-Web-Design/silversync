@@ -9,7 +9,7 @@ import RegisterWindow from './Register'; // Import Register component
 
 
 //import UserProfile from './UserProfile'; // stupid vsc shouting that this is an error, but it is not
-import UserProfile from './userProfile'; // this should be wrong, but VSC says it's fine
+import UserProfile from './UserProfile'; // this should be wrong, but VSC says it's fine
 
 
 function Menu(props) {
