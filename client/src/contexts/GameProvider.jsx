@@ -342,35 +342,31 @@ export const GameProvider = ({ children }) => {
    */
   const handleSearch = async (term) => {
     if (!term) return;
-
+    
+    console.log(`🔍 Starting enhanced search for: "${term}"`);
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
     setIsLoading(true);
 
+    // Check for similarity matches in local database first
+    const similarityMatch = searchState.checkForMisspelling(term);
+    let apiSearchTerm = term;
+    
+    if (similarityMatch && typeof similarityMatch === 'object') {
+      apiSearchTerm = getItemTitle(similarityMatch);
+    }
+
     try {
-      // First check if there's a string similarity match in our local database
-      const similarityMatch = searchState.checkForMisspelling(term);
-      let apiSearchTerm = term; // Default to original term
-
-      // If we found a match in the local database
-      if (similarityMatch && typeof similarityMatch === 'object' && similarityMatch.id) {
-        const matchTitle = getItemTitle(similarityMatch);
-
-        // If the match is different from what the user typed, use it automatically
-        // without showing "Did you mean" prompt
-        if (matchTitle.toLowerCase() !== term.toLowerCase()) {
-          // Use the exact title/name for our API search to get best results
-          apiSearchTerm = matchTitle;
-        }
-      }
-
-      // Search the API using either original term or corrected term from local database
-      let allResults = await searchMulti(apiSearchTerm);
-
+      // Use multi-page search (3 pages) instead of single page
+      const allResults = await searchMulti(apiSearchTerm, 3);
+      
+      console.log(`📊 Total search results found: ${allResults.length}`);
+      
       await processSearchResults(allResults, term, apiSearchTerm);
+
     } catch (error) {
-      console.error("Error searching:", error);
+      console.error('❌ Search error:', error);
       setNoMatchFound(true);
     } finally {
       setIsLoading(false);

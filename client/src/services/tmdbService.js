@@ -588,24 +588,41 @@ export const checkActorInTvShow = async (actorId, tvShowId) => {
  * @param {string} query - The search query
  * @returns {Promise<Array>} - List of search results across movies, TV shows, and people
  */
-export const searchMulti = async (query) => {
-  if (!validateSearchQuery(query)) return [];
+export const searchMulti = async (query, maxPages = 1) => {
+  const cacheKey = `search-multi-${query.trim()}-pages-${maxPages}`;
   
-  return withErrorHandling(
-    () => withCache(
-      `search-multi-${query.trim()}`,
-      async () => {
+  return withCache(cacheKey, async () => {
+    const allResults = [];
+    
+    for (let page = 1; page <= maxPages; page++) {
+      try {
         const results = await callApi('/search/multi', {
           query: query.trim(),
           include_adult: false,
-          page: 1
+          page: page
         });
         
-        return processSearchResults(results.results || []);
+        if (!results.results || results.results.length === 0) {
+          console.log(`📄 Page ${page}: No more results`);
+          break;
+        }
+        
+        console.log(`📄 Page ${page}: Found ${results.results.length} results`);
+        allResults.push(...results.results);
+        
+        if (page >= results.total_pages) {
+          console.log(`📄 Reached last page: ${results.total_pages}`);
+          break;
+        }
+      } catch (error) {
+        console.error(`Error fetching page ${page}:`, error);
+        break;
       }
-    ),
-    []
-  );
+    }
+    
+    console.log(`📊 Total results from ${maxPages} page(s): ${allResults.length}`);
+    return processSearchResults(allResults || []);
+  });
 };
 
 /**
