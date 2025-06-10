@@ -1,6 +1,6 @@
 // Entity-specific utility functions for handling people, movies, and TV shows
 import { getPersonDetails, getMovieDetails, getTvShowDetails, findPersonGuestAppearances } from '../services/tmdbService';
-import { logger } from './logger';
+import { logger } from './loggerUtils';
 
 /**
  * Gets a display title for any entity type
