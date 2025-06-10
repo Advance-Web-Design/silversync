@@ -1,5 +1,6 @@
 // Entity-specific utility functions for handling people, movies, and TV shows
 import { getPersonDetails, getMovieDetails, getTvShowDetails, findPersonGuestAppearances } from '../services/tmdbService';
+import { logger } from './logger';
 
 /**
  * Gets a display title for any entity type
@@ -130,7 +131,7 @@ async function checkMovieConnectability(movie, startingActors, getMovieDetailsFn
   );
   
   if (connected) {
-    console.log(`✅ Movie "${getItemTitle(movie)}" is connectable - matching actor found in cast`);
+    logger.debug(`✅ Movie "${getItemTitle(movie)}" is connectable - matching actor found in cast`);
   }
   return connected;
 }
@@ -149,7 +150,7 @@ async function checkTvConnectability(tvShow, startingActors, getTvShowDetailsFn,
   
   // Check regular cast first
   if (cast.some(actor => startingActors.some(startActor => startActor?.id === actor.id))) {
-    console.log(`✅ TV Show "${getItemTitle(tvShow)}" is connectable - actor found in regular cast`);
+    logger.debug(`✅ TV Show "${getItemTitle(tvShow)}" is connectable - actor found in regular cast`);
     return true;
   }
   
@@ -160,12 +161,12 @@ async function checkTvConnectability(tvShow, startingActors, getTvShowDetailsFn,
     const actorDetails = await ensureActorDetails(startActor, getPersonDetailsFn);
     
     if (checkActorInTvCredits(actorDetails, tvShow.id)) {
-      console.log(`✅ TV Show "${getItemTitle(tvShow)}" is connectable - found in actor's TV credits`);
+      logger.debug(`✅ TV Show "${getItemTitle(tvShow)}" is connectable - found in actor's TV credits`);
       return true;
     }
   }
   
-  console.log(`❌ TV Show "${getItemTitle(tvShow)}" is not connectable to starting actors`);
+  logger.debug(`❌ TV Show "${getItemTitle(tvShow)}" is not connectable to starting actors`);
   return false;
 }
 
@@ -179,7 +180,7 @@ async function checkTvConnectability(tvShow, startingActors, getTvShowDetailsFn,
 async function checkPersonConnectability(person, startingActors, getPersonDetailsFn) {
   // Don't allow adding the starting actors again
   if (startingActors.some(startActor => startActor?.id === person.id)) {
-    console.log(`❌ Not allowing readding starting actor`);
+    logger.debug(`❌ Not allowing readding starting actor`);
     return false;
   }
   
@@ -204,7 +205,7 @@ async function checkPersonConnectability(person, startingActors, getPersonDetail
     const startActorMovieCredits = startActorDetails.movie_credits?.cast || [];
     for (const credit of startActorMovieCredits) {
       if (searchedActorMovieIds.has(credit.id)) {
-        console.log(`✅ Actor "${getItemTitle(person)}" is connectable - both appeared in movie ${credit.title || credit.name}`);
+        logger.debug(`✅ Actor "${getItemTitle(person)}" is connectable - both appeared in movie ${credit.title || credit.name}`);
         return true;
       }
     }
@@ -213,13 +214,13 @@ async function checkPersonConnectability(person, startingActors, getPersonDetail
     const startActorTvCredits = startActorDetails.tv_credits?.cast || [];
     for (const credit of startActorTvCredits) {
       if (searchedActorTvIds.has(credit.id)) {
-        console.log(`✅ Actor "${getItemTitle(person)}" is connectable - both appeared in TV show ${credit.title || credit.name}`);
+        logger.debug(`✅ Actor "${getItemTitle(person)}" is connectable - both appeared in TV show ${credit.title || credit.name}`);
         return true;
       }
     }
   }
   
-  console.log(`❌ Actor "${getItemTitle(person)}" is not connectable to starting actors`);
+  logger.debug(`❌ Actor "${getItemTitle(person)}" is not connectable to starting actors`);
   return false;
 }
 
@@ -285,7 +286,7 @@ export const findPersonConnections = (person, nodes, personNodeId) => {
   const movieCredits = person.movie_credits?.cast || [];
   const tvCredits = person.tv_credits?.cast || [];
   
-  console.log(`Actor has ${movieCredits.length} movie credits and ${tvCredits.length} TV credits`);
+  logger.debug(`Actor has ${movieCredits.length} movie credits and ${tvCredits.length} TV credits`);
   
   // Check existing nodes for potential connections
   nodes.forEach(existingNode => {
@@ -293,7 +294,7 @@ export const findPersonConnections = (person, nodes, personNodeId) => {
     if (existingNode.type === 'movie') {
       const isConnected = movieCredits.some(credit => credit.id === existingNode.data.id);
       if (isConnected) {
-        console.log(`Found connection between ${personNodeId} and movie ${existingNode.id}`);
+        logger.debug(`Found connection between ${personNodeId} and movie ${existingNode.id}`);
         connections.push(createConnection(personNodeId, existingNode.id));
       }
     } 
@@ -306,9 +307,9 @@ export const findPersonConnections = (person, nodes, personNodeId) => {
       if (isConnected) {
         const isGuestAppearance = creditInfo.is_guest_appearance || false;
         
-        console.log(`Found connection between ${personNodeId} and TV show ${existingNode.id}`);
+        logger.debug(`Found connection between ${personNodeId} and TV show ${existingNode.id}`);
         if (isGuestAppearance) {
-          console.log(`(Guest star appearance)`);
+          logger.debug(`(Guest star appearance)`);
         }
         
         connections.push(createConnection(personNodeId, existingNode.id, { isGuestAppearance }));
@@ -332,14 +333,14 @@ export const findMovieConnections = (movie, nodes, movieNodeId) => {
   
   // Get the movie's cast
   const cast = movie.credits?.cast || [];
-  console.log(`Movie has ${cast.length} cast members`);
+  logger.debug(`Movie has ${cast.length} cast members`);
   
   // Check if any actor on the board is in this movie's cast
   nodes.forEach(existingNode => {
     if (existingNode.type === 'person') {
       const isConnected = cast.some(actor => actor.id === existingNode.data.id);
       if (isConnected) {
-        console.log(`Found connection between movie ${movieNodeId} and actor ${existingNode.id}`);
+        logger.debug(`Found connection between movie ${movieNodeId} and actor ${existingNode.id}`);
         connections.push(createConnection(existingNode.id, movieNodeId));
       }
     }
@@ -361,7 +362,7 @@ export const findTvShowConnections = (tvShow, nodes, tvNodeId) => {
   
   // Get the TV show's cast
   const cast = tvShow.credits?.cast || [];
-  console.log(`TV show has ${cast.length} cast members`);
+  logger.debug(`TV show has ${cast.length} cast members`);
   
   // Check for connections with actors on the board
   nodes.forEach(existingNode => {
@@ -372,7 +373,7 @@ export const findTvShowConnections = (tvShow, nodes, tvNodeId) => {
       const isInRegularCast = cast.some(actor => actor.id === actorId);
       
       if (isInRegularCast) {
-        console.log(`Found regular cast connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
+        logger.debug(`Found regular cast connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
         connections.push(createConnection(existingNode.id, tvNodeId));
       } else {
         // If not in regular cast, check if this actor has this TV show in their credits
@@ -381,7 +382,7 @@ export const findTvShowConnections = (tvShow, nodes, tvNodeId) => {
         
         if (creditInfo) {
           const isGuestAppearance = creditInfo.is_guest_appearance || false;
-          console.log(`Found ${isGuestAppearance ? 'guest appearance' : 'cast'} connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
+          logger.debug(`Found ${isGuestAppearance ? 'guest appearance' : 'cast'} connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
           connections.push(createConnection(existingNode.id, tvNodeId, { isGuestAppearance }));
         }
       }
@@ -402,14 +403,18 @@ export const findTvShowConnections = (tvShow, nodes, tvNodeId) => {
  * @returns {Promise<boolean>} - Whether the item can connect to starting actors
  */
 export const checkInitialConnectability = async (item, startingActors, getPersonDetailsFn, getMovieDetailsFn, getTvShowDetailsFn) => {
+  const title = getItemTitle(item);
+  const mediaType = item.media_type === 'movie' ? 'Movie' : 
+                   item.media_type === 'tv' ? 'TV Show' : 'Person';
+  
+  logger.debug(`Checking connectability for ${mediaType.toLowerCase()} "${title}"`);
+  
   try {
     if (!startingActors?.length) {
-      console.error("No starting actors provided to checkInitialConnectability");
+      logger.error("No starting actors provided to checkInitialConnectability");
       return false;
     }
 
-    console.log(`Checking connectability for ${item.media_type} "${getItemTitle(item)}" with starting actors`);
-    
     if (item.media_type === 'movie') {
       return await checkMovieConnectability(item, startingActors, getMovieDetailsFn);
     } 
@@ -420,10 +425,10 @@ export const checkInitialConnectability = async (item, startingActors, getPerson
       return await checkPersonConnectability(item, startingActors, getPersonDetailsFn);
     }
     
-    console.log(`❌ Item type ${item.media_type} not recognized`);
+    logger.debug(`❌ Item type ${item.media_type} not recognized`);
     return false;
   } catch (error) {
-    console.error("Error checking initial connectability:", error);
+    logger.error("Error checking initial connectability:", error);
     return false;
   }
 };
@@ -508,7 +513,7 @@ export const checkItemConnectabilityUtil = async (
     
     return false;
   } catch (error) {
-    console.error("Error checking item connectability:", error);
+    logger.error("Error checking item connectability:", error);
     return false;
   }
 };
@@ -548,7 +553,7 @@ export const fetchAllPossibleConnections = async (node, services) => {
 
     return filterEntitiesWithImages(connections);
   } catch (error) {
-    console.error(`Error fetching connections for ${node.type} ${node.data.id}:`, error);
+    logger.error(`Error fetching connections for ${node.type} ${node.data.id}:`, error);
     return [];
   }
 };
@@ -586,7 +591,7 @@ export const checkActorTvShowConnection = async (actorId, tvShowId, nodes, check
     const result = await checkActorInTvShow(actorId, tvShowId);
     return result.appears;
   } catch (error) {
-    console.error(`Error checking actor-TV connection: ${error}`);
+    logger.error(`Error checking actor-TV connection: ${error}`);
     return false;
   }
 };

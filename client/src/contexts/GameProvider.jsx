@@ -26,6 +26,7 @@ import {
 import { processSearchResults as processResults } from '../utils/searchUtils';
 import { filterExistingBoardEntities, fetchRandomUniqueActor } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson, searchMulti } from '../services/tmdbService';
+import { logger } from '../utils/logger';
 
 /**
  * Main Game Provider component that wraps the application
@@ -98,68 +99,14 @@ export const GameProvider = ({ children }) => {
   };
 
   /**
-   * Handles selection of a node on the game board
-   * Fetches all possible connections for the selected node
-   * 
-   * @param {Object} node - The selected node object
-   */
-  const selectNode = async (node) => {
-    setSelectedNode(node);
-    setIsLoadingConnections(true);
-
-    try {
-      // Fetch all possible connections for this node
-      const connections = await fetchAllPossibleConnections(node);
-      setPossibleConnections(connections);
-    } catch (error) {
-      console.error("Error fetching possible connections:", error);
-      setPossibleConnections([]);
-    } finally {
-      setIsLoadingConnections(false);
-    }
-  };
-
-  /**
-   * Fetches all entities that can connect to a given node
-   * Based on node type (person/movie/TV), gets relevant connections
-   * 
-   * @param {Object} node - Node to find connections for
-   * @returns {Array} - List of entities that can connect to the node
-   */
-  const fetchAllPossibleConnections = async (node) => {
-    return fetchEntityConnections(node, { getPersonDetails, getMovieDetails, getTvShowDetails });
-  };
-
-  /**
-   * Closes the connections panel by clearing selected node state
-   */
-  const closeConnectionsPanel = () => {
-    setSelectedNode(null);
-    setPossibleConnections([]);
-  };
-
-  /**
-   * Toggles visibility of all searchable entities in the sidebar
-   * When enabled, fetches and displays all entities that can connect to the board
-   */
-  const toggleShowAllSearchable = () => {
-    const newShowAllSearchable = !showAllSearchable;
-    setShowAllSearchable(newShowAllSearchable);
-
-    // If turning on, fetch all connectable entities
-    if (newShowAllSearchable) {
-      fetchAndSetAllSearchableEntities();
-    } else {
-      // If turning off, clear the cheat sheet results
-      setCheatSheetResults([]);
-    }
-  };
-
-  /**
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
    */
   const fetchAndSetAllSearchableEntities = async () => {
+    const startTime = Date.now();
+    logger.time('cheat-sheet-fetch');
+    logger.info('🎯 Fetching all searchable entities');
+    
     setIsLoading(true);
     try {
       if (nodes.length === 0 || !gameStarted) {
@@ -230,6 +177,10 @@ export const GameProvider = ({ children }) => {
           )
         );
 
+        const duration = Date.now() - startTime;
+        logger.info(`🎯 Cheat sheet (initial): ${finalEntities.length} entities in ${duration}ms`);
+        logger.timeEnd('cheat-sheet-fetch');
+
         // Set cheat sheet results instead of search results
         setCheatSheetResults(finalEntities);
 
@@ -256,6 +207,10 @@ export const GameProvider = ({ children }) => {
           index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
         );
 
+        const duration = Date.now() - startTime;
+        logger.info(`🎯 Cheat sheet (board): ${uniqueEntities.length} entities in ${duration}ms`);
+        logger.timeEnd('cheat-sheet-fetch');
+
         // Set cheat sheet results instead of search results  
         setCheatSheetResults(uniqueEntities);
 
@@ -268,7 +223,7 @@ export const GameProvider = ({ children }) => {
         setConnectableItems(newConnectableItems);
       }
     } catch (error) {
-      console.error("Error fetching connectable entities:", error);
+      logger.error("Error fetching connectable entities:", error);
     } finally {
       setIsLoading(false);
     }
@@ -281,6 +236,7 @@ export const GameProvider = ({ children }) => {
    * @param {number} actorIndex - Index (0 or 1) of the actor position to fill
    */
   const randomizeActors = async (actorIndex) => {
+    logger.debug(`🎲 Randomizing actor for position ${actorIndex}`);
     setIsLoading(true);
     setStartActorsError(null);
     
@@ -291,12 +247,14 @@ export const GameProvider = ({ children }) => {
         const newStartActors = [...startActors];
         newStartActors[actorIndex] = randomActor;
         setStartActors(newStartActors);
+        logger.info(`✅ Random actor selected: ${randomActor.name}`);
       } else {
         const errorMsg = "Failed to find a unique actor after multiple attempts";
         setStartActorsError(errorMsg);
+        logger.warn("⚠️ " + errorMsg);
       }
     } catch (error) {
-      console.error("Error fetching random actor:", error);
+      logger.error("Error fetching random actor:", error);
       setStartActorsError(`Failed to load actor: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -308,12 +266,14 @@ export const GameProvider = ({ children }) => {
    * Initializes the board with starting nodes
    */
   const startGame = async () => {
+    logger.info('🚀 Starting game with actors:', startActors.map(a => a.name).join(' & '));
     setIsLoading(true);
     try {
       await gameState.startGame(setNodes, setNodePositions);
       setGameStarted(true);
+      logger.info('✅ Game started successfully');
     } catch (error) {
-      console.error("Error starting game:", error);
+      logger.error("Error starting game:", error);
       setStartActorsError("Error starting game. Please try again: " + error.message);
     } finally {
       setIsLoading(false);
@@ -325,6 +285,7 @@ export const GameProvider = ({ children }) => {
    * Clears board, connections, and search results
    */
   const resetGame = () => {
+    logger.info('🔄 Resetting game');
     gameState.resetGame(
       setNodes,
       setNodePositions,
@@ -335,116 +296,57 @@ export const GameProvider = ({ children }) => {
   };
 
   /**
-   * Main search function for finding movies, TV shows, or actors
-   * Uses fuzzy search capabilities but without showing "Did you mean" prompts
+   * Handles selection of a node on the game board
+   * Fetches all possible connections for the selected node
    * 
-   * @param {string} term - Search term entered by the user
+   * @param {Object} node - The selected node object
    */
-  const handleSearch = async (term) => {
-    if (!term) return;
-    
-    console.log(`🔍 Starting enhanced search for: "${term}"`);
-    setOriginalSearchTerm(term);
-    setExactMatch(null);
-    setNoMatchFound(false);
-    setIsLoading(true);
-
-    // Check for similarity matches in local database first
-    const similarityMatch = searchState.checkForMisspelling(term);
-    let apiSearchTerm = term;
-    
-    if (similarityMatch && typeof similarityMatch === 'object') {
-      apiSearchTerm = getItemTitle(similarityMatch);
-    }
+  const selectNode = async (node) => {
+    logger.debug(`🎯 Selecting node: ${node.data?.name || node.data?.title || 'Unknown'}`);
+    setSelectedNode(node);
+    setIsLoadingConnections(true);
 
     try {
-      // Use multi-page search (3 pages) instead of single page
-      const allResults = await searchMulti(apiSearchTerm, 3);
-      
-      console.log(`📊 Total search results found: ${allResults.length}`);
-      
-      await processSearchResults(allResults, term, apiSearchTerm);
-
+      // Fetch all possible connections for this node
+      const connections = await fetchAllPossibleConnections(node);
+      setPossibleConnections(connections);
+      logger.debug(`📊 Found ${connections.length} possible connections`);
     } catch (error) {
-      console.error('❌ Search error:', error);
-      setNoMatchFound(true);
+      logger.error("Error fetching possible connections:", error);
+      setPossibleConnections([]);
     } finally {
-      setIsLoading(false);
+      setIsLoadingConnections(false);
     }
-  };  
+  };
 
-    /**
-   * Processes and filters search results from the API
-   * Handles exact matches and connectability checks, but without spelling suggestions UI
+  /**
+   * Wrapper function for searchStartActors that provides all required parameters
+   * This ensures the function is called with the correct state setters
    * 
-   * @param {Array} allResults - Raw search results from API
-   * @param {string} originalTerm - Original search term from user
-   * @param {string} apiSearchTerm - Term used for API search (may differ after fuzzy search)
+   * @param {string} query - Search query for actors
+   * @param {number} actorIndex - Index of the actor position (0 or 1)
+   * @param {number} page - Page number for pagination
    */
-  const processSearchResults = async (allResults, originalTerm, apiSearchTerm) => {
-    // Determine which connectability function to use based on game state
-    let checkConnectability;
-    
-    if (nodes.length === 0 || !gameStarted) {
-      // If no nodes on board or game not started, nothing is connectable
-      checkConnectability = () => Promise.resolve(false);
-    } else if (nodes.length <= 2 && startActors.length === 2) {
-      // If only starting actors on board, check initial connectability
-      checkConnectability = (item) => checkInitialConnectability(item, startActors);
-    } else {
-      // If there are other nodes on board, check general connectability
-      checkConnectability = checkItemConnectability;
-    }
-    
-    const gameContext = {
-      checkConnectability,
-      setConnectableItems
-    };
-    
-    return await processResults(allResults, originalTerm, apiSearchTerm, searchState, {
-      setNoMatchFound,
-      setExactMatch,
-      setSearchResults
-    }, gameContext);
+  const searchStartActorsWrapper = (query, actorIndex, page) => {
+    searchStartActorsFn(
+      query,
+      actorIndex,
+      page,
+      setActorSearchResults,
+      setActorSearchPages,
+      setActorSearchTotalPages,
+      setIsLoading
+    );
   };
 
-  /**
-   * Checks if an actor has appeared in a TV show (including guest appearances)
-   * Handles different data sources based on whether actor is on board
-   * 
-   * @param {number} actorId - TMDB ID of the actor
-   * @param {number} tvShowId - TMDB ID of the TV show
-   * @returns {Promise<boolean>} - Whether actor has appeared in the show
-   */
-  const checkActorTvShowConnection = async (actorId, tvShowId) => {
-    return checkActorTvConnection(actorId, tvShowId, nodes, checkActorInTvShow);
-  };
-  /**
-   * Adds a person to the board and fetches their detailed information
-   * @param {Object} person - Person object to add
-   */  const addPersonToBoard = async (person) => {
-    return addToBoardFn(person, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
-  };
-
-  /**
-   * Adds a movie to the board and fetches its detailed information
-   * @param {Object} movie - Movie object to add
-   */
-  const addMovieToBoard = async (movie) => {
-    return addToBoardFn(movie, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
-  };
-
-  /**
-   * Adds a TV show to the board and fetches its detailed information
-   * @param {Object} tvShow - TV show object to add
-   */
-  const addTvShowToBoard = async (tvShow) => {
-    return addToBoardFn(tvShow, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
-  };
   /**
    * Generic function to add any entity to the board
    * @param {Object} entity - Entity to add (person, movie, or TV show)
-   */  const addToBoard = async (entity) => {
+   */
+  const addToBoard = async (entity) => {
+    const entityName = entity.name || entity.title || 'Unknown';
+    logger.info(`➕ Adding to board: ${entityName} (${entity.media_type})`);
+    
     const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
     
     // Remove from regular search results
@@ -469,27 +371,36 @@ export const GameProvider = ({ children }) => {
       return updated;
     });
     
+    logger.debug(`✅ Successfully added ${entityName} to board`);
     return result;
   };
 
   /**
-   * Wrapper function for searchStartActors that provides all required parameters
-   * This ensures the function is called with the correct state setters
-   * 
-   * @param {string} query - Search query for actors
-   * @param {number} actorIndex - Index of the actor position (0 or 1)
-   * @param {number} page - Page number for pagination
+   * Toggles visibility of all searchable entities in the sidebar
+   * When enabled, fetches and displays all entities that can connect to the board
    */
-  const searchStartActorsWrapper = (query, actorIndex, page) => {
-    searchStartActorsFn(
-      query,
-      actorIndex,
-      page,
-      setActorSearchResults,
-      setActorSearchPages,
-      setActorSearchTotalPages,
-      setIsLoading
-    );
+  const toggleShowAllSearchable = () => {
+    const newShowAllSearchable = !showAllSearchable;
+    setShowAllSearchable(newShowAllSearchable);
+    
+    logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
+
+    // If turning on, fetch all connectable entities
+    if (newShowAllSearchable) {
+      fetchAndSetAllSearchableEntities();
+    } else {
+      // If turning off, clear the cheat sheet results
+      setCheatSheetResults([]);
+    }
+  };
+
+  /**
+   * Closes the connections panel by clearing selected node state
+   */
+  const closeConnectionsPanel = () => {
+    logger.debug('❌ Closing connections panel');
+    setSelectedNode(null);
+    setPossibleConnections([]);
   };
 
   const contextValue = {

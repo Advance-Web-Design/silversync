@@ -18,6 +18,7 @@ import {
   filterValidEntities,
   processBatchedPromises
 } from '../utils/tmdbUtils';
+import { logger } from '../utils/logger';
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -593,6 +594,8 @@ export const searchMulti = async (query, maxPages = 1) => {
   
   return withCache(cacheKey, async () => {
     const allResults = [];
+    const startTime = Date.now();
+    logger.time(`api-search-${query.slice(0, 10)}`);
     
     for (let page = 1; page <= maxPages; page++) {
       try {
@@ -603,24 +606,27 @@ export const searchMulti = async (query, maxPages = 1) => {
         });
         
         if (!results.results || results.results.length === 0) {
-          console.log(`📄 Page ${page}: No more results`);
+          logger.debug(`📄 Page ${page}: No more results`);
           break;
         }
         
-        console.log(`📄 Page ${page}: Found ${results.results.length} results`);
+        logger.debug(`📄 Page ${page}: Found ${results.results.length} results`);
         allResults.push(...results.results);
         
         if (page >= results.total_pages) {
-          console.log(`📄 Reached last page: ${results.total_pages}`);
+          logger.debug(`📄 Reached last page: ${results.total_pages}`);
           break;
         }
       } catch (error) {
-        console.error(`Error fetching page ${page}:`, error);
+        logger.error(`Error fetching page ${page}:`, error);
         break;
       }
     }
     
-    console.log(`📊 Total results from ${maxPages} page(s): ${allResults.length}`);
+    const duration = Date.now() - startTime;
+    logger.info(`📡 API Search "${query}": ${allResults.length} results from ${maxPages} page(s) in ${duration}ms`);
+    logger.timeEnd(`api-search-${query.slice(0, 10)}`);
+    
     return processSearchResults(allResults || []);
   });
 };
