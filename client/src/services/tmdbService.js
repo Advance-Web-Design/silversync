@@ -18,7 +18,7 @@ import {
   filterValidEntities,
   processBatchedPromises
 } from '../utils/tmdbUtils';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/loggerUtils';
 
 // ==================== HELPER FUNCTIONS ====================
 

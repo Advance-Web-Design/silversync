@@ -26,7 +26,7 @@ import {
 import { processSearchResults as processResults } from '../utils/searchUtils';
 import { filterExistingBoardEntities, fetchRandomUniqueActor } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson, searchMulti } from '../services/tmdbService';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/loggerUtils';
 
 /**
  * Main Game Provider component that wraps the application
