@@ -376,6 +376,115 @@ export const GameProvider = ({ children }) => {
   };
 
   /**
+   * Adds a person (actor) to the board
+   * @param {Object} person - Person entity to add
+   */
+  const addPersonToBoard = async (person) => {
+    return await addToBoard({ ...person, media_type: 'person' });
+  };
+
+  /**
+   * Adds a movie to the board
+   * @param {Object} movie - Movie entity to add
+   */
+  const addMovieToBoard = async (movie) => {
+    return await addToBoard({ ...movie, media_type: 'movie' });
+  };
+
+  /**
+   * Adds a TV show to the board
+   * @param {Object} tvShow - TV show entity to add
+   */
+  const addTvShowToBoard = async (tvShow) => {
+    return await addToBoard({ ...tvShow, media_type: 'tv' });
+  };
+
+  /**
+   * Main search function for finding movies, TV shows, or actors
+   * @param {string} term - Search term entered by the user
+   */
+  const handleSearch = async (term) => {
+    if (!term) return;
+    
+    const startTime = Date.now();
+    logger.time('search-operation');
+    logger.info(`🔍 Starting enhanced search for: "${term}"`);
+    
+    setOriginalSearchTerm(term);
+    setExactMatch(null);
+    setNoMatchFound(false);
+    setIsLoading(true);
+
+    // Check for similarity matches in local database first
+    const similarityMatch = searchState.checkForMisspelling(term);
+    let apiSearchTerm = term;
+    
+    if (similarityMatch && typeof similarityMatch === 'object') {
+      apiSearchTerm = getItemTitle(similarityMatch);
+      logger.debug(`🔄 Fuzzy match: "${term}" → "${apiSearchTerm}"`);
+    }
+
+    try {
+      // Use multi-page search (3 pages) instead of single page
+      const allResults = await searchMulti(apiSearchTerm, 3);
+      
+      const duration = Date.now() - startTime;
+      logger.info(`📊 Search completed: ${allResults.length} results in ${duration}ms`);
+      logger.timeEnd('search-operation');
+      
+      await processResults(allResults, term, apiSearchTerm, searchState, {
+        setSearchResults,
+        setNoMatchFound,
+        setDidYouMean,
+        setExactMatch
+      }, {
+        checkConnectability: (item) => checkInitialConnectability(item, startActors), // ✅ Pass startActors
+        setConnectableItems
+      });
+
+    } catch (error) {
+      logger.error('❌ Search error:', error);
+      setNoMatchFound(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Checks if an actor appears in a TV show
+   * @param {number} actorId - ID of the actor
+   * @param {number} tvShowId - ID of the TV show
+   */
+  const checkActorTvShowConnection = async (actorId, tvShowId) => {
+    return await checkActorTvConnection(actorId, tvShowId, {
+      getPersonDetails,
+      getTvShowDetails,
+      checkActorInTvShow
+    });
+  };
+
+  /**
+   * Fetches all possible connections for a given node
+   * @param {Object} node - The node to find connections for
+   */
+  const fetchAllPossibleConnections = async (node) => {
+    return await fetchEntityConnections(
+      node,
+      { getPersonDetails, getMovieDetails, getTvShowDetails },
+      nodes
+    );
+  };
+
+  /**
+   * Closes the connections panel by clearing selected node state
+   */
+  const closeConnectionsPanel = () => {
+    logger.debug('❌ Closing connections panel');
+    setSelectedNode(null);
+    setPossibleConnections([]);
+  };
+
+  /**
    * Toggles visibility of all searchable entities in the sidebar
    * When enabled, fetches and displays all entities that can connect to the board
    */
@@ -392,15 +501,6 @@ export const GameProvider = ({ children }) => {
       // If turning off, clear the cheat sheet results
       setCheatSheetResults([]);
     }
-  };
-
-  /**
-   * Closes the connections panel by clearing selected node state
-   */
-  const closeConnectionsPanel = () => {
-    logger.debug('❌ Closing connections panel');
-    setSelectedNode(null);
-    setPossibleConnections([]);
   };
 
   const contextValue = {
