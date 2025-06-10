@@ -46,3 +46,5 @@ export const DEFAULT_BOARD_DIMENSIONS = {
   WIDTH: 800,
   HEIGHT: 600
 };
+
+export const PLATFORMS = ['movie', 'tv'];
