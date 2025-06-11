@@ -58,15 +58,13 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
       console.log(`  Final URL: ${finalUrl}`);
     }
     
-    // Set up headers for backend request
+    // Use optimized headers from config + any additional headers
     const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      ...config.backend.defaultHeaders,
       ...options.headers
     };
     
-    
-    // Make the request to our backend proxy
+    // Make the request to our backend proxy with optimized headers
     const response = await fetch(finalUrl, {
       method: options.method || 'GET',
       headers,

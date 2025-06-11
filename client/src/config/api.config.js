@@ -39,6 +39,17 @@ const config = {
   backend: {
     // Backend server URL
     baseUrl: getBackendUrl(),
+    
+    // Optimized headers for better performance
+    defaultHeaders: {
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip, deflate, br',   // Enable compression for faster responses
+      'Connection': 'keep-alive',               // Keep connection alive for multiple requests
+      'Keep-Alive': 'timeout=30, max=50',       // Keep-alive settings, timeout of 30 seconds, max 50 requests
+      'Cache-Control': 'no-cache',              // Disable caching for API responses
+      'DNT': '1',                               // DNT = Do Not Track
+    },
+    
     // Endpoints that map to our backend API routes
     endpoints: {
       person: '/api/tmdb/actor',      // Maps to existing server/app/api/tmdb/actor/[...path]/route.js
@@ -69,7 +80,27 @@ const config = {
     small: 'w92',
     medium: 'w185',
     large: 'w500'
+  },
+
+  // Performance optimization settings
+  performance: {
+    enableOptimizations: true,
+    requestDeduplication: true,
+    resultProcessingOptimized: true
   }
 };
+
+// Enhanced fetch function with optimized headers
+export const optimizedFetch = async (url, options = {}) => {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...config.backend.defaultHeaders,
+      ...options.headers
+    }
+  });
+};
+
+
 
 export default config;

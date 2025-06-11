@@ -5,13 +5,14 @@
  * This module provides a layer of abstraction for API calls,
  * making it easier to switch between direct API calls and a backend service.
  */
+import config from '../config/api.config';
 
 // Request caching mechanism
 const requestCache = new Map();
 const CACHE_TTL = 60000; // Cache entries for 1 minute
 
 /**
- * Makes an API call with request caching
+ * Makes an API call with request caching and optimized headers
  * 
  * @param {string} endpoint - The API endpoint to call
  * @param {Object} params - Query parameters to include in the request
@@ -44,9 +45,15 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
   }
 
   try {
+    // Merge optimized headers from config with any provided headers
+    const optimizedHeaders = {
+      ...config.backend.defaultHeaders,
+      ...headers
+    };
+    
     const response = await fetch(url.toString(), { 
       method: method,
-      headers: headers,
+      headers: optimizedHeaders,
       body: method !== 'GET' && body ? JSON.stringify(body) : null,
     });
     
