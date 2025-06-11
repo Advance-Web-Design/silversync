@@ -5,6 +5,11 @@
  * This file contains helper functions for caching, image handling, and data processing.
  */
 import config from '../config/api.config';
+import { 
+  adaptiveResultProcessor, 
+  processMultiPageResults, 
+  optimizeSearchResults 
+} from './apiUtils';
 
 // Constants
 export const CACHE_TTL = config.cache.ttl;
@@ -234,5 +239,11 @@ export default {
   processTvResults,
   processPersonResults,
   filterValidEntities,
-  processBatchedPromises
+  processBatchedPromises,
+  adaptiveResultProcessor,
+  processMultiPageResults,
+  optimizeSearchResults
 };
+
+// export the optimized functions for external use
+export { adaptiveResultProcessor, processMultiPageResults, optimizeSearchResults };

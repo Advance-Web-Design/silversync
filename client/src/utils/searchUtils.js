@@ -2,7 +2,7 @@
 import { stringSimilarity } from './stringUtils';
 import { getItemTitle } from './entityUtils';
 import { SIMILARITY_THRESHOLDS } from './constants';
-import { filterValidEntities } from './tmdbUtils';
+import { filterValidEntities, adaptiveResultProcessor } from './tmdbUtils';
 import { sessionStorageManager } from './apiUtils';
 
 /**
@@ -291,7 +291,11 @@ export const filterSearchResults = (results) => {
 export const processSearchResults = async (allResults, originalTerm, apiSearchTerm, searchState, setters, gameContext = null) => {
   const { setNoMatchFound, setExactMatch, setSearchResults } = setters;
 
-  const filteredResults = filterValidEntities(allResults);
+  const filteredResults = adaptiveResultProcessor(allResults, {
+    maxResults: 150,
+    requireImages: true,
+    removeDuplicates: true
+  });
 
   if (filteredResults.length === 0) {
     setNoMatchFound(true);

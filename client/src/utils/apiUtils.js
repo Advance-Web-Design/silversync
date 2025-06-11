@@ -228,6 +228,199 @@ export const imageUtils = {
   }
 };
 
+/**
+ * OPTIMIZED RESULT PROCESSING
+ * Fast, single-pass result filtering and validation
+ */
+
+/**
+ * Optimized processing for search results with single-pass filtering
+ * 
+ * @param {Array} results - Raw search results from API
+ * @param {Object} options - Processing options
+ * @returns {Array} Filtered and validated results
+ */
+export const optimizeSearchResults = (results, options = {}) => {
+  const {
+    maxResults = 100,
+    requireImages = true,
+    removeDuplicates = true
+  } = options;
+
+  // Early exit for empty results
+  if (!Array.isArray(results) || results.length === 0) {
+    return [];
+  }
+
+  // Pre-allocate array for better performance
+  const validResults = [];
+  const seenIds = removeDuplicates ? new Set() : null;
+  
+  // Single pass filtering with early exits
+  for (let i = 0; i < results.length && validResults.length < maxResults; i++) {
+    const item = results[i];
+    
+    // Quick validation checks with early continue
+    if (!item?.id) continue;
+    
+    // Duplicate check
+    if (removeDuplicates) {
+      if (seenIds.has(item.id)) continue;
+      seenIds.add(item.id);
+    }
+    
+    // Image validation (if required)
+    if (requireImages) {
+      const hasImage = item.media_type === 'person' ? 
+        !!item.profile_path : 
+        !!item.poster_path;
+      
+      if (!hasImage) continue;
+    }
+    
+    // Add to valid results
+    validResults.push(item);
+  }
+  
+  return validResults;
+};
+
+/**
+ * Fast processing for small result sets (< 20 items)
+ * Skips complex validation for better performance
+ * 
+ * @param {Array} results - Raw search results
+ * @returns {Array} Minimally processed results
+ */
+export const fastProcessSmallResults = (results) => {
+  // For very small sets, minimal processing
+  if (!Array.isArray(results) || results.length === 0) {
+    return [];
+  }
+  
+  if (results.length <= 10) {
+    // Ultra-fast filter for tiny result sets
+    return results.filter(item => 
+      item?.id && 
+      (item.poster_path || item.profile_path)
+    );
+  }
+  
+  // Standard optimized processing for small-medium sets
+  return optimizeSearchResults(results, { 
+    maxResults: 50,
+    requireImages: true,
+    removeDuplicates: true 
+  });
+};
+
+/**
+ * Processes multiple pages of results efficiently
+ * Combines and deduplicates results from multiple API pages
+ * 
+ * @param {Array} pageResults - Array of page result arrays
+ * @param {Object} options - Processing options
+ * @returns {Array} Combined and processed results
+ */
+export const processMultiPageResults = (pageResults, options = {}) => {
+  const {
+    maxResults = 200,
+    requireImages = true
+  } = options;
+
+  // Flatten all page results into single array
+  const allResults = [];
+  const seenIds = new Set();
+  
+  for (const pageData of pageResults) {
+    const pageItems = Array.isArray(pageData) ? pageData : (pageData?.results || []);
+    
+    for (const item of pageItems) {
+      // Quick validation and deduplication
+      if (!item?.id || seenIds.has(item.id)) continue;
+      
+      // Image check
+      if (requireImages) {
+        const hasImage = item.media_type === 'person' ? 
+          !!item.profile_path : 
+          !!item.poster_path;
+        
+        if (!hasImage) continue;
+      }
+      
+      seenIds.add(item.id);
+      allResults.push(item);
+      
+      // Stop if we've hit max results
+      if (allResults.length >= maxResults) break;
+    }
+    
+    // Break outer loop if max reached
+    if (allResults.length >= maxResults) break;
+  }
+  
+  return allResults;
+};
+
+/**
+ * Adaptive result processor that chooses the best processing method
+ * based on result set size and characteristics
+ * 
+ * @param {Array|Object} rawResults - Raw API results (array or object with results property)
+ * @param {Object} options - Processing options
+ * @returns {Array} Optimally processed results
+ */
+export const adaptiveResultProcessor = (rawResults, options = {}) => {
+  // Handle different input formats
+  let results;
+  if (Array.isArray(rawResults)) {
+    results = rawResults;
+  } else if (rawResults?.results) {
+    results = rawResults.results;
+  } else {
+    return [];
+  }
+  
+  // Choose processing method based on size
+  if (results.length <= 20) {
+    return fastProcessSmallResults(results);
+  } else if (results.length <= 100) {
+    return optimizeSearchResults(results, options);
+  } else {
+    // For very large sets, limit processing scope
+    return optimizeSearchResults(results, { 
+      ...options, 
+      maxResults: options.maxResults || 150 
+    });
+  }
+};
+
+/**
+ * Validates and enriches a single result item
+ * Used for individual item processing
+ * 
+ * @param {Object} item - Single result item
+ * @returns {Object|null} Validated item or null if invalid
+ */
+export const validateResultItem = (item) => {
+  if (!item?.id) return null;
+  
+  // Ensure required fields exist
+  const validatedItem = {
+    id: item.id,
+    media_type: item.media_type || 'unknown',
+    title: item.title || item.name || 'Unknown Title',
+    poster_path: item.poster_path || null,
+    profile_path: item.profile_path || null,
+    overview: item.overview || '',
+    release_date: item.release_date || item.first_air_date || null,
+    vote_average: item.vote_average || 0,
+    ...item // Include all original properties
+  };
+  
+  return validatedItem;
+};
+
 export default {
   makeApiCall,
   clearApiCache,
@@ -236,5 +429,11 @@ export default {
   isRequestPending,
   getPendingRequestCount,
   sessionStorageManager,
-  imageUtils
+  imageUtils,
+  // New optimized processing functions
+  optimizeSearchResults,
+  fastProcessSmallResults,
+  processMultiPageResults,
+  adaptiveResultProcessor,
+  validateResultItem
 };

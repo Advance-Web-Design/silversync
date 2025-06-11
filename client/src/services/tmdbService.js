@@ -16,7 +16,9 @@ import {
   processTvResults,
   processPersonResults,
   filterValidEntities,
-  processBatchedPromises
+  processBatchedPromises,
+  adaptiveResultProcessor,
+  processMultiPageResults
 } from '../utils/tmdbUtils';
 import { logger } from '../utils/loggerUtils';
 
@@ -587,6 +589,7 @@ export const checkActorInTvShow = async (actorId, tvShowId) => {
  * Search for movies, TV shows, and people
  * 
  * @param {string} query - The search query
+ * @param {number} maxPages - Maximum number of pages to fetch
  * @returns {Promise<Array>} - List of search results across movies, TV shows, and people
  */
 export const searchMulti = async (query, maxPages = 1) => {
@@ -614,7 +617,7 @@ export const searchMulti = async (query, maxPages = 1) => {
         allResults.push(...results.results);
         
         if (page >= results.total_pages) {
-          logger.debug(`📄 Reached last page: ${results.total_pages}`);
+          logger.debug(`📄 Reached last page (${results.total_pages})`);
           break;
         }
       } catch (error) {
@@ -623,11 +626,17 @@ export const searchMulti = async (query, maxPages = 1) => {
       }
     }
     
-    const duration = Date.now() - startTime;
-    logger.info(`📡 API Search "${query}": ${allResults.length} results from ${maxPages} page(s) in ${duration}ms`);
     logger.timeEnd(`api-search-${query.slice(0, 10)}`);
     
-    return processSearchResults(allResults || []);
+    const optimizedResults = adaptiveResultProcessor(allResults, {
+      maxResults: 200,
+      requireImages: true,
+      removeDuplicates: true
+    });
+    
+    logger.debug(`🔍 Search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
+    
+    return optimizedResults;
   });
 };
 
@@ -665,16 +674,15 @@ export const searchPeople = async (query, page = 1) => {
 };
 
 /**
- * Fetch popular entities (movies, TV shows, actors) for spell checking database
- * 
- * @param {number} moviePages - The number of pages of popular movies to fetch
- * @param {number} tvPages - The number of pages of popular TV shows to fetch
- * @param {number} personPages - The number of pages of popular people to fetch
- * @returns {Promise<Array>} - List of popular entities
+ * Fetch popular entities across multiple pages for each media type
  */
 export const fetchPopularEntities = async () => {
-  try {
-    // Define how many pages to fetch for each media type
+  const cacheKey = 'popular-entities-all';
+  
+  return withCache(cacheKey, async () => {
+    logger.time('fetch-popular-entities');
+    
+    // Configuration for parallel requests
     const moviePages = 10;
     const tvPages = 10; 
     const personPages = 10;
@@ -701,22 +709,30 @@ export const fetchPopularEntities = async () => {
       Promise.all(personPromises)
     ]);
     
-    // Process results using utility functions from tmdbUtils
-    const movieEntities = processMovieResults(movieResults);
-    const tvEntities = processTvResults(tvResults);
-    const personEntities = processPersonResults(personResults);
+
+    const processedMovies = processMultiPageResults(movieResults, {
+      maxResults: 100,
+      requireImages: true
+    });
     
-    // Combine all entities
-    const allEntities = [...movieEntities, ...tvEntities, ...personEntities];
+    const processedTvShows = processMultiPageResults(tvResults, {
+      maxResults: 100,
+      requireImages: true
+    });
     
-    // Filter entities and ensure they have required fields
-    const filteredEntities = filterValidEntities(allEntities);
+    const processedPeople = processMultiPageResults(personResults, {
+      maxResults: 100,
+      requireImages: true
+    });
     
-    return filteredEntities;
-  } catch (error) {
-    console.error('Error fetching popular entities:', error);
-    return [];
-  }
+    logger.timeEnd('fetch-popular-entities');
+    
+    return {
+      movies: processedMovies,
+      tvShows: processedTvShows,
+      people: processedPeople
+    };
+  });
 };
 
 // Export the getImageUrl directly from tmdbUtils

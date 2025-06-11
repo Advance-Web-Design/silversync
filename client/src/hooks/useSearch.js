@@ -16,6 +16,7 @@ import {
   updateConnectableEntitiesForNode as updateNodeConnections,
   extractActorTvShows
 } from '../utils/connectableEntityUtils';
+import { adaptiveResultProcessor } from '../utils/apiUtils';
 
 /**
  * Custom hook for search functionality
@@ -41,7 +42,12 @@ export const useSearch = () => {
         // Instead, we add them to the connectable entities list
         const entities = await fetchPopularEntities();
         if (entities && entities.length > 0) {
-          setConnectableEntities(prev => [...prev, ...entities]);
+          const optimizedEntities = adaptiveResultProcessor(entities, {
+            maxResults: 200,
+            requireImages: true,
+            removeDuplicates: true
+          });
+          setConnectableEntities(prev => [...prev, ...optimizedEntities]);
         }
       } catch (error) {
         console.error('Error loading popular entities:', error);
