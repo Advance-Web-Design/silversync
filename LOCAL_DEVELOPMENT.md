@@ -66,6 +66,18 @@ cd "c:\Users\test\OneDrive - Braude College of Engineering\Software Engineering 
 3. Try searching for actors/movies to verify API communication
 4. Check browser console for any CORS or API errors
 
+### Testing the setup in production environment locally (for real world performance testing)
+
+1. start the server normally
+2. run the following comamnds:
+    ```bash
+    cd client
+    npm install
+    npm run build
+    npm run preview
+    ```
+3. open the link in the terminal
+
 ### Troubleshooting
 
 **If you see "server page" when opening the client:**
@@ -84,5 +96,6 @@ cd "c:\Users\test\OneDrive - Braude College of Engineering\Software Engineering 
 
 - **Development**: Client (5173) → Server (3000) → TMDB API
 - **Production**: Client (Vercel) → Server (Vercel) → TMDB API
+
 
 The environment variables automatically handle this switching.
