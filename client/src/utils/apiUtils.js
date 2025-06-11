@@ -11,8 +11,11 @@ import config from '../config/api.config';
 const requestCache = new Map();
 const CACHE_TTL = 60000; // Cache entries for 1 minute
 
+// Request deduplication - prevent duplicate requests
+const pendingRequests = new Map();
+
 /**
- * Makes an API call with request caching and optimized headers
+ * Makes an API call with request caching, deduplication, and optimized headers
  * 
  * @param {string} endpoint - The API endpoint to call
  * @param {Object} params - Query parameters to include in the request
@@ -44,43 +47,63 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
     }
   }
 
-  try {
-    // Merge optimized headers from config with any provided headers
-    const optimizedHeaders = {
-      ...config.backend.defaultHeaders,
-      ...headers
-    };
-    
-    const response = await fetch(url.toString(), { 
-      method: method,
-      headers: optimizedHeaders,
-      body: method !== 'GET' && body ? JSON.stringify(body) : null,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API call failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // Cache the response
-    requestCache.set(cacheKey, {
-      timestamp: now,
-      data: data
-    });
-    
-    return data;
-  } catch (error) {
-    console.error(`API call to ${endpoint} failed:`, error);
-    throw error;
+  // REQUEST DEDUPLICATION: Check if same request is already in flight
+  if (pendingRequests.has(cacheKey)) {
+    // Return the existing promise instead of making a new request
+    return pendingRequests.get(cacheKey);
   }
+
+  // Create the request promise
+  const requestPromise = (async () => {
+    try {
+      // Merge optimized headers from config with any provided headers
+      const optimizedHeaders = {
+        ...config.backend.defaultHeaders,
+        ...headers
+      };
+      
+      const response = await fetch(url.toString(), { 
+        method: method,
+        headers: optimizedHeaders,
+        body: method !== 'GET' && body ? JSON.stringify(body) : null,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Cache the response
+      requestCache.set(cacheKey, {
+        timestamp: now,
+        data: data
+      });
+      
+      return data;
+    } catch (error) {
+      console.error(`API call to ${endpoint} failed:`, error);
+      throw error;
+    } finally {
+      // Clean up pending request after completion (success or failure)
+      setTimeout(() => {
+        pendingRequests.delete(cacheKey);
+      }, 100);
+    }
+  })();
+
+  // Store the promise in pending requests
+  pendingRequests.set(cacheKey, requestPromise);
+
+  return requestPromise;
 };
 
 /**
- * Clears the API request cache
+ * Clears the API request cache and pending requests
  */
 export const clearApiCache = () => {
   requestCache.clear();
+  pendingRequests.clear();
 };
 
 /**
@@ -110,6 +133,25 @@ export const setCachedApiResponse = (cacheKey, data) => {
     timestamp: Date.now(),
     data
   });
+};
+
+/**
+ * Checks if a request is currently pending
+ * 
+ * @param {string} cacheKey - The cache key to check
+ * @returns {boolean} True if request is pending
+ */
+export const isRequestPending = (cacheKey) => {
+  return pendingRequests.has(cacheKey);
+};
+
+/**
+ * Gets the number of pending requests (for debugging)
+ * 
+ * @returns {number} Number of pending requests
+ */
+export const getPendingRequestCount = () => {
+  return pendingRequests.size;
 };
 
 /**
@@ -191,6 +233,8 @@ export default {
   clearApiCache,
   getCachedApiResponse,
   setCachedApiResponse,
+  isRequestPending,
+  getPendingRequestCount,
   sessionStorageManager,
   imageUtils
 };
