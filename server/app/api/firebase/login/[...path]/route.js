@@ -4,8 +4,8 @@ import { isFirebaseAvailable } from '../../utils/firebaseAdmin.js';
 // CORS utility functions for Vercel Functions
 function getCorsHeaders() {
   return {
-    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGIN || '*' 
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production'
+      ? process.env.ALLOWED_ORIGIN || '*'
       : '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
@@ -30,22 +30,23 @@ export async function OPTIONS() {
 
 export async function POST(request) {
   try {
-    // Check if Firebase is available before importing/using firebaseLogic
-    if (!isFirebaseAvailable()) {
-      return withCors(NextResponse.json(
-        { error: 'Firebase service not available' }, 
-        { status: 503 }
-      ));
-    }
 
-    // Dynamically import firebaseLogic only when Firebase is available
     const { verifyUser } = await import('../../utils/firebaseLogic.js');
-    
+
     const { username, hashedPassword } = await request.json();
-    const userProfile = await verifyUser(username, hashedPassword);
-    return withCors(NextResponse.json({ userProfile }));
+    try {
+      const userProfile = await verifyUser(username, hashedPassword);
+
+      return withCors(NextResponse.json({ success: true, userProfile }));
+    }
+    catch (error) {
+      // Forward error to the user with a 400 status
+      console.error('User Login error:', error.message);
+      return withCors(NextResponse.json({ success: false, message: error.message }, { status: 400 }));
+    }
   } catch (err) {
+
     console.error('Error logging in user:', err);
-    return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
+    return withCors(NextResponse.json({ success: false, error: err.message }, { status: 500 }));
   }
 }

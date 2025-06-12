@@ -49,19 +49,27 @@ function RegisterWindow({onClose}) {
       return;
     }
 
-    // TODO: Add your register logic here
 
-    // TODO: FIX WHEN CLIENT AND SERVER ARE SEPARATED
     addUser(username, password, email)
       .then(userId => {
         console.log('User registered with ID:', userId);
-        alert('Registration successful!');
-        handleClose(); // Close the popup after successful registration
+        if (userId==undefined || userId==null) {
+          alert('User registration failed: userId is undefined or null');
+
+        }
+        else{
+          
+          alert('Registration successful!');
+          handleClose(); // Close the popup after successful registration
+
+        }
       })
       .catch(error => {
         console.error('Error registering user:', error);
         alert('Registration failed. Please try again. error message: ' + error.message);
       });
+
+
 //    console.log("user side register log")
     //alert(`Email: ${email}\nUsername: ${username}\nPassword: ${password}`);
   };

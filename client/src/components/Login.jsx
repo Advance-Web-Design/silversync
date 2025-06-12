@@ -37,8 +37,8 @@ function LoginWindow({ onClose, setLoginID }) {
         }
       })
       .catch(error => {
-        console.error('Error during login:', error);
-        alert('An error occurred during login. Please try again.');
+        //console.error('Error during login:', error);
+        alert('Error during login:' + error.message);
       });
 
 

@@ -8,8 +8,7 @@ import LoginWindow from './Login'; // Import Login component
 import RegisterWindow from './Register'; // Import Register component
 
 
-//import UserProfile from './UserProfile'; // stupid vsc shouting that this is an error, but it is not
-import UserProfile from './UserProfile'; // this should be wrong, but VSC says it's fine
+import UserProfile from './UserProfile'; 
 
 
 function Menu(props) {

@@ -3,52 +3,50 @@ import { isFirebaseAvailable } from '../../utils/firebaseAdmin.js';
 
 // CORS utility functions for Vercel Functions
 function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGIN || '*' 
-      : '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Max-Age': '86400',
-  };
+    return {
+        'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production'
+            ? process.env.ALLOWED_ORIGIN || '*'
+            : '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400',
+    };
 }
 
 function withCors(response) {
-  const corsHeaders = getCorsHeaders();
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-  return response;
+    const corsHeaders = getCorsHeaders();
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+    });
+    return response;
 }
 
+
+
 export async function OPTIONS() {
-  return new Response(null, {
-    status: 200,
-    headers: getCorsHeaders(),
-  });
+    return new Response(null, {
+        status: 200,
+        headers: getCorsHeaders(),
+    });
 }
 
 export async function POST(request) {
-  try {
-    // Check if Firebase is available before importing/using firebaseLogic
-    if (!isFirebaseAvailable()) {
-      return withCors(NextResponse.json(
-        { error: 'Firebase service not available' }, 
-        { status: 503 }
-      ));
+    try {
+        const { addUser } = await import('../../utils/firebaseLogic.js');
+
+        const body = await request.json();
+
+        const { username, hashedPassword, email } = body;
+        try {
+            const userId = await addUser(username, hashedPassword, email);
+            return withCors(NextResponse.json({ success: true, userId }));
+        } catch (error) {
+            // Forward error to the user with a 400 status (or 409 for conflict)
+            console.error('Register error:', error.message);
+            return withCors(NextResponse.json({ success: false, message: error.message }, { status: 400 }));
+        }
+    } catch (err) {
+        console.error('Error registering user:', err);
+        return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
     }
-
-    // Dynamically import firebaseLogic only when Firebase is available
-    const { addUser } = await import('../../utils/firebaseLogic.js');
-    
-    const body = await request.json();
-
-    const { username, hashedPassword, email } = body;
-    const userId = await addUser(username, hashedPassword, email);
-
-    return withCors(NextResponse.json({ userId }));
-  } catch (err) {
-    console.error('Error registering user:', err);
-    return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
-  }
 }

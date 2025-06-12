@@ -23,6 +23,7 @@ const API_BASE = `${config.backend.baseUrl}/api/firebase` ;
  */
 export async function addUser(username, password, email) {
 
+  console.log("Adding user:", username, email, password);
   // hash the password before sending it to the server
   const hashedPassword = await hashPassword(password);
   const res = await fetch(`${API_BASE}/register/*`, {
@@ -32,6 +33,13 @@ export async function addUser(username, password, email) {
   });
 
   const data = await res.json();
+
+
+  if (!res.ok) {
+    // Throw the backend error message if available
+    throw new Error(data.message || 'Registration failed');
+  }
+
   return data.userId;
 }
 
@@ -111,6 +119,11 @@ export async function verifyUser(username, password) {
   });
   const data = await res.json();
   
+  if (!res.ok) {
+    // Throw the backend error message if available
+    throw new Error(data.message || 'Registration failed');
+  }
+
   return data.userProfile;
 }
 
