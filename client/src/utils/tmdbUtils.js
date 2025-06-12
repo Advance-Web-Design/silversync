@@ -86,96 +86,6 @@ export const getImageUrl = (path, type = 'poster') => {
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };
 
-/**
- * Process movie results into standardized entities
- * 
- * @param {Array} movieResults - Array of movie result pages
- * @returns {Array} - Processed movie entities
- */
-export const processMovieResults = (movieResults) => {
-  let entities = [];
-  
-  movieResults.forEach(popularMovies => {
-    const movieEntities = popularMovies.results.map(movie => ({
-      id: movie.id,
-      title: movie.title,
-      name: movie.title, // Duplicate as name for consistency in search
-      original_title: movie.original_title,
-      poster_path: movie.poster_path,
-      media_type: 'movie',
-      popularity: movie.popularity,
-      release_date: movie.release_date
-    }));
-    entities = [...entities, ...movieEntities];
-  });
-  
-  return entities;
-};
-
-/**
- * Process TV show results into standardized entities
- * 
- * @param {Array} tvResults - Array of TV result pages
- * @returns {Array} - Processed TV show entities
- */
-export const processTvResults = (tvResults) => {
-  let entities = [];
-  
-  tvResults.forEach(popularTv => {
-    const tvEntities = popularTv.results.map(show => ({
-      id: show.id,
-      name: show.name,
-      title: show.name, // Duplicate as title for consistency in search
-      original_name: show.original_name,
-      poster_path: show.poster_path,
-      media_type: 'tv',
-      popularity: show.popularity,
-      first_air_date: show.first_air_date
-    }));
-    entities = [...entities, ...tvEntities];
-  });
-  
-  return entities;
-};
-
-/**
- * Process person results into standardized entities
- * 
- * @param {Array} personResults - Array of person result pages
- * @returns {Array} - Processed person entities
- */
-export const processPersonResults = (personResults) => {
-  let entities = [];
-  
-  personResults.forEach(popularPeople => {
-    const personEntities = popularPeople.results.map(person => ({
-      id: person.id,
-      name: person.name,
-      profile_path: person.profile_path,
-      media_type: 'person',
-      popularity: person.popularity,
-      known_for_department: person.known_for_department,
-      known_for: person.known_for
-    }));
-    entities = [...entities, ...personEntities];
-  });
-  
-  return entities;
-};
-
-/**
- * Filter entities to ensure they have required fields
- * 
- * @param {Array} entities - Array of entities to filter
- * @returns {Array} - Filtered entities
- */
-export const filterValidEntities = (entities) => {
-  return entities.filter(entity => (
-    entity && entity.id && 
-    ((entity.media_type === 'person' && entity.profile_path) || 
-     (entity.media_type !== 'person' && entity.poster_path))
-  ));
-};
 
 /**
  * Creates batched promises with adaptive batch sizes and rate limiting
@@ -235,10 +145,6 @@ export default {
   getValidCachedData,
   setCachedData,
   getImageUrl,
-  processMovieResults,
-  processTvResults,
-  processPersonResults,
-  filterValidEntities,
   processBatchedPromises,
   adaptiveResultProcessor,
   processMultiPageResults,

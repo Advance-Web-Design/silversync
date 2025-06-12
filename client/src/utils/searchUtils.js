@@ -2,7 +2,7 @@
 import { stringSimilarity } from './stringUtils';
 import { getItemTitle } from './entityUtils';
 import { SIMILARITY_THRESHOLDS } from './constants';
-import { filterValidEntities, adaptiveResultProcessor } from './tmdbUtils';
+import { adaptiveResultProcessor } from './tmdbUtils';
 import { sessionStorageManager } from './apiUtils';
 
 /**
@@ -277,12 +277,6 @@ export const findExactMatch = (results, term) => {
   return bestMatch;
 };
 
-/**
- * Filters search results to only include items with images and valid IDs
- */
-export const filterSearchResults = (results) => {
-  return filterValidEntities(results);
-};
 
 /**
  * Processes search results and handles exact matches

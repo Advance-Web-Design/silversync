@@ -7,7 +7,6 @@ import { Box } from '@mui/material';
 import Profile from '../Profile';
 import ProfileHeader from '../ProfileHeader';
 import Leaderboard from '../Leaderboard';
-import ChallengeMode from '../ChallengeMode';
 import Register from '../Register';
 import Login from '../Login';
 

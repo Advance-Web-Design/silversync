@@ -9,12 +9,9 @@ import { useGameContext } from '../contexts/gameContext';
 import ActorCard from './game/ActorCard';
 import Menu from './Menu';
 import LoadingOverlay from './game/LoadingOverlay';
-import ChallengeMode from './ChallengeMode'; // make sure this points to your ChallengeMode.jsx
 import './StartScreen.css';
 
 const StartScreen = () => {
-  // toggle between actor-pick screen and premade challenges
-  const [showChallenges, setShowChallenges] = useState(false);
 
   // Extract game state and functions from GameContext
   const { 
@@ -32,11 +29,7 @@ const StartScreen = () => {
     startActorsError
   } = useGameContext();
 
-  // If user clicked "Challenges", render the ChallengeMode UI instead
-  if (showChallenges) {
-    // Pass an onBack callback so that ChallengeMode can toggle us back
-    return <ChallengeMode onBack={() => setShowChallenges(false)} />;
-  }
+
 
   // Handlers for actor-selection UI
   const handleSelectActor = (actorId, index) => {
@@ -108,14 +101,6 @@ const StartScreen = () => {
             className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           >
             START GAME
-          </button>
-
-          {/* New Challenges Button */}
-          <button
-            onClick={() => setShowChallenges(true)}
-            className="w-full cursor-pointer rounded-lg bg-green-600 py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-green-700"
-          >
-            CHALLENGES
           </button>
         </div>
       </div>

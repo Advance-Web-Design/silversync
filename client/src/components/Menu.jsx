@@ -87,11 +87,6 @@ function Menu(props) {
         setMenuOpen(false);
     };
 
-    // Challenge Mode action handler
-    const handleChallengeMode = () => {
-        console.log('Challenge Mode action triggered');
-        setMenuOpen(false);
-    };
 
     // About action handler
     const handleAbout = () => {
@@ -186,7 +181,7 @@ function Menu(props) {
                         {/* Conditionally render items based on parentName prop */}
                         {props.parentName === 'StartScreen' && (
                             <>
-                            <button onClick={handleChallengeMode} className="menu-item">Challenge Mode</button>
+                            <button onClick={handleNewGame} className="menu-item">Main Menu</button>
                             <button onClick={handleLeaderboard} className="menu-item">Leaderboard</button>
                             <button onClick={handleAbout} className="menu-item">About</button>
                             </>)}

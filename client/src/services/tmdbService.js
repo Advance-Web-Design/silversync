@@ -12,10 +12,6 @@ import {
   getValidCachedData,
   setCachedData,
   getImageUrl,
-  processMovieResults,
-  processTvResults,
-  processPersonResults,
-  filterValidEntities,
   processBatchedPromises,
   adaptiveResultProcessor,
   processMultiPageResults
@@ -218,39 +214,6 @@ const fetchGuestStarsFromEpisodes = async (tvId, tvDetails, maxSeasonsToFetch, m
   });
   
   return guestStars;
-};
-
-/**
- * Processes and normalizes search results
- * @param {Array} results - Raw search results
- * @returns {Array} - Processed and filtered results
- */
-const processSearchResults = (results) => {
-  if (!results || results.length === 0) return [];
-  
-  // Normalize media types
-  let processedResults = results.map(item => {
-    if (!item.media_type) {
-      if (item.title && !item.name) {
-        return { ...item, media_type: 'movie' };
-      } else if (item.name && !item.title && item.first_air_date) {
-        return { ...item, media_type: 'tv' };
-      } else if (item.name && item.profile_path) {
-        return { ...item, media_type: 'person' };
-      }
-    }
-    return item;
-  });
-  
-  // Filter valid media types
-  processedResults = processedResults.filter(item => 
-    ['movie', 'tv', 'person'].includes(item.media_type)
-  );
-  
-  // Sort by popularity and limit results
-  return processedResults
-    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, 20);
 };
 
 /**
