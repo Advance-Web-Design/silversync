@@ -12,10 +12,6 @@ import {
   saveKnownEntities,
   addToSearchHistory 
 } from '../utils/storageUtils';
-import { 
-  updateConnectableEntitiesForNode as updateNodeConnections,
-  extractActorTvShows
-} from '../utils/connectableEntityUtils';
 import { adaptiveResultProcessor } from '../utils/apiUtils';
 
 /**
@@ -166,24 +162,8 @@ export const useSearch = () => {
       setIsLoading(false);
     }
   };
-  /**
-   * Update the list of connectable entities based on a node's connections
-   * @param {Object} node - The node to analyze for connectable entities
-   * @param {Function} fetchNodeConnectionsCallback - Function that fetches possible connections for a node
-   */
-  const updateConnectableEntitiesForNode = async (node, fetchNodeConnectionsCallback) => {
-    await updateNodeConnections(node, fetchNodeConnectionsCallback, setConnectableEntities);
-  };  // Function removed as it was unused
-
-  /**
-   * Process an actor's data to extract all TV shows they've appeared in (including guest appearances)
-   * and add them to the connectable entities list
-   * @param {Object} actorData - Actor data object
-   * @returns {Array} - Array of TV shows the actor has appeared in
-   */
-  const addActorTvShowsToConnectableEntities = (actorData) => {
-    return extractActorTvShows(actorData);
-  };  return {
+  
+  return {
     searchTerm,
     setSearchTerm,
     searchResults,
@@ -207,8 +187,6 @@ export const useSearch = () => {
     checkForMisspelling,
     findExactMatch,
     learnFromSuccessfulSearch,
-    searchStartActors,
-    updateConnectableEntitiesForNode,
-    addActorTvShowsToConnectableEntities
+    searchStartActors
   };
 };

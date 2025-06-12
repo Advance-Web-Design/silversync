@@ -395,31 +395,6 @@ export const adaptiveResultProcessor = (rawResults, options = {}) => {
   }
 };
 
-/**
- * Validates and enriches a single result item
- * Used for individual item processing
- * 
- * @param {Object} item - Single result item
- * @returns {Object|null} Validated item or null if invalid
- */
-export const validateResultItem = (item) => {
-  if (!item?.id) return null;
-  
-  // Ensure required fields exist
-  const validatedItem = {
-    id: item.id,
-    media_type: item.media_type || 'unknown',
-    title: item.title || item.name || 'Unknown Title',
-    poster_path: item.poster_path || null,
-    profile_path: item.profile_path || null,
-    overview: item.overview || '',
-    release_date: item.release_date || item.first_air_date || null,
-    vote_average: item.vote_average || 0,
-    ...item // Include all original properties
-  };
-  
-  return validatedItem;
-};
 
 export default {
   makeApiCall,
@@ -435,5 +410,4 @@ export default {
   fastProcessSmallResults,
   processMultiPageResults,
   adaptiveResultProcessor,
-  validateResultItem
 };

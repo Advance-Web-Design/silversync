@@ -337,13 +337,3 @@ export const processSearchResults = async (allResults, originalTerm, apiSearchTe
   setSearchResults(filteredResults);
   return { results: filteredResults, exactMatch: exactMatchItem };
 };
-
-// Export additional functions that might be expected by other files
-export const normalizeSearchTerm = (term) => {
-  return term?.toLowerCase().trim() || '';
-};
-
-export const isValidSearchTerm = (term, minLength = 3) => {
-  const normalized = normalizeSearchTerm(term);
-  return normalized.length >= minLength && !COMMON_WORDS.includes(normalized);
-};
