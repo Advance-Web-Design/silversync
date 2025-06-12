@@ -587,12 +587,30 @@ export const checkActorInTvShow = async (actorId, tvShowId) => {
 
 /**
  * Search for movies, TV shows, and people
+ * Enhanced with Firebase studio cache for instant results
  * 
  * @param {string} query - The search query
  * @param {number} maxPages - Maximum number of pages to fetch
  * @returns {Promise<Array>} - List of search results across movies, TV shows, and people
  */
 export const searchMulti = async (query, maxPages = 1) => {
+  // Try Firebase studio cache first for instant results
+  try {
+    const { default: firebaseStudioCache } = await import('../services/firebaseStudioCache');
+    
+    if (firebaseStudioCache.canHandleSearch(query)) {
+      const firebaseResults = firebaseStudioCache.searchWithFirebaseCache(query);
+      
+      if (firebaseResults && firebaseResults.length > 0) {
+        logger.info(`🎯 Firebase cache hit for "${query}": ${firebaseResults.length} results (instant)`);
+        return firebaseResults;
+      }
+    }
+  } catch (error) {
+    logger.debug('Firebase cache not available, falling back to TMDB:', error);
+  }
+  
+  // Fallback to existing TMDB implementation
   const cacheKey = `search-multi-${query.trim()}-pages-${maxPages}`;
   
   return withCache(cacheKey, async () => {
@@ -634,7 +652,7 @@ export const searchMulti = async (query, maxPages = 1) => {
       removeDuplicates: true
     });
     
-    logger.debug(`🔍 Search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
+    logger.debug(`🔍 TMDB search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
     
     return optimizedResults;
   });

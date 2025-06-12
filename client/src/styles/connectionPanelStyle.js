@@ -1,4 +1,3 @@
-
 ///conection content Style
 export const connectionsContentStyle = "overflow-y-auto px-4 pb-4 max-h-[calc(100vh-160px)]";
 
@@ -44,3 +43,7 @@ export const connectionsHeaderStyle = "flex justify-between items-center py-3 px
 export const connectionsHeaderH2Style = "m-0 text-[1.2rem] text-[gold] whitespace-nowrap overflow-hidden text-ellipsis max-w-[85%]";
 
 export const closeButtonStyle = "bg-transparent border-none text-[rgba(255,255,255,0.7)] text-[22px] cursor-pointer p-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-[rgba(255,255,255,0.1)] hover:text-white";
+
+// Missing exports
+export const guestAppearanceStyle = connectionItemGuestAppearanceStyle;
+export const noConnectionsMessageStyle = noConnectionsStyle;

@@ -10,7 +10,7 @@ let app = null;
 let db = null;
 
 // Lazy initialization function
-const initializeFirebase = () => {
+export const initializeFirebase = () => {
     if (app) return { app, db };
 
     // Only initialize if environment variables are available

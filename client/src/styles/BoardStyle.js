@@ -1,4 +1,3 @@
-
 export const gameHeaderStyle = "absolute top-0 left-0 right-0 py-3 px-5 z-[100] bg-transparent flex justify-between items-center";
 
 export const logoContainerStyle = "text-2xl absolute top-[15px] left-0 right-0 flex flex-col items-center justify-center pointer-events-none";
@@ -22,3 +21,5 @@ export const zoomIndicatorStyle = "absolute top-[12px] right-[12px] bg-white tex
 
 export const zoomWrapperStyle = "w-full h-full relative overflow-hidden";
 export const zoomContentBaseStyle = "relative origin-top-left transition-transform duration-100 ease-in-out";
+
+export const backgroundStyle = gameBoardContainerStyle;

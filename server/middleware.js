@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
 
+// Cache initialization flag to prevent multiple runs
+let cacheInitialized = false;
+
 export function middleware(request) {
+  // Initialize studio cache on first request (non-blocking)
+  if (!cacheInitialized) {
+    cacheInitialized = true;
+    
+    // Import and initialize cache update logic in background
+    import('./app/api/firebase/utils/studioUpdateLogic.js')
+      .then(({ initializeStudioCacheUpdater }) => {
+        initializeStudioCacheUpdater().catch(error => {
+          console.error('❌ Studio cache initialization failed:', error);
+        });
+      })
+      .catch(error => {
+        console.warn('Studio cache module not available:', error);
+      });
+  }
+
   // Handle CORS for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     // Handle preflight requests
