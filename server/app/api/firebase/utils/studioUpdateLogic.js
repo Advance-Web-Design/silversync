@@ -14,7 +14,7 @@
  */
 
 import { getDatabase, ref, set, get } from 'firebase/database';
-import { initializeFirebase } from './firebaseLogic.js';
+import { initializeFirebase } from 'firebaseLogic.js';
 
 // Define companies split into 4 weekly quarters (optimized for 55-second limit)
 const WEEKLY_QUARTERS = [
