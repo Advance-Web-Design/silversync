@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { isFirebaseAvailable } from '../utils/firebaseAdmin.js';
 
 // Set function timeout for 1-minute update process
-export const maxDuration = 60;
+export const maxDuration = 59;
 
 // CORS utility functions for Vercel Functions
 function getCorsHeaders() {
