@@ -13,10 +13,10 @@
  * - Search index generation
  */
 
+// Single set of imports - no duplicates
 import { getDatabase, ref, set, get } from 'firebase/database';
-import { initializeFirebase } from 'firebaseLogic.js';
 
-// Define companies split into 4 weekly quarters (optimized for 55-second limit)
+// Define companies split into 5 weekly quarters (optimized for 55-second limit)
 const WEEKLY_QUARTERS = [
   // Week 1 - Marvel, Marvel, Marvel, Universal (4 companies, ~44.9s)
   { id: 420, name: 'Marvel Studios', key: 'marvel_studios', type: 'production' },
@@ -61,6 +61,25 @@ const ALL_QUARTERS = [WEEKLY_QUARTERS, WEEKLY_QUARTERS_2, WEEKLY_QUARTERS_3, WEE
 
 const WEEKLY_UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const TOTAL_WEEKS = 5; // Updated to 5-week rotation
+
+// Initialize Firebase once at module level
+let firebaseInitialized = false;
+let db = null;
+
+async function initializeFirebase() {
+  if (firebaseInitialized && db) return { db };
+  
+  try {
+    const { initializeFirebase: initFB } = await import('./firebaseLogic.js');
+    const result = initFB();
+    db = result.db;
+    firebaseInitialized = true;
+    return result;
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+    throw error;
+  }
+}
 
 // ==================== UTILITY FUNCTIONS ====================
 
@@ -470,8 +489,7 @@ async function rateLimitedDelay() {
 // ==================== MAIN UPDATE LOGIC ====================
 
 async function updateStudioCache(weekData) {
-  const { initializeFirebase } = await import('../firebaseLogic.js');
-  const { db } = initializeFirebase();
+  const { db } = await initializeFirebase();
   
   if (!db) {
     throw new Error('Firebase database not available');
@@ -506,8 +524,7 @@ async function updateStudioCache(weekData) {
 }
 
 async function updateMetadata(metadata) {
-  const { initializeFirebase } = await import('../firebaseLogic.js');
-  const { db } = initializeFirebase();
+  const { db } = await initializeFirebase();
   
   if (!db) {
     throw new Error('Firebase database not available');
