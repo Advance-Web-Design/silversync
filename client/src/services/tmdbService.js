@@ -5,15 +5,13 @@
  * It handles all API communication including fetching movie/TV/actor data, searching,
  * and retrieving connections between entities for the "Connect the Stars" game.
  */
-import { callApi, storeInSession, getFromSession } from './apiService';
-import {
-  CACHE_TTL,
+import { callApi } from './apiService';
+import {  CACHE_TTL,
   SIX_HOURS,
   getValidCachedData,
   setCachedData,
   getImageUrl,
   processBatchedPromises,
-  adaptiveResultProcessor,
   processMultiPageResults
 } from '../utils/tmdbUtils';
 import { logger } from '../utils/loggerUtils';
@@ -46,7 +44,7 @@ const withErrorHandling = async (apiCall, fallbackValue) => {
   try {
     return await apiCall();
   } catch (error) {
-    console.error('TMDB API Error:', error);
+    logger.error('TMDB API Error:', error);
     return fallbackValue;
   }
 };
@@ -318,40 +316,13 @@ export const findPersonGuestAppearances = async (personId) => {
           credit => callApi(`/tv/${credit.id}`)
             .then(showDetails => createGuestAppearanceObject(credit, showDetails))
             .catch(err => {
-              console.error(`Error fetching show details for ${credit.id}:`, err);
+              logger.error(`Error fetching show details for ${credit.id}:`, err);
               return null;
             }),
           { batchSize: 10 }
         );
       }
     ),
-    []
-  );
-};
-
-/**
- * Get potential TV shows an actor has guest starred in based on a search query
- * 
- * @param {number} actorId - The TMDB ID of the actor
- * @param {string} query - The search query to filter guest appearances
- * @returns {Promise<Array>} - List of TV shows where the actor has guest appearances
- */
-export const searchActorGuestAppearances = async (actorId, query) => {
-  return withErrorHandling(
-    async () => {
-      const guestAppearances = await findPersonGuestAppearances(actorId);
-      
-      // If there's a search query, filter the results
-      if (validateSearchQuery(query)) {
-        const normalizedQuery = query.trim().toLowerCase();
-        return guestAppearances.filter(show => 
-          (show.name && show.name.toLowerCase().includes(normalizedQuery)) ||
-          (show.original_name && show.original_name.toLowerCase().includes(normalizedQuery))
-        );
-      }
-      
-      return guestAppearances;
-    },
     []
   );
 };
@@ -492,7 +463,7 @@ export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisod
         
         // Try to use aggregate_credits first (much more efficient)
         if (tvDetails.aggregate_credits?.cast?.length > 0) {
-          console.log(`Using aggregate_credits for TV show ${tvId}`);
+          logger.info(`Using aggregate_credits for TV show ${tvId}`);
           
           const guestStars = extractGuestStarsFromAggregateCredits(tvDetails.aggregate_credits);
           
@@ -502,7 +473,7 @@ export const getTvShowGuestStars = async (tvId, maxSeasonsToFetch = 2, maxEpisod
         }
         
         // If we couldn't extract from aggregate_credits, fallback to episode-by-episode approach
-        console.log(`Falling back to episode fetching for TV show ${tvId}`);
+        logger.info(`Falling back to episode fetching for TV show ${tvId}`);
         return await fetchGuestStarsFromEpisodes(tvId, tvDetails, maxSeasonsToFetch, maxEpisodesPerSeason);
       }
     ),
@@ -555,54 +526,6 @@ export const checkActorInTvShow = async (actorId, tvShowId) => {
  * @param {number} maxPages - Maximum number of pages to fetch
  * @returns {Promise<Array>} - List of search results across movies, TV shows, and people
  */
-export const searchMulti = async (query, maxPages = 1) => {
-  const cacheKey = `search-multi-${query.trim()}-pages-${maxPages}`;
-  
-  return withCache(cacheKey, async () => {
-    const allResults = [];
-    const startTime = Date.now();
-    logger.time(`api-search-${query.slice(0, 10)}`);
-    
-    for (let page = 1; page <= maxPages; page++) {
-      try {
-        const results = await callApi('/search/multi', {
-          query: query.trim(),
-          include_adult: false,
-          page: page
-        });
-        
-        if (!results.results || results.results.length === 0) {
-          logger.debug(`📄 Page ${page}: No more results`);
-          break;
-        }
-        
-        logger.debug(`📄 Page ${page}: Found ${results.results.length} results`);
-        allResults.push(...results.results);
-        
-        if (page >= results.total_pages) {
-          logger.debug(`📄 Reached last page (${results.total_pages})`);
-          break;
-        }
-      } catch (error) {
-        logger.error(`Error fetching page ${page}:`, error);
-        break;
-      }
-    }
-    
-    logger.timeEnd(`api-search-${query.slice(0, 10)}`);
-    
-    const optimizedResults = adaptiveResultProcessor(allResults, {
-      maxResults: 200,
-      requireImages: true,
-      removeDuplicates: true
-    });
-    
-    logger.debug(`🔍 Search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
-    
-    return optimizedResults;
-  });
-};
-
 /**
  * Search specifically for people/actors
  * 
@@ -716,14 +639,11 @@ export default {
   fetchRandomPerson,
   getPersonDetails,
   getMovieDetails,
-  getTvShowDetails,
-  getTvShowSeason,
+  getTvShowDetails,  getTvShowSeason,
   getTvEpisodeDetails,
   getTvShowGuestStars,
   findPersonGuestAppearances,
-  searchActorGuestAppearances,
   checkActorInTvShow,
-  searchMulti,
   searchPeople,
   fetchPopularEntities,
   getImageUrl,

@@ -1,5 +1,6 @@
 // Board-specific utility functions
 import { getItemTitle } from './entityUtils';
+import { logger } from './loggerUtils';
 
 // Constants for node positioning
 export const DEFAULT_NODE_POSITION = { x: 250, y: 250 };
@@ -86,7 +87,7 @@ export const saveEntityToLocalDatabase = (entity) => {
     
     localStorage.setItem('searchableEntities', JSON.stringify(entities));
   } catch (error) {
-    console.error('Error saving entity to local database:', error);
+    logger.error('Error saving entity to local database:', error);
   }
 };
 
@@ -176,14 +177,14 @@ export const fetchRandomUniqueActor = async (actorIndex, startActors, fetchRando
   let randomActor = null;
   let attempts = 0;
 
-  console.log(`Fetching random actor for position ${actorIndex}...`);
+  logger.info(`Fetching random actor for position ${actorIndex}...`);
 
   while (!randomActor && attempts < maxAttempts) {
     attempts++;
-    console.log(`Attempt ${attempts} to fetch random actor...`);
+    logger.debug(`Attempt ${attempts} to fetch random actor...`);
     
     const actor = await fetchRandomPerson();
-    console.log('Fetched actor:', actor?.name, actor?.id);
+    logger.debug('Fetched actor:', actor?.name, actor?.id);
 
     // Check if this actor is already used in the other position
     const otherIndex = actorIndex === 0 ? 1 : 0;
@@ -192,9 +193,9 @@ export const fetchRandomUniqueActor = async (actorIndex, startActors, fetchRando
     // Only use this actor if it's not the same as the other position
     if (!otherActor || otherActor.id !== actor.id) {
       randomActor = actor;
-      console.log(`Successfully selected actor: ${actor.name}`);
+      logger.info(`Successfully selected actor: ${actor.name}`);
     } else {
-      console.log("Duplicate actor found, trying again...");
+      logger.debug("Duplicate actor found, trying again...");
     }
   }
 

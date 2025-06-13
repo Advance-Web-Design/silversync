@@ -18,6 +18,7 @@ import ConnectionLines from './ConnectionLines';
 import { Box } from '@mui/material';
 import { useZoom } from '../../hooks/useZoom';
 import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
+import { logger } from '../../utils/loggerUtils';
 import './GameBoard.css';
 
 const GameBoard = () => {

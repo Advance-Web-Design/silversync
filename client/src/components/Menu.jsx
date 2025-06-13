@@ -6,6 +6,7 @@ import HowToPlay from './HowToPlay';
 import About from './About';
 import LoginWindow from './Login'; // Import Login component
 import RegisterWindow from './Register'; // Import Register component
+import { logger } from '../utils/loggerUtils';
 
 
 import UserProfile from './UserProfile'; 
@@ -68,7 +69,7 @@ function Menu(props) {
 
     // Register action handler
     const handleRegister = () => {
-        console.log('Register action triggered');
+        logger.debug('Register action triggered');
         //if (register) register(); // Call register function from context
         setShowRegisterWindow(prev => !prev); // Toggle login visibility
         setMenuOpen(false);
@@ -82,7 +83,7 @@ function Menu(props) {
 
     // Leaderboard action handler
     const handleLeaderboard = () => {
-        console.log('Leaderboard action triggered');
+        logger.debug('Leaderboard action triggered');
         setMenuOpen(false);
     };
 

@@ -1,4 +1,5 @@
 // Utilities for game functionality
+import { logger } from './loggerUtils';
 
 /**
  * Validates if two actors can be used to start the game
@@ -67,7 +68,7 @@ export const loadBestScore = () => {
     const savedBestScore = localStorage.getItem('bestScore');
     return savedBestScore ? parseInt(savedBestScore) : null;
   } catch (error) {
-    console.error('Error loading best score:', error);
+    logger.error('Error loading best score:', error);
     return null;
   }
 };

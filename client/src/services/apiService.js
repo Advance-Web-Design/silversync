@@ -5,6 +5,7 @@
  * All TMDB API calls are proxied through our Next.js backend for security.
  */
 import config from '../config/api.config';
+import { logger } from '../utils/loggerUtils';
 
 /**
  * Make a call to the backend API endpoint
@@ -50,12 +51,11 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
     const finalUrl = queryString ? `${backendUrl}?${queryString}` : backendUrl;
     
     // Debug logging - always log in development for debugging
-    if (import.meta.env.DEV) {
-      console.log(`🔍 API Call Mapping:`);
-      console.log(`  Original: ${endpoint}`);
-      console.log(`  Clean: ${cleanEndpoint}`);
-      console.log(`  Backend endpoint: ${backendEndpoint}`);
-      console.log(`  Final URL: ${finalUrl}`);
+    if (import.meta.env.DEV) {      logger.debug(`🔍 API Call Mapping:`);
+      logger.debug(`  Original: ${endpoint}`);
+      logger.debug(`  Clean: ${cleanEndpoint}`);
+      logger.debug(`  Backend endpoint: ${backendEndpoint}`);
+      logger.debug(`  Final URL: ${finalUrl}`);
     }
     
     // Use optimized headers from config + any additional headers
@@ -80,7 +80,7 @@ export const callApi = async (endpoint, params = {}, options = {}) => {
     
     return await response.json();
   } catch (error) {
-    console.error(`Backend API call failed for ${endpoint}:`, error);
+    logger.error(`Backend API call failed for ${endpoint}:`, error);
     throw error;
   }
 };
@@ -95,7 +95,7 @@ export const storeInSession = (key, data) => {
   try {
     sessionStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error('Error storing data in session storage:', error);
+    logger.error('Error storing data in session storage:', error);
   }
 };
 
@@ -110,7 +110,7 @@ export const getFromSession = (key) => {
     const item = sessionStorage.getItem(key);
     return item ? JSON.parse(item) : null;
   } catch (error) {
-    console.error('Error retrieving data from session storage:', error);
+    logger.error('Error retrieving data from session storage:', error);
     return null;
   }
 };

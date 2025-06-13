@@ -12,20 +12,18 @@
  * - Board state management including connections between entities
  * - Game progression and win state tracking
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
-import { getItemTitle } from '../utils/stringUtils';
 import { 
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
-  fetchConnectableEntitiesFromBoard,
 } from '../utils/entityUtils';
-import { processSearchResults as processResults } from '../utils/searchUtils';
-import { filterExistingBoardEntities, fetchRandomUniqueActor } from '../utils/boardUtils';
-import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson, searchMulti } from '../services/tmdbService';
+import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
+import { fetchRandomUniqueActor } from '../utils/boardUtils';
+import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
 
 /**
@@ -96,138 +94,51 @@ export const GameProvider = ({ children }) => {
    */
   const updateNodePosition = (nodeId, newPosition) => {
     updateNodePositionFromBoard(nodeId, newPosition);
-  };
-
-  /**
+  };  /**
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
    */
-  const fetchAndSetAllSearchableEntities = async () => {
-    const startTime = Date.now();
-    logger.time('cheat-sheet-fetch');
+  const fetchAndSetAllSearchableEntities = useCallback(async () => {
     logger.info('🎯 Fetching all searchable entities');
     
     setIsLoading(true);
     try {
-      if (nodes.length === 0 || !gameStarted) {
-        setCheatSheetResults([]);
+      // Check for cached cheat sheet first
+      const cachedResults = getCachedCheatSheet(nodes);
+      
+      if (cachedResults) {
+        setCheatSheetResults(cachedResults);
+        
+        // Mark all entities as connectable
+        const newConnectableItems = {};
+        cachedResults.forEach(item => {
+          const itemKey = `${item.media_type}-${item.id}`;
+          newConnectableItems[itemKey] = true;
+        });
+        setConnectableItems(newConnectableItems);
+        
         return;
       }
-      else if (nodes.length <= 2 && startActors.length === 2) {
-        const relevantEntities = [];
-
-        // Check if we have data for the starting actors AND any movies/TV shows on the board
-        for (const node of nodes) {
-          if (node.type === 'person' && node.data) {
-            // For actors, get their movie and TV credits
-            if (node.data.movie_credits?.cast) {
-              relevantEntities.push(...node.data.movie_credits.cast.map(movie => ({
-                ...movie,
-                media_type: 'movie',
-                source_node: node.id
-              })));
-            }
-
-            if (node.data.tv_credits?.cast) {
-              relevantEntities.push(...node.data.tv_credits.cast.map(show => ({
-                ...show,
-                media_type: 'tv',
-                source_node: node.id
-              })));
-            }
-          } else if (node.type === 'movie' && node.data) {
-            // For movies, get their cast members (actors)
-            if (node.data.credits?.cast) {
-              relevantEntities.push(...node.data.credits.cast.map(actor => ({
-                ...actor,
-                media_type: 'person',
-                source_node: node.id
-              })));
-            }
-          } else if (node.type === 'tv' && node.data) {
-            // For TV shows, get their cast members (actors)
-            if (node.data.credits?.cast) {
-              relevantEntities.push(...node.data.credits.cast.map(actor => ({
-                ...actor,
-                media_type: 'person',
-                source_node: node.id
-              })));
-            }
-          }
-        }
-
-        // Filter for images and remove duplicates
-        const filteredEntities = relevantEntities.filter(entity =>
-          entity && entity.id && (
-            (entity.media_type === 'movie' && entity.poster_path) ||
-            (entity.media_type === 'tv' && entity.poster_path) ||
-            (entity.media_type === 'person' && entity.profile_path)
-          )
-        );
-
-        // Remove duplicates based on id and media_type
-        const uniqueEntities = filteredEntities.filter((entity, index, self) =>
-          index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
-        );
-
-        // Filter out entities already on board
-        const finalEntities = uniqueEntities.filter(entity => 
-          !nodes.some(node => 
-            node.id === `${entity.media_type}-${entity.id}`
-          )
-        );
-
-        const duration = Date.now() - startTime;
-        logger.info(`🎯 Cheat sheet (initial): ${finalEntities.length} entities in ${duration}ms`);
-        logger.timeEnd('cheat-sheet-fetch');
-
-        // Set cheat sheet results instead of search results
-        setCheatSheetResults(finalEntities);
-
-        // Mark all these entities as connectable
-        const newConnectableItems = {};
-        finalEntities.forEach(item => {
-          const itemKey = `${item.media_type}-${item.id}`;
-          newConnectableItems[itemKey] = true;
-        });
-
-        setConnectableItems(newConnectableItems);
-      } else {
-        // With nodes on the board beyond just starting actors, build a list of all connectable entities
-        const allConnectableEntities = await fetchConnectableEntitiesFromBoard(
-          nodes, 
-          { getPersonDetails, getMovieDetails, getTvShowDetails }
-        );
-
-        // Filter out entities that are already on the board
-        const filteredEntities = filterExistingBoardEntities(allConnectableEntities, nodes);
-
-        // Remove duplicates
-        const uniqueEntities = filteredEntities.filter((entity, index, self) =>
-          index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
-        );
-
-        const duration = Date.now() - startTime;
-        logger.info(`🎯 Cheat sheet (board): ${uniqueEntities.length} entities in ${duration}ms`);
-        logger.timeEnd('cheat-sheet-fetch');
-
-        // Set cheat sheet results instead of search results  
-        setCheatSheetResults(uniqueEntities);
-
-        const newConnectableItems = {};
-        uniqueEntities.forEach(item => {
-          const itemKey = `${item.media_type}-${item.id}`;
-          newConnectableItems[itemKey] = true;
-        });
-
-        setConnectableItems(newConnectableItems);
-      }
+      
+      // Generate new cheat sheet
+      const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors);
+      
+      setCheatSheetResults(cheatSheetEntities);
+      
+      // Mark all entities as connectable
+      const newConnectableItems = {};
+      cheatSheetEntities.forEach(item => {
+        const itemKey = `${item.media_type}-${item.id}`;
+        newConnectableItems[itemKey] = true;
+      });
+      setConnectableItems(newConnectableItems);
+      
     } catch (error) {
       logger.error("Error fetching connectable entities:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [nodes, gameStarted, startActors, setCheatSheetResults, setConnectableItems, setIsLoading]);
 
   /**
    * Fetches a random actor for a starting position
@@ -279,7 +190,6 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
   /**
    * Resets the game to initial state
    * Clears board, connections, and search results
@@ -293,6 +203,8 @@ export const GameProvider = ({ children }) => {
       setSearchResults,
       setConnectableItems
     );
+    // Also reset search input and state
+    searchState.resetSearch();
   };
 
   /**
@@ -397,9 +309,7 @@ export const GameProvider = ({ children }) => {
    */
   const addTvShowToBoard = async (tvShow) => {
     return await addToBoard({ ...tvShow, media_type: 'tv' });
-  };
-
-  /**
+  };  /**
    * Main search function for finding movies, TV shows, or actors
    * @param {string} term - Search term entered by the user
    */
@@ -408,39 +318,28 @@ export const GameProvider = ({ children }) => {
     
     const startTime = Date.now();
     logger.time('search-operation');
-    logger.info(`🔍 Starting enhanced search for: "${term}"`);
+    logger.info(`🔍 Starting local search for: "${term}"`);
     
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
     setIsLoading(true);
 
-    // Check for similarity matches in local database first
-    const similarityMatch = searchState.checkForMisspelling(term);
-    let apiSearchTerm = term;
-    
-    if (similarityMatch && typeof similarityMatch === 'object') {
-      apiSearchTerm = getItemTitle(similarityMatch);
-      logger.debug(`🔄 Fuzzy match: "${term}" → "${apiSearchTerm}"`);
-    }
-
-    try {
-      // Use multi-page search (3 pages) instead of single page
-      const allResults = await searchMulti(apiSearchTerm, 3);
+    try {      // Use local cache search instead of TMDB API
+      const searchResult = searchState.performLocalSearch(term, nodes);
       
       const duration = Date.now() - startTime;
-      logger.info(`📊 Search completed: ${allResults.length} results in ${duration}ms`);
+      logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
       logger.timeEnd('search-operation');
-      
-      await processResults(allResults, term, apiSearchTerm, searchState, {
-        setSearchResults,
-        setNoMatchFound,
-        setDidYouMean,
-        setExactMatch
-      }, {
-        checkConnectability: (item) => checkInitialConnectability(item, startActors), // ✅ Pass startActors
-        setConnectableItems
-      });
+        // Process local search results
+      if (searchResult.results.length === 0) {
+        setNoMatchFound(true);
+        logger.info(`🚫 No results found for: "${term}"`);
+      } else {
+        setSearchResults(searchResult.results);
+        setExactMatch(searchResult.exactMatch);
+        setNoMatchFound(false);
+      }
 
     } catch (error) {
       logger.error('❌ Search error:', error);
@@ -578,13 +477,20 @@ export const GameProvider = ({ children }) => {
     cheatSheetResults,
     setCheatSheetResults,
   };
+  // Auto-generate cache when game starts to enable local search
+  useEffect(() => {
+    if (gameStarted && nodes.length > 0) {
+      logger.debug('🚀 Game started, generating cache for local search');
+      fetchAndSetAllSearchableEntities();
+    }
+  }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]);
 
   // Auto-refresh cheat sheet when nodes change (if it's currently open)
   useEffect(() => {
     if (showAllSearchable && gameStarted && nodes.length > 0) {
       fetchAndSetAllSearchableEntities();
     }
-  }, [nodes, showAllSearchable, gameStarted]);
+  }, [nodes, showAllSearchable, gameStarted, fetchAndSetAllSearchableEntities]);
 
   return (
     <GameContext.Provider value={contextValue}>

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
 import { processPersonDetails, findPersonConnections, findMovieConnections, findTvShowConnections, checkInitialConnectability as checkInitialConnectabilityUtil, checkItemConnectabilityUtil } from '../utils/entityUtils';
 import { DEFAULT_NODE_POSITION, RANDOM_POSITION_RANGE, calculateNodePosition, saveEntityToLocalDatabase, findPathBetweenNodes } from '../utils/boardUtils';
+import { logger } from '../utils/loggerUtils';
 
 /**
  * @returns {Object} Board methods and state variables
@@ -56,7 +57,7 @@ export const useBoard = () => {
         getTvShowDetails
       );
     } catch (error) {
-      console.error("Error checking item connectability:", error);
+      logger.error("Error checking item connectability:", error);
       return false;
     }
   };
@@ -85,7 +86,7 @@ export const useBoard = () => {
         getTvShowDetails
       );
     } catch (error) {
-      console.error("Error checking initial connectability:", error);
+      logger.error("Error checking initial connectability:", error);
       return false;
     }
   };  /**
@@ -218,7 +219,7 @@ export const useBoard = () => {
       saveEntityToLocalDatabase(item);
       
     } catch (error) {
-      console.error("Error adding to board:", error);
+      logger.error("Error adding to board:", error);
     } finally {
       setIsLoading(false);
     }

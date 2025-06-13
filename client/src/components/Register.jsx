@@ -1,9 +1,8 @@
 import { addUser } from "../services/firebaseService";
-
-
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
+import { logger } from '../utils/loggerUtils';
 
 
 function RegisterWindow({onClose}) {
@@ -52,7 +51,7 @@ function RegisterWindow({onClose}) {
 
     addUser(username, password, email)
       .then(userId => {
-        console.log('User registered with ID:', userId);
+        logger.info('User registered with ID:', userId);
         if (userId==undefined || userId==null) {
           alert('User registration failed: userId is undefined or null');
 
@@ -65,7 +64,7 @@ function RegisterWindow({onClose}) {
         }
       })
       .catch(error => {
-        console.error('Error registering user:', error);
+        logger.error('Error registering user:', error);
         alert('Registration failed. Please try again. error message: ' + error.message);
       });
 

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import { verifyUser } from "../services/firebaseService";
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
+import { logger } from '../utils/loggerUtils';
 
 function LoginWindow({ onClose, setLoginID }) {
   const [username, setUsername] = useState('');
@@ -28,7 +29,7 @@ function LoginWindow({ onClose, setLoginID }) {
     verifyUser(username, password)
       .then(userProfile => {
         if (userProfile) {
-          console.log('User logged in with ID:', userProfile.userId);
+          logger.info('User logged in with ID:', userProfile.userId);
           alert('Login successful!');
           setLoginID(userProfile);
           handleClose(); // Close the popup after successful login

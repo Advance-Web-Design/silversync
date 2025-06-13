@@ -1,4 +1,5 @@
 import config from '../config/api.config';
+import { logger } from '../utils/loggerUtils';
 
 
 
@@ -23,7 +24,7 @@ const API_BASE = `${config.backend.baseUrl}/api/firebase` ;
  */
 export async function addUser(username, password, email) {
 
-  console.log("Adding user:", username, email, password);
+  logger.info("Adding user:", username, email, password);
   // hash the password before sending it to the server
   const hashedPassword = await hashPassword(password);
   const res = await fetch(`${API_BASE}/register/*`, {

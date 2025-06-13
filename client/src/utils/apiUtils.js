@@ -6,6 +6,7 @@
  * making it easier to switch between direct API calls and a backend service.
  */
 import config from '../config/api.config';
+import { logger } from './loggerUtils';
 
 // Request caching mechanism
 const requestCache = new Map();
@@ -82,7 +83,7 @@ export const makeApiCall = async (endpoint, params = {}, options = {}, baseUrl) 
       
       return data;
     } catch (error) {
-      console.error(`API call to ${endpoint} failed:`, error);
+      logger.error(`API call to ${endpoint} failed:`, error);
       throw error;
     } finally {
       // Clean up pending request after completion (success or failure)
@@ -179,7 +180,7 @@ export const sessionStorageManager = {
       
       return data;
     } catch (error) {
-      console.error(`Error retrieving ${key} from session storage:`, error);
+      logger.error(`Error retrieving ${key} from session storage:`, error);
       return null;
     }
   },
@@ -198,7 +199,7 @@ export const sessionStorageManager = {
       });
       sessionStorage.setItem(key, storageValue);
     } catch (error) {
-      console.error(`Error storing ${key} in session storage:`, error);
+      logger.error(`Error storing ${key} in session storage:`, error);
     }
   },
   

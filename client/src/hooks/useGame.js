@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPersonDetails } from '../services/tmdbService';
 import { INITIAL_KNOWN_ENTITIES } from '../utils/constants';
+import { logger } from '../utils/loggerUtils';
 import { 
   validateStartActors,
   initializeGameBoard,
@@ -61,7 +62,7 @@ export const useGame = () => {
     try {
       // The startActors should already be enhanced by selectStartActor
       // which now uses the modified getPersonDetails
-      console.log("Starting game with actors (already enhanced with guest appearances):", startActors);
+      logger.info("Starting game with actors (already enhanced with guest appearances):", startActors);
     
       // Initialize the game board with the starting actors
       const { nodes, nodePositions } = initializeGameBoard(startActors);
@@ -72,7 +73,7 @@ export const useGame = () => {
       setGameStartTime(new Date().getTime());
       setGameStarted(true);
     } catch (error) {
-      console.error("Error starting game:", error);
+      logger.error("Error starting game:", error);
       setStartActorsError("Error starting game. Please try again.");
     } finally {
       setIsLoading(false);
@@ -156,7 +157,7 @@ export const useGame = () => {
       
       setActorSearchResults(prev => clearActorSearchResults(actorIndex, prev));
     } catch (error) {
-      console.error('Error selecting start actor:', error);
+      logger.error('Error selecting start actor:', error);
       // Potentially set an error state for the UI
     } finally {
       setIsLoading(false);
