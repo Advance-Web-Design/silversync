@@ -9,7 +9,6 @@
 import { stringSimilarity } from './stringUtils';
 import { getItemTitle } from './entityUtils';
 import { SIMILARITY_THRESHOLDS } from './constants';
-import { logger } from './loggerUtils';
 
 // Common words to ignore in search processing
 const COMMON_WORDS = ['the', 'and', 'movie', 'show', 'actor', 'star', 'film', 'tv', 'series'];
@@ -18,19 +17,16 @@ const COMMON_WORDS = ['the', 'and', 'movie', 'show', 'actor', 'star', 'film', 't
  * Primary local search function - searches through cached cheat sheet data
  */
 export const searchLocal = (searchTerm, cachedEntities, options = {}) => {
-  const startTime = Date.now();
-  logger.time('local-search');
-    const {
+  const {
     maxResults = 50,
     includePartialMatches = true,
     includeSimilarityMatches = true,
-    minSimilarity = SIMILARITY_THRESHOLDS.SUGGESTION,
     filterByType = null, // 'movie', 'tv', 'person' or null for all
     filterByStudio = null,
     filterByGenre = null
   } = options;
-    if (!searchTerm || !cachedEntities || cachedEntities.length === 0) {
-    logger.warn(`🔍 Local search failed: searchTerm="${searchTerm}", cachedEntities=${cachedEntities?.length || 0}`);
+
+  if (!searchTerm || !cachedEntities || cachedEntities.length === 0) {
     return { results: [], exactMatch: null, suggestions: [] };
   }
   
@@ -38,11 +34,8 @@ export const searchLocal = (searchTerm, cachedEntities, options = {}) => {
   
   // Skip very short terms or common words
   if (normalizedTerm.length < 2 || COMMON_WORDS.includes(normalizedTerm)) {
-    logger.warn(`🔍 Local search skipped: term too short or common word: "${normalizedTerm}"`);
     return { results: [], exactMatch: null, suggestions: [] };
   }
-  
-  logger.debug(`🔍 Local search starting: "${normalizedTerm}" in ${cachedEntities.length} entities`);
   
   // Apply filters first to reduce search space
   let filteredEntities = applyFilters(cachedEntities, {
@@ -50,14 +43,14 @@ export const searchLocal = (searchTerm, cachedEntities, options = {}) => {
     filterByStudio,
     filterByGenre
   });
-  
-  // Find matches
+
+  // Find matches using Levenshtein-based approach
   const exactMatches = findExactMatches(normalizedTerm, filteredEntities);
-  const partialMatches = includePartialMatches ? findPartialMatches(normalizedTerm, filteredEntities) : [];
-  const similarityMatches = includeSimilarityMatches ? findSimilarityMatches(normalizedTerm, filteredEntities, minSimilarity) : [];
+  const levenshteinMatches = includePartialMatches ? findLevenshteinMatches(normalizedTerm, filteredEntities) : [];
+  const wordMatches = includeSimilarityMatches ? findWordMatches(normalizedTerm, filteredEntities) : [];
   
   // Combine and rank results
-  const allMatches = combineAndRankMatches(exactMatches, partialMatches, similarityMatches);
+  const allMatches = combineAndRankMatches(exactMatches, levenshteinMatches, wordMatches);
   
   // Limit results
   const results = allMatches.slice(0, maxResults);
@@ -67,10 +60,6 @@ export const searchLocal = (searchTerm, cachedEntities, options = {}) => {
   
   // Generate suggestions for typos/similar terms
   const suggestions = generateSuggestions(normalizedTerm, filteredEntities, exactMatch);
-  
-  const duration = Date.now() - startTime;
-  logger.info(`🔍 Local search: "${searchTerm}" → ${results.length} results in ${duration}ms`);
-  logger.timeEnd('local-search');
   
   return {
     results: results.map(match => match.entity),
@@ -109,20 +98,19 @@ const applyFilters = (entities, filters) => {
 };
 
 /**
- * Find exact matches (case-insensitive)
+ * Find exact matches (case-insensitive) with normalization
  */
 const findExactMatches = (searchTerm, entities) => {
   const matches = [];
   
+  // Normalize search term - remove punctuation and extra spaces
+  const normalizedSearchTerm = searchTerm.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+
   entities.forEach(entity => {
     const title = getItemTitle(entity).toLowerCase().trim();
-    
-    // Debug: Log some titles being checked
-    if (title.includes('thor') || searchTerm.includes('thor')) {
-      logger.debug(`🔍 Checking entity for "thor": "${title}" vs "${searchTerm}"`);
-    }
-    
-    // Perfect match
+    const normalizedTitle = title.replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+
+    // Perfect match (original)
     if (title === searchTerm) {
       matches.push({
         entity,
@@ -132,7 +120,17 @@ const findExactMatches = (searchTerm, entities) => {
       return;
     }
     
-    // Check alternative names/titles
+    // Perfect match (normalized) - this handles punctuation differences
+    if (normalizedTitle === normalizedSearchTerm) {
+      matches.push({
+        entity,
+        score: 1.0,
+        type: 'exact-normalized'
+      });
+      return;
+    }
+
+    // Check alternative names/titles with normalization
     const alternativeNames = [
       entity.name,
       entity.title,
@@ -141,7 +139,9 @@ const findExactMatches = (searchTerm, entities) => {
     ].filter(Boolean);
     
     for (const altName of alternativeNames) {
-      if (altName.toLowerCase().trim() === searchTerm) {
+      const normalizedAltName = altName.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+      
+      if (altName.toLowerCase().trim() === searchTerm || normalizedAltName === normalizedSearchTerm) {
         matches.push({
           entity,
           score: 0.95,
@@ -152,15 +152,17 @@ const findExactMatches = (searchTerm, entities) => {
     }
   });
   
-  logger.debug(`🔍 Exact matches found: ${matches.length} for "${searchTerm}"`);
   return matches.sort((a, b) => b.score - a.score);
 };
 
 /**
- * Find partial matches (substring matches)
+ * Find matches using Levenshtein distance for better accuracy
  */
-const findPartialMatches = (searchTerm, entities) => {
+const findLevenshteinMatches = (searchTerm, entities) => {
   const matches = [];
+  
+  // Normalize search term - remove punctuation and extra spaces
+  const normalizedSearchTerm = searchTerm.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
   
   entities.forEach(entity => {
     const title = getItemTitle(entity).toLowerCase().trim();
@@ -168,43 +170,29 @@ const findPartialMatches = (searchTerm, entities) => {
     // Skip if already found as exact match
     if (title === searchTerm) return;
     
-    // Substring matching
-    if (title.includes(searchTerm) || searchTerm.includes(title)) {
-      // Calculate match quality
-      const matchPercentage = Math.min(
-        searchTerm.length / title.length,
-        title.length / searchTerm.length
-      );
-      
-      if (matchPercentage > 0.3) { // Minimum 30% overlap
-        matches.push({
-          entity,
-          score: matchPercentage * 0.8, // Lower than exact matches
-          type: 'partial'
-        });
-      }
+    // Normalize title - remove punctuation and extra spaces
+    const normalizedTitle = title.replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+    
+    // Calculate Levenshtein similarity
+    const similarity = stringSimilarity(normalizedSearchTerm, normalizedTitle);
+    
+    // Only include matches with good similarity (increased threshold to avoid false positives)
+    if (similarity >= 0.7) { // Increased from 0.5 to 0.7 for better precision
+      matches.push({
+        entity,
+        score: similarity * 0.9, // High score for Levenshtein matches
+        type: 'levenshtein'
+      });
     }
     
-    // Word-level matching
-    const searchWords = searchTerm.split(' ').filter(word => word.length > 2);
-    const titleWords = title.split(' ').filter(word => word.length > 2);
-    
-    if (searchWords.length > 0 && titleWords.length > 0) {
-      const matchingWords = searchWords.filter(searchWord =>
-        titleWords.some(titleWord => 
-          titleWord.includes(searchWord) || searchWord.includes(titleWord)
-        )
-      );
-      
-      const wordMatchRatio = matchingWords.length / searchWords.length;
-      
-      if (wordMatchRatio > 0.5) { // At least 50% of words match
-        matches.push({
-          entity,
-          score: wordMatchRatio * 0.7,
-          type: 'word-match'
-        });
-      }
+    // Also check if search term is contained in title (with normalization)
+    if (normalizedTitle.includes(normalizedSearchTerm) && normalizedSearchTerm.length >= 4) {
+      const containmentScore = Math.min(normalizedSearchTerm.length / normalizedTitle.length, 0.8);
+      matches.push({
+        entity,
+        score: containmentScore * 0.8,
+        type: 'contains'
+      });
     }
   });
   
@@ -212,24 +200,37 @@ const findPartialMatches = (searchTerm, entities) => {
 };
 
 /**
- * Find similarity-based matches using fuzzy matching
+ * Find matches based on word-level matching (for multi-word searches)
  */
-const findSimilarityMatches = (searchTerm, entities, minSimilarity) => {
+const findWordMatches = (searchTerm, entities) => {
   const matches = [];
+  
+  // Only do word matching for multi-word searches
+  const searchWords = searchTerm.split(' ').filter(word => word.length >= 3);
+  if (searchWords.length < 2) return matches;
   
   entities.forEach(entity => {
     const title = getItemTitle(entity).toLowerCase().trim();
+    const titleWords = title.split(' ').filter(word => word.length >= 3);
     
-    // Skip very short titles or common words
-    if (title.length < 3 || COMMON_WORDS.includes(title)) return;
+    if (titleWords.length === 0) return;
     
-    const similarity = stringSimilarity(searchTerm, title);
+    // Count words that have good similarity
+    const matchingWords = searchWords.filter(searchWord =>
+      titleWords.some(titleWord => {
+        const wordSimilarity = stringSimilarity(searchWord, titleWord);
+        return wordSimilarity >= 0.7; // High threshold for word similarity
+      })
+    );
     
-    if (similarity >= minSimilarity) {
+    const wordMatchRatio = matchingWords.length / searchWords.length;
+    
+    // Require at least 50% of words to match well
+    if (wordMatchRatio >= 0.5) {
       matches.push({
         entity,
-        score: similarity * 0.6, // Lower than partial matches
-        type: 'similarity'
+        score: wordMatchRatio * 0.6, // Lower than Levenshtein matches
+        type: 'word-match'
       });
     }
   });

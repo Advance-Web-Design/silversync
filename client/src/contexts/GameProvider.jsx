@@ -324,17 +324,23 @@ export const GameProvider = ({ children }) => {
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
-    setIsLoading(true);
-
-    try {
+    setIsLoading(true);    try {
       // Use local cache search instead of TMDB API
       const searchResult = searchState.performLocalSearch(term, nodes);
       
       const duration = Date.now() - startTime;
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
-      logger.timeEnd('search-operation');
       
-      // Process local search results
+      // Debug: Log what we're searching for and what we found
+      logger.debug(`🔍 Search term: "${term}"`);
+      logger.debug(`🔍 Search results:`, searchResult.results.map(r => ({ 
+        title: r.title || r.name, 
+        type: r.media_type, 
+        id: r.id 
+      })).slice(0, 10));
+      
+      logger.timeEnd('search-operation');
+        // Process local search results
       if (searchResult.results.length === 0) {
         setNoMatchFound(true);
         logger.info(`🚫 No results found for: "${term}"`);
@@ -342,6 +348,16 @@ export const GameProvider = ({ children }) => {
         setSearchResults(searchResult.results);
         setExactMatch(searchResult.exactMatch);
         setNoMatchFound(false);
+        
+        // Mark search results as connectable for UI filtering
+        const newConnectableItems = {};
+        searchResult.results.forEach(item => {
+          const itemKey = `${item.media_type}-${item.id}`;
+          newConnectableItems[itemKey] = true; // Assume all search results are potentially connectable
+        });
+        setConnectableItems(prev => ({ ...prev, ...newConnectableItems }));
+        
+        logger.info(`✅ Marked ${searchResult.results.length} search results as connectable`);
       }
 
     } catch (error) {

@@ -106,11 +106,20 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors) => {
     );
     
     // Filter out entities already on board
-    const filteredEntities = filterExistingBoardEntities(uniqueEntities, nodes);
-      const duration = Date.now() - startTime;
+    const filteredEntities = filterExistingBoardEntities(uniqueEntities, nodes);    const duration = Date.now() - startTime;
     logger.info(`🎯 Cheat sheet generated: ${filteredEntities.length} entities in ${duration}ms`);
+      // Debug: Log some entities for debugging
+    const spiderEntities = filteredEntities.filter(e => 
+      (e.title || e.name || '').toLowerCase().includes('spider')
+    );
+    if (spiderEntities.length > 0) {
+      logger.debug(`🕷️ Found Spider entities:`, spiderEntities.map(e => e.title || e.name));
+    } else {
+      logger.debug(`🕷️ No Spider entities found. Sample entities:`, 
+        filteredEntities.slice(0, 15).map(e => e.title || e.name)
+      );
+    }
     
-    // Debug: Log some entities for debugging
     const thorEntities = filteredEntities.filter(e => 
       (e.title || e.name || '').toLowerCase().includes('thor') ||
       (e.title || e.name || '').toLowerCase().includes('captain')
