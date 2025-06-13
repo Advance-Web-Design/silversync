@@ -1,5 +1,12 @@
 // Entity-specific utility functions for handling people, movies, and TV shows
 import { getPersonDetails, getMovieDetails, getTvShowDetails, findPersonGuestAppearances } from '../services/tmdbService';
+import { 
+  createConnectionIndex, 
+  findPersonConnectionsOptimized, 
+  findMovieConnectionsOptimized, 
+  findTvShowConnectionsOptimized,
+  batchCheckConnectability 
+} from './connectionOptimizer';
 import { logger } from './loggerUtils';
 
 /**
@@ -54,22 +61,6 @@ async function ensureActorDetails(actor, getPersonDetailsFn) {
   
   // Otherwise fetch full details
   return await getPersonDetailsFn(actor.id);
-}
-
-/**
- * Creates a connection object between two nodes
- * @param {string} sourceId - Source node ID
- * @param {string} targetId - Target node ID
- * @param {Object} options - Additional connection options
- * @returns {Object} - Connection object
- */
-function createConnection(sourceId, targetId, options = {}) {
-  return {
-    id: `${sourceId}-${targetId}`,
-    source: sourceId,
-    target: targetId,
-    ...options
-  };
 }
 
 /**
@@ -272,7 +263,7 @@ export const processPersonDetails = async (personId) => {
 };
 
 /**
- * Find connections between a person and existing nodes
+ * Find connections between a person and existing nodes (OPTIMIZED)
  * 
  * @param {Object} person - Person object with complete details
  * @param {Array} nodes - Existing nodes on the board
@@ -280,48 +271,12 @@ export const processPersonDetails = async (personId) => {
  * @returns {Array} - Array of connections
  */
 export const findPersonConnections = (person, nodes, personNodeId) => {
-  const connections = [];
-  
-  // Get this actor's movie and TV credits
-  const movieCredits = person.movie_credits?.cast || [];
-  const tvCredits = person.tv_credits?.cast || [];
-  
-  logger.debug(`Actor has ${movieCredits.length} movie credits and ${tvCredits.length} TV credits`);
-  
-  // Check existing nodes for potential connections
-  nodes.forEach(existingNode => {
-    // Check for connections with movies
-    if (existingNode.type === 'movie') {
-      const isConnected = movieCredits.some(credit => credit.id === existingNode.data.id);
-      if (isConnected) {
-        logger.debug(`Found connection between ${personNodeId} and movie ${existingNode.id}`);
-        connections.push(createConnection(personNodeId, existingNode.id));
-      }
-    } 
-    // Check for connections with TV shows - including guest appearances
-    else if (existingNode.type === 'tv') {
-      // Find the credit information for this TV show
-      const creditInfo = tvCredits.find(credit => credit.id === existingNode.data.id);
-      const isConnected = !!creditInfo;
-      
-      if (isConnected) {
-        const isGuestAppearance = creditInfo.is_guest_appearance || false;
-        
-        logger.debug(`Found connection between ${personNodeId} and TV show ${existingNode.id}`);
-        if (isGuestAppearance) {
-          logger.debug(`(Guest star appearance)`);
-        }
-        
-        connections.push(createConnection(personNodeId, existingNode.id, { isGuestAppearance }));
-      }
-    }
-  });
-  
-  return connections;
+  const connectionIndex = createConnectionIndex(nodes);
+  return findPersonConnectionsOptimized(person, connectionIndex, personNodeId);
 };
 
 /**
- * Find connections between a movie and existing nodes
+ * Find connections between a movie and existing nodes (OPTIMIZED)
  * 
  * @param {Object} movie - Movie object with complete details
  * @param {Array} nodes - Existing nodes on the board
@@ -329,28 +284,12 @@ export const findPersonConnections = (person, nodes, personNodeId) => {
  * @returns {Array} - Array of connections
  */
 export const findMovieConnections = (movie, nodes, movieNodeId) => {
-  const connections = [];
-  
-  // Get the movie's cast
-  const cast = movie.credits?.cast || [];
-  logger.debug(`Movie has ${cast.length} cast members`);
-  
-  // Check if any actor on the board is in this movie's cast
-  nodes.forEach(existingNode => {
-    if (existingNode.type === 'person') {
-      const isConnected = cast.some(actor => actor.id === existingNode.data.id);
-      if (isConnected) {
-        logger.debug(`Found connection between movie ${movieNodeId} and actor ${existingNode.id}`);
-        connections.push(createConnection(existingNode.id, movieNodeId));
-      }
-    }
-  });
-  
-  return connections;
+  const connectionIndex = createConnectionIndex(nodes);
+  return findMovieConnectionsOptimized(movie, connectionIndex, movieNodeId);
 };
 
 /**
- * Find connections between a TV show and existing nodes
+ * Find connections between a TV show and existing nodes (OPTIMIZED)
  * 
  * @param {Object} tvShow - TV show object with complete details
  * @param {Array} nodes - Existing nodes on the board
@@ -358,38 +297,8 @@ export const findMovieConnections = (movie, nodes, movieNodeId) => {
  * @returns {Array} - Array of connections
  */
 export const findTvShowConnections = (tvShow, nodes, tvNodeId) => {
-  const connections = [];
-  
-  // Get the TV show's cast
-  const cast = tvShow.credits?.cast || [];
-  logger.debug(`TV show has ${cast.length} cast members`);
-  
-  // Check for connections with actors on the board
-  nodes.forEach(existingNode => {
-    if (existingNode.type === 'person') {
-      const actorId = existingNode.data.id;
-      
-      // First check regular cast
-      const isInRegularCast = cast.some(actor => actor.id === actorId);
-      
-      if (isInRegularCast) {
-        logger.debug(`Found regular cast connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
-        connections.push(createConnection(existingNode.id, tvNodeId));
-      } else {
-        // If not in regular cast, check if this actor has this TV show in their credits
-        const tvCredits = existingNode.data.tv_credits?.cast || [];
-        const creditInfo = tvCredits.find(credit => credit.id === tvShow.id);
-        
-        if (creditInfo) {
-          const isGuestAppearance = creditInfo.is_guest_appearance || false;
-          logger.debug(`Found ${isGuestAppearance ? 'guest appearance' : 'cast'} connection between TV show ${tvNodeId} and actor ${existingNode.id}`);
-          connections.push(createConnection(existingNode.id, tvNodeId, { isGuestAppearance }));
-        }
-      }
-    }
-  });
-  
-  return connections;
+  const connectionIndex = createConnectionIndex(nodes);
+  return findTvShowConnectionsOptimized(tvShow, connectionIndex, tvNodeId);
 };
 
 /**

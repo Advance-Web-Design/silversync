@@ -1,6 +1,7 @@
 // Board-specific utility functions
 import { getItemTitle } from './entityUtils';
 import { logger } from './loggerUtils';
+import { findPathBetweenNodesOptimized, clearPathCache } from './connectionOptimizer';
 
 // Constants for node positioning
 export const DEFAULT_NODE_POSITION = { x: 250, y: 250 };
@@ -92,7 +93,7 @@ export const saveEntityToLocalDatabase = (entity) => {
 };
 
 /**
- * Check if a path exists between two nodes using BFS algorithm
+ * Check if a path exists between two nodes using BFS algorithm (OPTIMIZED)
  * 
  * @param {string} startNodeId - Starting node ID
  * @param {string} endNodeId - Ending node ID
@@ -100,55 +101,7 @@ export const saveEntityToLocalDatabase = (entity) => {
  * @returns {Object} - Path information {found, path, pathNodes}
  */
 export const findPathBetweenNodes = (startNodeId, endNodeId, connections) => {
-  // Use BFS to find the shortest path
-  const visited = new Set();
-  const queue = [{ id: startNodeId, path: [startNodeId], pathNodes: [startNodeId] }];
-  
-  // Create an adjacency list for faster lookups
-  const adjacencyList = {};
-  connections.forEach(conn => {
-    if (!adjacencyList[conn.source]) adjacencyList[conn.source] = [];
-    if (!adjacencyList[conn.target]) adjacencyList[conn.target] = [];
-    
-    adjacencyList[conn.source].push({ 
-      id: conn.target,
-      connection: conn
-    });
-    adjacencyList[conn.target].push({ 
-      id: conn.source,
-      connection: conn
-    });
-  });
-  
-  while (queue.length > 0) {
-    const { id: currentNodeId, path, pathNodes } = queue.shift();
-    
-    if (currentNodeId === endNodeId) {
-      return { found: true, path, pathNodes };
-    }
-    
-    if (!visited.has(currentNodeId)) {
-      visited.add(currentNodeId);
-        // Get all connections for the current node
-      const neighbors = adjacencyList[currentNodeId] || [];
-      
-      for (const { id: neighborId } of neighbors) {
-        if (!visited.has(neighborId)) {
-          // Add this neighbor to the queue with updated path
-          const newPath = [...path, neighborId];
-          const newPathNodes = [...pathNodes, neighborId];
-          queue.push({ 
-            id: neighborId, 
-            path: newPath,
-            pathNodes: newPathNodes
-          });
-        }
-      }
-    }
-  }
-  
-  // If we get here, no path exists
-  return { found: false, path: [], pathNodes: [] };
+  return findPathBetweenNodesOptimized(startNodeId, endNodeId, connections);
 };
 
 /**
@@ -200,4 +153,11 @@ export const fetchRandomUniqueActor = async (actorIndex, startActors, fetchRando
   }
 
   return randomActor;
+};
+
+/**
+ * Clear the path cache when board state changes significantly
+ */
+export const clearConnectionCache = () => {
+  clearPathCache();
 };

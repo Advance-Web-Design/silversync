@@ -22,7 +22,7 @@ import {
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
 import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
-import { fetchRandomUniqueActor } from '../utils/boardUtils';
+import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
 
@@ -189,8 +189,7 @@ export const GameProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-  /**
+  };  /**
    * Resets the game to initial state
    * Clears board, connections, and search results
    */
@@ -205,6 +204,8 @@ export const GameProvider = ({ children }) => {
     );
     // Also reset search input and state
     searchState.resetSearch();
+    // Clear connection cache for optimized performance
+    clearConnectionCache();
   };
 
   /**
@@ -236,7 +237,7 @@ export const GameProvider = ({ children }) => {
    * This ensures the function is called with the correct state setters
    * 
    * @param {string} query - Search query for actors
-   * @param {number} actorIndex - Index of the actor position (0 or 1)
+   * @param {number} actorIndex - Index of the actor position to fill (0 or 1)
    * @param {number} page - Page number for pagination
    */
   const searchStartActorsWrapper = (query, actorIndex, page) => {
@@ -325,13 +326,15 @@ export const GameProvider = ({ children }) => {
     setNoMatchFound(false);
     setIsLoading(true);
 
-    try {      // Use local cache search instead of TMDB API
+    try {
+      // Use local cache search instead of TMDB API
       const searchResult = searchState.performLocalSearch(term, nodes);
       
       const duration = Date.now() - startTime;
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
       logger.timeEnd('search-operation');
-        // Process local search results
+      
+      // Process local search results
       if (searchResult.results.length === 0) {
         setNoMatchFound(true);
         logger.info(`🚫 No results found for: "${term}"`);
