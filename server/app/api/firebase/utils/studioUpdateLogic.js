@@ -16,32 +16,117 @@
 import { getDatabase, ref, set, get } from 'firebase/database';
 import { initializeFirebase } from './firebaseLogic.js';
 
-// Company configuration - Using TMDB company IDs for licensed IP umbrellas
-const COMPANIES = [
-  { id: 420, name: 'Marvel Studios', key: 'marvel', type: 'production' },
+// Define companies split into 4 weekly quarters (optimized for 55-second limit)
+const WEEKLY_QUARTERS = [
+  // Week 1 - Marvel, Marvel, Marvel, Universal (4 companies, ~44.9s)
+  { id: 420, name: 'Marvel Studios', key: 'marvel_studios', type: 'production' },
+  { id: 13252, name: 'Marvel Comics', key: 'marvel_comics', type: 'production' },
   { id: 7505, name: 'Marvel Entertainment', key: 'marvel_entertainment', type: 'production' },
-  { id: 2, name: 'Walt Disney Pictures', key: 'disney', type: 'production' },
-  { id: 6125, name: 'Walt Disney Animation Studios', key: 'disney_animation', type: 'production' },
-  { id: 9993, name: 'DC Entertainment', key: 'dc', type: 'production' },
-  { id: 429, name: 'DC Comics', key: 'dc_comics', type: 'production' },
-  { id: 1, name: 'Lucasfilm', key: 'lucasfilm', type: 'production' },
-  { id: 3, name: 'Pixar Animation Studios', key: 'pixar', type: 'production' },
-  { id: 33, name: 'Universal Pictures', key: 'universal', type: 'production' },
-  { id: 4, name: 'Paramount Pictures', key: 'paramount', type: 'production' }
+  { id: 33, name: 'Universal Pictures', key: 'universal_pictures', type: 'production' },
 ];
 
-// Rate limiting configuration
-const BATCH_SIZE = 5;
-const BATCH_DELAY = 1000; // 1 second between batches
-const MAX_ITEMS_PER_COMPANY = 80; // Increased for company-based aggregation
-const MAX_PAGES_PER_QUERY = 2; // Fetch multiple pages for better coverage
+const WEEKLY_QUARTERS_2 = [
+  // Week 2 - Walt, Walt, Pixar, 20th (4 companies, ~44.9s)
+  { id: 2, name: 'Walt Disney Pictures', key: 'walt_disney_pictures', type: 'production' },
+  { id: 6125, name: 'Walt Disney Animation Studios', key: 'walt_disney_animation_studios', type: 'production' },
+  { id: 3, name: 'Pixar Animation Studios', key: 'pixar_animation_studios', type: 'production' },
+  { id: 25, name: '20th Century Fox', key: '20th_century_fox', type: 'production' },
+];
 
-// Cache control
-let lastUpdateCheck = null;
-let updateInProgress = false;
+const WEEKLY_QUARTERS_3 = [
+  // Week 3 - DC, DC, Lucasfilm, Paramount (4 companies, ~44.9s)
+  { id: 429, name: 'DC Comics', key: 'dc_comics', type: 'production' },
+  { id: 9993, name: 'DC Entertainment', key: 'dc_entertainment', type: 'production' },
+  { id: 1, name: 'Lucasfilm', key: 'lucasfilm', type: 'production' },
+  { id: 4, name: 'Paramount Pictures', key: 'paramount_pictures', type: 'production' },
+];
+
+const WEEKLY_QUARTERS_4 = [
+  // Week 4 - Columbia, Sony, CBS, Lionsgate (4 companies, ~44.9s)
+  { id: 5, name: 'Columbia Pictures', key: 'columbia_pictures', type: 'production' },
+  { id: 11073, name: 'Sony Pictures Television', key: 'sony_pictures_television', type: 'production' },
+  { id: 1081, name: 'CBS Studios', key: 'cbs_studios', type: 'production' },
+  { id: 1632, name: 'Lionsgate', key: 'lionsgate', type: 'production' },
+];
+
+const WEEKLY_QUARTERS_5 = [
+  // Week 5 - Extended Rotation (4 companies, ~44.9s)
+  { id: 38679, name: 'Marvel Television', key: 'marvel_television', type: 'production' },
+  { id: 670, name: 'Walt Disney Television', key: 'walt_disney_television', type: 'production' },
+  { id: 3475, name: 'Disney Television Animation', key: 'disney_television_animation', type: 'production' },
+  { id: 3614, name: 'Columbia Pictures Television', key: 'columbia_pictures_television', type: 'production' },
+];
+
+const ALL_QUARTERS = [WEEKLY_QUARTERS, WEEKLY_QUARTERS_2, WEEKLY_QUARTERS_3, WEEKLY_QUARTERS_4, WEEKLY_QUARTERS_5];
+
+const WEEKLY_UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const TOTAL_WEEKS = 5; // Updated to 5-week rotation
+
+// ==================== UTILITY FUNCTIONS ====================
 
 /**
- * Get studio cache data from Firebase
+ * Compress studio item for storage (matches client-side compression)
+ */
+function compressStudioItem(item, details = null) {
+  if (!item) return null;
+  
+  // Extract primary company name from production companies or use existing company field
+  const primaryCompany = item.production_companies?.[0]?.name || item.company || item.studio;
+  
+  return {
+    id: item.id,
+    title: item.title || item.name,
+    poster_path: item.poster_path,
+    media_type: item.media_type,
+    popularity: item.popularity,
+    release_date: item.release_date || item.first_air_date,
+    vote_average: item.vote_average,
+    studio: primaryCompany, // For frontend compatibility
+    company: primaryCompany, // For frontend compatibility
+    cast: item.cast || (details?.credits?.cast ? details.credits.cast.slice(0, 50).map(actor => ({
+      id: actor.id,
+      name: actor.name,
+      character: actor.character,
+      order: actor.order,
+      profile_path: actor.profile_path
+    })) : []),
+    overview: item.overview ? item.overview.substring(0, 200) + '...' : null,
+    genre_ids: item.genre_ids?.slice(0, 3) || []
+  };
+}
+
+/**
+ * Extract search terms from title/text
+ */
+function extractSearchTerms(text) {
+  if (!text) return [];
+  
+  const terms = [text.toLowerCase()]; // Full text
+  
+  // Split into words
+  const words = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2);
+  
+  terms.push(...words);
+    return [...new Set(terms)]; // Remove duplicates
+}
+
+function getWeekOfMonth() {
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstSunday = new Date(firstDayOfMonth);
+  firstSunday.setDate(firstDayOfMonth.getDate() + (7 - firstDayOfMonth.getDay()) % 7);
+  
+  if (now < firstSunday) return 0;
+  
+  const daysSinceFirstSunday = Math.floor((now - firstSunday) / (24 * 60 * 60 * 1000));
+  return Math.min(Math.floor(daysSinceFirstSunday / 7), 4); // Updated to support 5 weeks (0-4)
+}
+
+/**
+ * Get studio cache data from Firebase in the format expected by frontend
  */
 export async function getStudioCacheData() {
   try {
@@ -50,14 +135,25 @@ export async function getStudioCacheData() {
       throw new Error('Firebase database not available');
     }
 
-    const cacheRef = ref(db, 'studio-cache');
-    const snapshot = await get(cacheRef);
+    // Fetch both cache and search index
+    const [studioCacheSnapshot, searchIndexSnapshot, metadataSnapshot] = await Promise.all([
+      get(ref(db, 'studio-cache')),
+      get(ref(db, 'search-index')),
+      get(ref(db, 'update-metadata'))
+    ]);
     
-    if (snapshot.exists()) {
-      return snapshot.val();
+    // Return in the format expected by frontend: { "studio-cache": {...}, "search-index": {...} }
+    const result = {
+      'studio-cache': studioCacheSnapshot.exists() ? studioCacheSnapshot.val() : {},
+      'search-index': searchIndexSnapshot.exists() ? searchIndexSnapshot.val() : {}
+    };
+    
+    // Add metadata if available
+    if (metadataSnapshot.exists()) {
+      result.metadata = metadataSnapshot.val();
     }
     
-    return null;
+    return result;
   } catch (error) {
     console.error('Error getting studio cache data:', error);
     return null;
@@ -67,487 +163,377 @@ export async function getStudioCacheData() {
 /**
  * Main function to update studio cache data
  */
-export async function updateStudioCacheData() {
-  if (updateInProgress) {
-    console.log('🔄 Studio update already in progress, skipping');
-    return false;
-  }
-
-  updateInProgress = true;
-  console.log('🚀 Starting studio cache update...');
-  console.time('studio-cache-update');
-
+export async function updateStudioCacheData(options = {}) {
+  const { reason = 'weekly_rotation', scheduled = false } = options;
+  
+  console.log(`🔄 Weekly studio cache update triggered - Reason: ${reason}`);
+  
   try {
-    const { db } = initializeFirebase();
-    if (!db) {
-      throw new Error('Firebase database not available');
-    }    const studioData = {
-      version: new Date().toISOString(),
-      lastUpdated: Date.now(),
-      companies: {},
-      searchIndex: {},
-      totalCompanies: COMPANIES.length
-    };
-
-    let totalItems = 0;
-    const searchTerms = new Map();
-
-    // Process each company with rate limiting
-    for (const company of COMPANIES) {
-      console.log(`🏢 Processing ${company.name} (ID: ${company.id})...`);
-      
-      try {
-        const companyItems = await processCompanyWithRateLimit(company);
-        studioData.companies[company.key] = {
-          name: company.name,
-          id: company.id,
-          type: company.type,
-          items: companyItems,
-          itemCount: companyItems.length,
-          lastProcessed: Date.now()
-        };
-
-        // Build search index for this company
-        companyItems.forEach(item => {
-          const terms = extractSearchTerms(item.title || item.name);
-          terms.forEach(term => {
-            const normalizedTerm = term.toLowerCase();
-            if (!searchTerms.has(normalizedTerm)) {
-              searchTerms.set(normalizedTerm, []);
-            }
-            searchTerms.get(normalizedTerm).push(`${company.key}.${item.id}`);
-          });
-        });
-
-        totalItems += companyItems.length;
-        console.log(`✅ ${company.name}: ${companyItems.length} items processed`);
-        
-      } catch (error) {
-        console.error(`❌ Error processing ${company.name}:`, error);
-        // Continue with other companies
-        studioData.companies[company.key] = {
-          name: company.name,
-          id: company.id,
-          type: company.type,
-          items: [],
-          itemCount: 0,
-          error: error.message,
-          lastProcessed: Date.now()
-        };
-      }
+    // Determine which quarter to update this week
+    const weekOfMonth = getWeekOfMonth();
+    const companiesToUpdate = ALL_QUARTERS[weekOfMonth];
+    
+    if (!companiesToUpdate) {
+      throw new Error(`Invalid week: ${weekOfMonth + 1}. Must be between 1 and ${ALL_QUARTERS.length}`);
+    }
+    
+    console.log(`📅 [WEEK ${weekOfMonth + 1}] Updating ${companiesToUpdate.length} companies:`);
+    companiesToUpdate.forEach(company => {
+      console.log(`   - ${company.name} (ID: ${company.id})`);
+    });
+      // Check if this week's data needs updating
+    const currentCache = await getStudioCacheData();
+    if (!needsWeeklyUpdate(currentCache, weekOfMonth)) {
+      console.log(`📅 Week ${weekOfMonth + 1} data is still fresh, skipping update`);
+      return { 
+        skipped: true, 
+        reason: 'Week data is still fresh',
+        week: weekOfMonth + 1,
+        companies: companiesToUpdate.map(c => c.name),
+        nextUpdateDue: getNextWeekUpdate()
+      };
     }
 
-    // Convert search terms map to object
-    studioData.searchIndex = Object.fromEntries(searchTerms);    // Save to Firebase
-    const cacheRef = ref(db, 'studio-cache');
-    await set(cacheRef, studioData);
-
-    console.timeEnd('studio-cache-update');
-    console.log(`🎉 Company cache update complete: ${totalItems} items across ${COMPANIES.length} companies, ${searchTerms.size} search terms`);
+    // Perform the weekly update
+    const startTime = Date.now();
+    const weekData = await fetchWeekCompaniesData(companiesToUpdate);
     
-    return true;
-
+    // Update the aggregated cache and search index in Firebase
+    await updateStudioCache(weekData);
+      // Update metadata for tracking
+    const updatedMetadata = {
+      weeks: {
+        ...(currentCache?.metadata?.weeks || {}),
+        [weekOfMonth]: {
+          lastUpdated: new Date().toISOString(),
+          companies: companiesToUpdate.map(c => c.key),
+          companyNames: companiesToUpdate.map(c => c.name),
+          itemCount: Object.keys(weekData.cacheEntries).length,
+          updateDuration: Date.now() - startTime,
+          weekOfMonth: weekOfMonth + 1
+        }
+      },
+      lastUpdated: new Date().toISOString(),
+      updateReason: reason,
+      version: `v${Date.now()}-w${weekOfMonth + 1}`,      updateCycle: {
+        currentWeek: weekOfMonth + 1,
+        totalWeeks: 5,
+        monthlyProgress: `${weekOfMonth + 1}/5`,
+        nextWeekCompanies: ALL_QUARTERS[(weekOfMonth + 1) % 5].map(c => c.name)
+      }
+    };
+    
+    await updateMetadata(updatedMetadata);
+      const result = {
+      updated: true,
+      week: weekOfMonth + 1,
+      companies: companiesToUpdate.map(c => c.name),
+      duration: Date.now() - startTime,
+      itemCount: Object.keys(weekData.cacheEntries).length,
+      reason,
+      scheduled,
+      nextWeekUpdate: getNextWeekUpdate(),
+      totalCachedItems: Object.keys(weekData.cacheEntries).length,
+      monthlyProgress: `${weekOfMonth + 1}/5 weeks completed`
+    };
+    
+    console.log(`✅ Weekly update completed:`, result);
+    return result;
+    
   } catch (error) {
-    console.error('❌ Studio cache update failed:', error);
-    return false;
-  } finally {
-    updateInProgress = false;
+    console.error('❌ Weekly studio cache update failed:', error);
+    throw error;
   }
 }
 
-/**
- * Process a single company with rate limiting
- */
-async function processCompanyWithRateLimit(company) {
-  try {
-    // Get content from the company using multiple strategies
-    const [movies, tvShows, companyDetails] = await Promise.all([
-      fetchCompanyMovies(company.id),
-      fetchCompanyTvShows(company.id),
-      fetchCompanyDetails(company.id)
-    ]);
+function needsWeeklyUpdate(cacheData, weekIndex) {
+  if (!cacheData?.metadata?.weeks?.[weekIndex]?.lastUpdated) {
+    return true;
+  }
+  
+  const lastUpdate = new Date(cacheData.metadata.weeks[weekIndex].lastUpdated);
+  const timeSinceUpdate = Date.now() - lastUpdate.getTime();
+  return timeSinceUpdate > WEEKLY_UPDATE_INTERVAL;
+}
 
-    const allItems = [...movies, ...tvShows];
-    
-    // Sort by popularity and limit items
-    const sortedItems = allItems
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-      .slice(0, MAX_ITEMS_PER_COMPANY);
-    
-    console.log(`📊 ${company.name}: Found ${allItems.length} items, processing top ${sortedItems.length}`);
-    
-    // Process items in batches with delays
-    const processedItems = [];
-    
-    for (let i = 0; i < sortedItems.length; i += BATCH_SIZE) {
-      const batch = sortedItems.slice(i, i + BATCH_SIZE);
+function getNextWeekUpdate() {
+  const now = new Date();
+  const nextSunday = new Date(now);
+  nextSunday.setDate(now.getDate() + (7 - now.getDay()));
+  nextSunday.setHours(2, 0, 0, 0);
+  return nextSunday.toISOString();
+}
+
+async function fetchWeekCompaniesData(companies) {
+  const allCacheEntries = {};
+  const allSearchTerms = {};
+  
+  console.log(`📡 Fetching data for ${companies.length} companies...`);
+  
+  for (const company of companies) {
+    try {
+      const startTime = Date.now();
+      const data = await fetchCompanyDataFromTMDB(company);
+      console.log(`✅ Fetched ${company.name} in ${Date.now() - startTime}ms`);
       
-      // Add delay between batches (except first)
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
-      }
+      // Aggregate cache entries
+      Object.assign(allCacheEntries, data.cacheEntries);
       
-      const batchPromises = batch.map(async (item) => {
-        try {
-          const details = await fetchItemDetails(item);
-          return compressCompanyItem(item, details, company.name);
-        } catch (error) {
-          console.warn(`Failed to process item ${item.id}:`, error.message);
-          return compressCompanyItem(item, null, company.name);
-        }
+      // Merge search terms
+      Object.entries(data.searchTerms).forEach(([term, cacheKeys]) => {
+        if (!allSearchTerms[term]) allSearchTerms[term] = [];
+        allSearchTerms[term].push(...cacheKeys);
+        allSearchTerms[term] = [...new Set(allSearchTerms[term])]; // Remove duplicates
       });
       
-      const batchResults = await Promise.all(batchPromises);
-      processedItems.push(...batchResults.filter(Boolean));
-      
-      console.log(`📦 Processed batch ${Math.floor(i/BATCH_SIZE) + 1} for ${company.name}: ${batchResults.length} items`);
+    } catch (error) {
+      console.warn(`❌ Failed to fetch ${company.name}:`, error);
     }
-    
-    return processedItems;
-    
-  } catch (error) {
-    console.error(`Error processing company ${company.name}:`, error);
-    return [];
   }
+  
+  return { 
+    cacheEntries: allCacheEntries,
+    searchTerms: allSearchTerms
+  };
 }
 
 /**
- * Fetch popular movies for a company
+ * Fetch company data from TMDB - Movies, TV shows, and Cast
  */
-async function fetchCompanyMovies(companyId) {
+async function fetchCompanyDataFromTMDB(company) {
+  console.log(`📡 Fetching TMDB data for ${company.name} (ID: ${company.id})`);
+  
   try {
-    const allMovies = [];
+    // Fetch movies and TV shows with rate limiting
+    await rateLimitedDelay();
+    const [moviesData, tvData] = await Promise.all([
+      fetchMoviesForCompany(company.id),
+      fetchTVShowsForCompany(company.id)
+    ]);
     
-    // Fetch multiple pages for better coverage
-    for (let page = 1; page <= MAX_PAGES_PER_QUERY; page++) {
-      const response = await fetch(
-        `https://api.themoviedb.org/3/discover/movie?with_companies=${companyId}&sort_by=popularity.desc&page=${page}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        if (page === 1) {
-          throw new Error(`TMDB API error: ${response.status}`);
-        }
-        break; // Stop if later pages fail
-      }
-
-      const data = await response.json();
-      if (!data.results || data.results.length === 0) {
-        break; // No more results
-      }
+    // Process and create cache-ready items
+    const cacheEntries = {};
+    const searchTerms = {};
+    const cacheKeys = [];
+      // Process movies with rate limiting
+    for (const movie of moviesData.results?.slice(0, 20) || []) { // Limit to top 20
+      await rateLimitedDelay();
+      const enhancedMovie = await enhanceWithFullDetails(movie, 'movie');
+      const cacheKey = `${company.key}-item-${movie.id}`; // Simplified key format
       
-      allMovies.push(...data.results.map(movie => ({
-        ...movie,
-        media_type: 'movie'
-      })));
+      // Create cache-ready entry
+      cacheEntries[cacheKey] = createCacheReadyItem(enhancedMovie, cacheKey, company);
+      cacheKeys.push(cacheKey);
       
-      // Add small delay between pages
-      if (page < MAX_PAGES_PER_QUERY) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+      // Build search index
+      addToSearchIndex(searchTerms, enhancedMovie, cacheKey);
     }
     
-    return allMovies;
+    // Process TV shows with rate limiting
+    for (const show of tvData.results?.slice(0, 20) || []) { // Limit to top 20
+      await rateLimitedDelay();
+      const enhancedShow = await enhanceWithFullDetails(show, 'tv');
+      const cacheKey = `${company.key}-item-${show.id}`; // Simplified key format
+      
+      // Create cache-ready entry
+      cacheEntries[cacheKey] = createCacheReadyItem(enhancedShow, cacheKey, company);
+      cacheKeys.push(cacheKey);
+      
+      // Build search index
+      addToSearchIndex(searchTerms, enhancedShow, cacheKey);
+    }
+      return {
+      cacheEntries,    // Ready to store directly in Firebase
+      searchTerms     // Ready to merge into search index
+    };
     
   } catch (error) {
-    console.error(`Error fetching movies for company ${companyId}:`, error);
-    return [];
+    console.error(`Failed to fetch data for ${company.name}:`, error);
+    throw error;
   }
 }
 
-/**
- * Fetch popular TV shows for a company
- */
-async function fetchCompanyTvShows(companyId) {
-  try {
-    const allShows = [];
-    
-    // Fetch multiple pages for better coverage
-    for (let page = 1; page <= MAX_PAGES_PER_QUERY; page++) {
-      const response = await fetch(
-        `https://api.themoviedb.org/3/discover/tv?with_companies=${companyId}&sort_by=popularity.desc&page=${page}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        if (page === 1) {
-          throw new Error(`TMDB API error: ${response.status}`);
-        }
-        break; // Stop if later pages fail
-      }
-
-      const data = await response.json();
-      if (!data.results || data.results.length === 0) {
-        break; // No more results
-      }
-      
-      allShows.push(...data.results.map(show => ({
-        ...show,
-        media_type: 'tv'
-      })));
-      
-      // Add small delay between pages
-      if (page < MAX_PAGES_PER_QUERY) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-    }
-    
-    return allShows;
-    
-  } catch (error) {
-    console.error(`Error fetching TV shows for company ${companyId}:`, error);
-    return [];
+function createCacheReadyItem(item, cacheKey, company) {
+  // Compress data exactly as client expects
+  const compressed = compressStudioItem(item);
+  
+  // Extract all production companies from TMDB response
+  const productionCompanies = item.production_companies || [];
+  const allCompanies = productionCompanies.map(pc => ({
+    id: pc.id,
+    name: pc.name,
+    logo_path: pc.logo_path,
+    origin_country: pc.origin_country
+  }));
+  
+  // Ensure the discovery company is included if not already present
+  const discoveryCompanyExists = allCompanies.some(pc => pc.name === company.name);
+  if (!discoveryCompanyExists) {
+    allCompanies.unshift({
+      id: company.id,
+      name: company.name,
+      logo_path: null,
+      origin_country: null
+    });
   }
+  
+  return {
+    // Core cache data
+    ...compressed,
+    
+    // Enhanced company information
+    production_companies: allCompanies,
+    primary_company: company.name, // Keep track of discovery company
+      // Cache metadata (only what's actually used)
+    cache_tier: "warm", // Used by frontend cache system
+    
+    // Game metadata (for connections)  
+    media_type: item.media_type
+  };
 }
 
-/**
- * Fetch company details for additional metadata
- */
-async function fetchCompanyDetails(companyId) {
-  try {
-    const response = await fetch(
-      `https://api.themoviedb.org/3/company/${companyId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status}`);
-    }
-
-    return await response.json();
-    
-  } catch (error) {
-    console.warn(`Failed to fetch company details for ${companyId}:`, error.message);
-    return null;
-  }
-}
-
-/**
- * Fetch detailed information for an item
- */
-async function fetchItemDetails(item) {
-  try {
-    const endpoint = item.media_type === 'movie' 
-      ? `https://api.themoviedb.org/3/movie/${item.id}?append_to_response=credits`
-      : `https://api.themoviedb.org/3/tv/${item.id}?append_to_response=credits`;
-
-    const response = await fetch(endpoint, {
-      headers: {
-        'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`,
-        'Content-Type': 'application/json'
+function addToSearchIndex(searchTerms, item, cacheKey) {
+  const terms = extractSearchTerms(item.title);
+  const overview = item.overview || '';
+  const castNames = (item.credits?.cast || []).slice(0, 10).map(actor => actor.name);
+  
+  // Extract production company names for search indexing
+  const productionCompanyNames = (item.production_companies || []).map(pc => pc.name);
+  
+  // Add all searchable terms including production companies
+  [...terms, 
+   ...extractSearchTerms(overview), 
+   ...castNames.flatMap(extractSearchTerms),
+   ...productionCompanyNames.flatMap(extractSearchTerms)]
+    .forEach(term => {
+      if (!searchTerms[term]) searchTerms[term] = [];
+      if (!searchTerms[term].includes(cacheKey)) {
+        searchTerms[term].push(cacheKey);
       }
     });
-
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status}`);
-    }
-
-    return await response.json();
-    
-  } catch (error) {
-    console.warn(`Failed to fetch details for ${item.id}:`, error.message);
-    return null;
-  }
 }
 
-/**
- * Compress company item but include ALL cast for proper game connections
- * Note: Size will be larger than 3.5KB due to complete cast data needed for gameplay
- */
-function compressCompanyItem(item, details, companyName) {
-  const compressed = {
-    // Core identification
-    id: item.id,
-    title: item.title || item.name,
-    poster_path: item.poster_path,
-    media_type: item.media_type,
-    
-    // Key metrics
-    popularity: item.popularity,
-    release_date: item.release_date || item.first_air_date,
-    vote_average: item.vote_average,
-    
-    // Company information
-    company: companyName,
-    
-    // ALL cast data for proper game connections (critical for actor-movie connections)
-    cast: extractAllCast(details),
-    
-    // Additional metadata for licensed IPs
-    overview: item.overview ? item.overview.substring(0, 200) + '...' : null,
-    genre_ids: item.genre_ids?.slice(0, 3) || [] // Top 3 genres only
+// ==================== TMDB API FUNCTIONS ====================
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+async function fetchMoviesForCompany(companyId) {
+  const response = await fetch(
+    `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_companies=${companyId}&sort_by=popularity.desc&page=1`
+  );
+  
+  if (!response.ok) {
+    throw new Error(`TMDB API error: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+async function fetchTVShowsForCompany(companyId) {
+  const response = await fetch(
+    `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_companies=${companyId}&sort_by=popularity.desc&page=1`
+  );
+  
+  if (!response.ok) {
+    throw new Error(`TMDB API error: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+async function enhanceWithFullDetails(item, mediaType) {
+  const detailsResponse = await fetch(
+    `${TMDB_BASE_URL}/${mediaType}/${item.id}?api_key=${TMDB_API_KEY}&append_to_response=credits,keywords`
+  );
+  
+  if (!detailsResponse.ok) {
+    console.warn(`Failed to fetch details for ${mediaType} ${item.id}`);
+    return { ...item, media_type: mediaType };
+  }
+  
+  const details = await detailsResponse.json();
+  
+  return {
+    ...item,
+    ...details,
+    media_type: mediaType,
+    credits: details.credits || { cast: [] }
+  };
+}
+
+// Add small delay to respect rate limits
+async function rateLimitedDelay() {
+  await new Promise(resolve => setTimeout(resolve, 250)); // 250ms delay
+}
+
+// ==================== MAIN UPDATE LOGIC ====================
+
+async function updateStudioCache(weekData) {
+  const { initializeFirebase } = await import('../firebaseLogic.js');
+  const { db } = initializeFirebase();
+  
+  if (!db) {
+    throw new Error('Firebase database not available');
+  }
+  
+  // Get current complete cache data
+  const currentStudioCache = await get(ref(db, 'studio-cache'));
+  const currentSearchIndex = await get(ref(db, 'search-index'));
+  
+  // Merge new week data with existing data
+  const updatedStudioCache = {
+    ...(currentStudioCache.exists() ? currentStudioCache.val() : {}),
+    ...weekData.cacheEntries
   };
   
-  return compressed;
+  const updatedSearchIndex = { ...(currentSearchIndex.exists() ? currentSearchIndex.val() : {}) };
+  
+  // Merge search terms
+  Object.entries(weekData.searchTerms).forEach(([term, cacheKeys]) => {
+    if (!updatedSearchIndex[term]) updatedSearchIndex[term] = [];
+    updatedSearchIndex[term] = [...new Set([...updatedSearchIndex[term], ...cacheKeys])];
+  });
+  
+  // Write the complete aggregated objects back to Firebase
+  await Promise.all([
+    set(ref(db, 'studio-cache'), updatedStudioCache),
+    set(ref(db, 'search-index'), updatedSearchIndex)
+  ]);
+  
+  console.log(`📦 Updated cache with ${Object.keys(weekData.cacheEntries).length} new items`);
+  console.log(`🔍 Updated search index with ${Object.keys(weekData.searchTerms).length} new terms`);
 }
 
-/**
- * Extract ALL cast members with essential info for game connections
- * Critical: Must include ALL cast for proper actor-movie connections in the game
- */
-function extractAllCast(details) {
-  if (!details?.credits?.cast) return [];
+async function updateMetadata(metadata) {
+  const { initializeFirebase } = await import('../firebaseLogic.js');
+  const { db } = initializeFirebase();
   
-  return details.credits.cast
-    // Process ALL cast members - no slicing or limiting
-    .map(actor => ({
-      id: actor.id,
-      name: actor.name,
-      character: actor.character,
-      order: actor.order,
-      profile_path: actor.profile_path // Added for actor images
-    }))
-    // Sort by order to prioritize main cast but keep ALL actors
-    .sort((a, b) => (a.order || 999) - (b.order || 999));
+  if (!db) {
+    throw new Error('Firebase database not available');
+  }
+  
+  // Update system metadata
+  await set(ref(db, 'update-metadata'), metadata);
 }
 
-/**
- * Extract search terms from title (full title + words + abbreviations)
- */
-function extractSearchTerms(title) {
-  if (!title) return [];
-  
-  const terms = [title]; // Full title
-  
-  // Split into words
-  const words = title.toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length > 2);
-  
-  terms.push(...words);
-  
-  // Create abbreviations for multi-word titles
-  if (words.length > 1) {
-    const abbreviation = words.map(word => word[0]).join('');
-    if (abbreviation.length > 1) {
-      terms.push(abbreviation);
-    }
-  }
-    // Special cases for common variations and licensed IPs
-  const lowerTitle = title.toLowerCase();
-  if (lowerTitle.includes('captain america')) {
-    terms.push('cap', 'captain', 'america');
-  }
-  if (lowerTitle.includes('iron man')) {
-    terms.push('ironman', 'iron', 'stark');
-  }
-  if (lowerTitle.includes('spider-man') || lowerTitle.includes('spiderman')) {
-    terms.push('spiderman', 'spider-man', 'spidey', 'spider');
-  }
-  if (lowerTitle.includes('star wars')) {
-    terms.push('starwars', 'jedi', 'sith', 'force');
-  }
-  if (lowerTitle.includes('avengers')) {
-    terms.push('avengers', 'infinity', 'endgame');
-  }
-  if (lowerTitle.includes('x-men') || lowerTitle.includes('xmen')) {
-    terms.push('xmen', 'x-men', 'mutant', 'wolverine');
-  }
-  if (lowerTitle.includes('batman')) {
-    terms.push('batman', 'bruce', 'wayne', 'dark knight');
-  }
-  if (lowerTitle.includes('superman')) {
-    terms.push('superman', 'clark', 'kent', 'man of steel');
-  }
-  if (lowerTitle.includes('justice league')) {
-    terms.push('justice', 'league', 'jl');
-  }
-  
-  return [...new Set(terms)]; // Remove duplicates
-}
-
-/**
- * Generate URL-safe key from title
- */
-function generateItemKey(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .substring(0, 50);
-}
-
-/**
- * Initialize studio cache updater on server start
- */
+// Remove force option from initialization
 export async function initializeStudioCacheUpdater() {
-  try {
-    console.log('🔍 Checking company cache age...');
-    
-    const cacheData = await getStudioCacheData();
-    
-    if (!cacheData || !cacheData.lastUpdated) {
-      console.log('📦 No company cache found, triggering initial update...');
-      await updateStudioCacheData();
-      return;
-    }
-    
-    const lastUpdate = new Date(cacheData.lastUpdated);
-    const now = new Date();
-    const daysSinceUpdate = (now - lastUpdate) / (1000 * 60 * 60 * 24);
-    
-    console.log(`📅 Company cache age: ${daysSinceUpdate.toFixed(1)} days`);
-    console.log(`📊 Current cache: ${Object.keys(cacheData.companies || {}).length} companies`);
-    
-    if (daysSinceUpdate > 7) {
-      console.log('⏰ Company cache is stale (>7 days), triggering background update...');
-      // Non-blocking background update
-      updateStudioCacheData().catch(error => {
-        console.error('Background company update failed:', error);
-      });
-    } else {
-      console.log('✅ Company cache is fresh');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error checking company cache age:', error);
+  console.log('🔄 Initializing studio cache updater...');
+  
+  const weekOfMonth = getWeekOfMonth();
+  const currentCache = await getStudioCacheData();
+  
+  if (needsWeeklyUpdate(currentCache, weekOfMonth)) {
+    console.log(`📅 Week ${weekOfMonth + 1} cache is stale, triggering background update...`);
+    updateStudioCacheData({ 
+      reason: 'startup_weekly_check',
+      scheduled: true 
+    }).catch(error => {
+      console.error('❌ Background weekly update failed:', error);
+    });
+  } else {
+    console.log(`✅ Week ${weekOfMonth + 1} cache is fresh`);
   }
 }
 
-/**
- * Check if studio cache needs update
- */
-export async function checkCacheAge() {
-  try {
-    const cacheData = await getStudioCacheData();
-    
-    if (!cacheData || !cacheData.lastUpdated) {
-      return { needsUpdate: true, age: 'No cache found' };
-    }
-    
-    const lastUpdate = new Date(cacheData.lastUpdated);
-    const now = new Date();
-    const daysSinceUpdate = (now - lastUpdate) / (1000 * 60 * 60 * 24);
-    
-    return {
-      needsUpdate: daysSinceUpdate > 7,
-      age: `${daysSinceUpdate.toFixed(1)} days`,
-      lastUpdated: cacheData.lastUpdated,
-      version: cacheData.version,
-      companies: Object.keys(cacheData.companies || {}).length,
-      totalItems: Object.values(cacheData.companies || {})
-        .reduce((total, company) => total + (company.itemCount || 0), 0)
-    };
-    
-  } catch (error) {
-    console.error('Error checking cache age:', error);
-    return { needsUpdate: true, age: 'Error checking cache', error: error.message };
-  }
-}

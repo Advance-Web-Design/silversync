@@ -36,7 +36,8 @@ export async function GET(request) {
         { error: 'Firebase service not available' }, 
         { status: 503 }
       ));
-    }    // Dynamically import Firebase logic
+    }    
+    // Dynamically import Firebase logic
     const { getStudioCacheData } = await import('../utils/studioUpdateLogic.js');
     
     console.log('📡 Studio cache data requested');
@@ -52,8 +53,7 @@ export async function GET(request) {
         { status: 404 }
       ));
     }
-    
-    console.log(`✅ Returning studio cache data: version ${studioData.version}`);
+      console.log(`✅ Returning studio cache data: version ${studioData.metadata?.version || 'unknown'}`);
     
     return withCors(NextResponse.json(studioData));
     

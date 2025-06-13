@@ -1,70 +1,60 @@
 // Storage utilities for managing local/session storage and entity caching
+import { logger } from './loggerUtils';
 
 /**
  * Load previous search terms from session storage
- * 
- * @returns {Array} - Array of previous search terms
  */
 export const loadPreviousSearches = () => {
   try {
     const storedSearches = sessionStorage.getItem('previousSearches');
     return storedSearches ? JSON.parse(storedSearches) : [];
   } catch (error) {
-    console.error('Error loading previous searches from session storage:', error);
+    logger.error('Error loading previous searches:', error);
     return [];
   }
 };
 
 /**
  * Load known entities from session storage
- * 
- * @returns {Array} - Array of known entities
  */
 export const loadKnownEntities = () => {
   try {
     const storedEntities = sessionStorage.getItem('knownEntities');
     return storedEntities ? JSON.parse(storedEntities) : [];
   } catch (error) {
-    console.error('Error loading known entities from session storage:', error);
+    logger.error('Error loading known entities:', error);
     return [];
   }
 };
 
 /**
  * Save previous searches to session storage
- * 
- * @param {Array} searches - Array of search terms
  */
 export const savePreviousSearches = (searches) => {
   if (searches && searches.length > 0) {
     try {
       sessionStorage.setItem('previousSearches', JSON.stringify(searches));
     } catch (error) {
-      console.error('Error saving previous searches to session storage:', error);
+      logger.error('Error saving previous searches:', error);
     }
   }
 };
 
 /**
  * Save known entities to session storage
- * 
- * @param {Array} entities - Array of entity objects
  */
 export const saveKnownEntities = (entities) => {
   if (entities && entities.length > 0) {
     try {
       sessionStorage.setItem('knownEntities', JSON.stringify(entities));
     } catch (error) {
-      console.error('Error saving known entities to session storage:', error);
+      logger.error('Error saving known entities:', error);
     }
   }
 };
 
 /**
  * Update local entity database with new entities
- * 
- * @param {Array} results - New search results to add
- * @returns {boolean} - Whether the database was updated
  */
 export const updateLocalEntityDatabase = (results) => {
   if (!results || results.length === 0) return false;
@@ -74,12 +64,10 @@ export const updateLocalEntityDatabase = (results) => {
     let entities = storedEntities ? JSON.parse(storedEntities) : [];
     let updated = false;
     
-    // Create a set of existing entity IDs for fast lookup
     const existingIds = new Set(
       entities.map(entity => `${entity.media_type}-${entity.id}`)
     );
     
-    // Add new entities from search results
     results.forEach(entity => {
       const entityId = `${entity.media_type}-${entity.id}`;
       if (!existingIds.has(entityId)) {
@@ -97,35 +85,23 @@ export const updateLocalEntityDatabase = (results) => {
       }
     });
     
-    // Save back to storage if updated
     if (updated) {
       sessionStorage.setItem('popularEntities', JSON.stringify(entities));
     }
     
     return updated;
   } catch (error) {
-    console.error('Error updating local entity database:', error);
+    logger.error('Error updating local entity database:', error);
     return false;
   }
 };
 
 /**
  * Add a search term and its results to history
- * 
- * @param {string} term - Search term
- * @param {Array} results - Search results
- * @param {Function} setPreviousSearches - State setter for previous searches
- * @param {Function} setKnownEntities - State setter for known entities
  */
-export const addToSearchHistory = (
-  term,
-  results,
-  setPreviousSearches,
-  setKnownEntities
-) => {
+export const addToSearchHistory = (term, results, setPreviousSearches, setKnownEntities) => {
   if (!term || !results || results.length === 0) return;
   
-  // Add the term to previous searches
   setPreviousSearches(prev => {
     if (!prev.includes(term.toLowerCase())) {
       return [...prev, term.toLowerCase()];
@@ -133,19 +109,16 @@ export const addToSearchHistory = (
     return prev;
   });
   
-  // Add the entities to known entities
   setKnownEntities(prev => {
     const updatedEntities = [...prev];
     const existingIds = new Set();
     
-    // Collect existing IDs to avoid duplicates
     prev.forEach(entity => {
       if (typeof entity === 'object' && entity !== null && entity.id) {
         existingIds.add(`${entity.media_type}-${entity.id}`);
       }
     });
     
-    // Add new entities
     results.forEach(entity => {
       const entityId = `${entity.media_type}-${entity.id}`;
       if (!existingIds.has(entityId)) {
@@ -157,6 +130,115 @@ export const addToSearchHistory = (
     return updatedEntities;
   });
   
-  // Update local entity database
   updateLocalEntityDatabase(results);
+};
+
+/**
+ * Compress studio item for storage (60% size reduction)
+ */
+export const compressStudioItem = (item, details = null) => {
+  if (!item) return null;
+  
+  return {
+    id: item.id,
+    title: item.title || item.name,
+    poster_path: item.poster_path,
+    media_type: item.media_type,
+    popularity: item.popularity,
+    release_date: item.release_date || item.first_air_date,
+    vote_average: item.vote_average,
+    studio: item.studio,
+    company: item.company,
+    cast: item.cast || (details?.cast ? details.cast.slice(0, 50) : [])
+  };
+};
+
+/**
+ * Load all studio cache items from session storage
+ */
+export const loadStudioCacheFromSession = () => {
+  const cacheData = new Map();
+  const keys = Object.keys(sessionStorage).filter(key => key.startsWith('studio-cache-'));
+  
+  for (const key of keys) {
+    try {
+      const stored = sessionStorage.getItem(key);
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data?.data) {
+          const cacheKey = key.replace('studio-cache-', '');
+          cacheData.set(cacheKey, data.data);
+        }
+      }
+    } catch (error) {
+      // Skip corrupted entries
+    }
+  }
+  
+  return cacheData;
+};
+
+/**
+ * Save studio cache item to session storage
+ */
+export const saveStudioCacheItem = (key, data) => {
+  try {
+    const compressed = compressStudioItem(data);
+    sessionStorage.setItem(`studio-cache-${key}`, JSON.stringify({
+      data: compressed,
+      timestamp: Date.now()
+    }));
+  } catch (error) {
+    // Fail silently
+  }
+};
+
+/**
+ * Get studio cache item from session storage
+ */
+export const getStudioCacheItem = (key) => {
+  try {
+    const stored = sessionStorage.getItem(`studio-cache-${key}`);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return data?.data || null;
+    }
+  } catch (error) {
+    // Fail silently
+  }
+  return null;
+};
+
+/**
+ * Clear all cache-related session storage
+ */
+export const clearAllCacheStorage = () => {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && (
+        key.startsWith('studio-cache-') || 
+        key.startsWith('company-cache-') ||
+        key.startsWith('tmdb-cache-') ||
+        key.startsWith('search-cache-')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => sessionStorage.removeItem(key));
+    logger.debug('All cache storage cleared');
+  } catch (error) {
+    logger.error('Error clearing cache storage:', error);
+  }
+};
+
+/**
+ * Register cleanup handlers for app close only
+ */
+export const registerCacheCleanupHandlers = () => {
+  window.addEventListener('beforeunload', clearAllCacheStorage);
+  window.addEventListener('unload', clearAllCacheStorage);
+  logger.debug('Cache cleanup handlers registered');
 };

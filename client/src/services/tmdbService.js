@@ -221,39 +221,6 @@ const fetchGuestStarsFromEpisodes = async (tvId, tvDetails, maxSeasonsToFetch, m
 };
 
 /**
- * Processes and normalizes search results
- * @param {Array} results - Raw search results
- * @returns {Array} - Processed and filtered results
- */
-const processSearchResults = (results) => {
-  if (!results || results.length === 0) return [];
-  
-  // Normalize media types
-  let processedResults = results.map(item => {
-    if (!item.media_type) {
-      if (item.title && !item.name) {
-        return { ...item, media_type: 'movie' };
-      } else if (item.name && !item.title && item.first_air_date) {
-        return { ...item, media_type: 'tv' };
-      } else if (item.name && item.profile_path) {
-        return { ...item, media_type: 'person' };
-      }
-    }
-    return item;
-  });
-  
-  // Filter valid media types
-  processedResults = processedResults.filter(item => 
-    ['movie', 'tv', 'person'].includes(item.media_type)
-  );
-  
-  // Sort by popularity and limit results
-  return processedResults
-    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, 20);
-};
-
-/**
  * Validates search query
  * @param {string} query - Search query to validate
  * @returns {boolean} - Whether query is valid
@@ -594,23 +561,6 @@ export const checkActorInTvShow = async (actorId, tvShowId) => {
  * @returns {Promise<Array>} - List of search results across movies, TV shows, and people
  */
 export const searchMulti = async (query, maxPages = 1) => {
-  // Try Firebase studio cache first for instant results
-  try {
-    const { default: firebaseStudioCache } = await import('../services/firebaseStudioCache');
-    
-    if (firebaseStudioCache.canHandleSearch(query)) {
-      const firebaseResults = firebaseStudioCache.searchWithFirebaseCache(query);
-      
-      if (firebaseResults && firebaseResults.length > 0) {
-        logger.info(`🎯 Firebase cache hit for "${query}": ${firebaseResults.length} results (instant)`);
-        return firebaseResults;
-      }
-    }
-  } catch (error) {
-    logger.debug('Firebase cache not available, falling back to TMDB:', error);
-  }
-  
-  // Fallback to existing TMDB implementation
   const cacheKey = `search-multi-${query.trim()}-pages-${maxPages}`;
   
   return withCache(cacheKey, async () => {
@@ -652,7 +602,7 @@ export const searchMulti = async (query, maxPages = 1) => {
       removeDuplicates: true
     });
     
-    logger.debug(`🔍 TMDB search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
+    logger.debug(`🔍 Search "${query}": ${allResults.length} raw → ${optimizedResults.length} processed results`);
     
     return optimizedResults;
   });
