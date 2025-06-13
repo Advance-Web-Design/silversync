@@ -9,89 +9,63 @@ export async function addUser(username, hashedPassword, email) {
         throw new Error('Firebase database not available');
     }
 
-
-
     console.log('Adding user:', username, email);
 
-    // Check if user already exists             
-    const usersSnapshot = await db.ref('users').once('value');
-    let usernameExists = false;
-    let emailExists = false;
-
-    usersSnapshot.forEach(childSnapshot => {
-        const user = childSnapshot.val();
-        if (user.username === username) {
-            usernameExists = true;
-        }
-        if (user.email === email) {
-            emailExists = true;
-        }
-    });
-    if (usernameExists) {
+    // Check if username already exists by trying to get the user directly
+    const userRef = db.ref(`users/${username}`);    const userSnapshot = await userRef.once('value');
+    
+    if (userSnapshot.exists()) {
         return Promise.reject(new Error('Username already exists'));
-    }
-    if (emailExists) {
-        return Promise.reject(new Error('Email already in use'));  
+    }    // Check if email already exists by querying all users
+    const usersSnapshot = await db.ref('users').orderByChild('UserDetails/email').equalTo(email).once('value');
+    if (usersSnapshot.exists()) {
+        return Promise.reject(new Error('Email already in use'));
     }
 
-    const usersRef = db.ref('users');
-    const newUserRef = usersRef.push();
     const userData = {
-        username,
-        hashedPassword,
-        email,
-        user_game_history: {} // Empty for now
+        UserDetails: {
+            username,
+            hashedPassword,
+            email
+        },
+        gamehistory: {} // Empty for now
     };
 
-    
-    await newUserRef.set(userData);
-    //await set(newUserRef, userData);
+    // Use username as the key
+    await userRef.set(userData);
 
-    return newUserRef.key; // Return the generated user ID
-
-
-
+    return username; // Return the username as the user ID
 }
 
 // Verify user
 export async function verifyUser(username, hashedPassword) {
-
     const { app, db } = initializeFirebase();
     if (!db) {
         throw new Error('Firebase database not available');
     }
 
-
     console.log('Verifying user:', username);
     console.log('verifying password:', hashedPassword);
 
+    // Get user directly by username (which is now the key)
+    const userRef = db.ref(`users/${username}`);    const userSnapshot = await userRef.once('value');
 
-
-    const usersSnapshot = await db.ref('users').once('value');
-    let foundUser = null;
-    let foundUserId = null;
-    usersSnapshot.forEach(childSnapshot => {
-        const user = childSnapshot.val();
-        if (user.username === username && user.hashedPassword === hashedPassword) {
-            foundUser = user;
-			foundUserId = childSnapshot.key;
-
-        }
-    });
-    if (!foundUser) {
+    if (!userSnapshot.exists()) {
+        return Promise.reject(new Error('Invalid username or password'));
+    }    const user = userSnapshot.val();
+    
+    // Check if password matches (password is now in UserDetails section)
+    if (!user.UserDetails || user.UserDetails.hashedPassword !== hashedPassword) {
         return Promise.reject(new Error('Invalid username or password'));
     }
 
-    if (!usersSnapshot.exists()) {
-        console.error('Database Users not found');
-        return Promise.reject(new Error('Database issue, users not found'));
-    }
-
-  
-
-    // Remove hashedPassword before returning
-    const { hashedPassword: _, ...userProfile } = foundUser;
-    userProfile.userId = foundUserId;
+    // Return user profile with UserDetails (excluding password) and gamehistory
+    const userProfile = {
+        userId: username,
+        username: user.UserDetails.username,
+        email: user.UserDetails.email,
+        gamehistory: user.gamehistory || {}
+    };
 
     return userProfile;
 }

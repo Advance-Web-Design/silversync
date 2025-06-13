@@ -15,11 +15,11 @@ import config from '../config/api.config';
 const API_BASE = `${config.backend.baseUrl}/api/firebase` ; 
 
 /**
- * creates a new user in Firebase, in the firebase database it also adds an empty user_game_history object to the user
+ * creates a new user in Firebase, with data organized into UserDetails and gamehistory sections
  * @param {*} username 
  * @param {*} password 
  * @param {*} email 
- * @returns {Promise<string>} The user ID of the newly created user
+ * @returns {Promise<string>} The username (which serves as the user ID)
  */
 export async function addUser(username, password, email) {
 
@@ -106,7 +106,7 @@ async function hashPassword(password) {
  * verifies a user by checking their username and password against the Firebase database.
  * @param {*} username 
  * @param {*} password 
- * @returns {Promise<string>} The user ID if the login is successful
+ * @returns {Promise<object>} The user profile object with UserDetails and gamehistory if login is successful
  */
 export async function verifyUser(username, password) {
 
