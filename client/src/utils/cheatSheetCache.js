@@ -113,13 +113,14 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
     let finalEntities = filteredEntities;
     // Filter for entities with images
     if (filterOptions.filtertype.includes('movies-only')) {
-      console.log('FILTERRR TIYPE :::::: ' + filterOptions.filtertype);
       finalEntities = finalEntities.filter(entity => (entity.media_type !== 'tv'));
     }
-    //////! filter movies and tv shows by production companies
-    if (filterOptions.enableProductionFiltering || filterOptions.excludeProductionCompanies) {
+    if (filterOptions.filtertype.includes('tv-only')) {
+      finalEntities = finalEntities.filter(entity => (entity.media_type !== 'movie'));
+    }
+    if (filterOptions.enableProductionFiltering &&  filterOptions.excludeProductionCompanies,includes('no-production-companie')) {
       logger.debug('🔍 Applying production company filtering');
-      finalEntities = await filterEntitiesAdvanced(filteredEntities, {
+      finalEntities = await filterEntitiesAdvanced(finalEntities, {
         excludeProductionCompanies: filterOptions.excludeProductionCompanies || [], // Use caller's choice or no filtering
         minPopularity: filterOptions.minPopularity || 0,
         maxResults: filterOptions.maxResults || null,
