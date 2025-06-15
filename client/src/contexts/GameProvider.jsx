@@ -17,7 +17,7 @@ import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
-import { 
+import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
@@ -45,7 +45,13 @@ export const GameProvider = ({ children }) => {
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [showAllSearchable, setShowAllSearchable] = useState(false);
   const [cheatSheetResults, setCheatSheetResults] = useState([]);
+    // Challenge and screen navigation state
+  const [currentScreen, setCurrentScreen] = useState('challenges'); // 'start', 'challenges', 'actor-selection', 'game'
+  const [challengeMode, setChallengeMode] = useState(null);
   
+  // Leaderboard state
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   // Destructure state from hooks for easier access
   const {
     isLoading, setIsLoading,
@@ -85,6 +91,7 @@ export const GameProvider = ({ children }) => {
     searchStartActors: searchStartActorsFn
   } = searchState;
 
+  
   /**
    * Wrapper function to update node positions on the board
    * Ensures correct format for DraggableNode component
@@ -100,31 +107,18 @@ export const GameProvider = ({ children }) => {
    */
   const fetchAndSetAllSearchableEntities = useCallback(async () => {
     logger.info('🎯 Fetching all searchable entities');
-    
+
     setIsLoading(true);
     try {
-      // Check for cached cheat sheet first
-      const cachedResults = getCachedCheatSheet(nodes);
-      
-      if (cachedResults) {
-        setCheatSheetResults(cachedResults);
-        
-        // Mark all entities as connectable
-        const newConnectableItems = {};
-        cachedResults.forEach(item => {
-          const itemKey = `${item.media_type}-${item.id}`;
-          newConnectableItems[itemKey] = true;
-        });
-        setConnectableItems(newConnectableItems);
-        
-        return;
-      }
-      
+
       // Generate new cheat sheet
-      const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors);
-      
+      const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
+        enableProductionFiltering: false,
+        excludeProductionCompanies: challengeMode.remove || [],
+      });
+
       setCheatSheetResults(cheatSheetEntities);
-      
+
       // Mark all entities as connectable
       const newConnectableItems = {};
       cheatSheetEntities.forEach(item => {
@@ -132,7 +126,7 @@ export const GameProvider = ({ children }) => {
         newConnectableItems[itemKey] = true;
       });
       setConnectableItems(newConnectableItems);
-      
+
     } catch (error) {
       logger.error("Error fetching connectable entities:", error);
     } finally {
@@ -150,10 +144,10 @@ export const GameProvider = ({ children }) => {
     logger.debug(`🎲 Randomizing actor for position ${actorIndex}`);
     setIsLoading(true);
     setStartActorsError(null);
-    
+
     try {
       const randomActor = await fetchRandomUniqueActor(actorIndex, startActors, fetchRandomPerson);
-      
+
       if (randomActor) {
         const newStartActors = [...startActors];
         newStartActors[actorIndex] = randomActor;
@@ -201,11 +195,13 @@ export const GameProvider = ({ children }) => {
       setConnections,
       setSearchResults,
       setConnectableItems
-    );
-    // Also reset search input and state
+    );    // Also reset search input and state
     searchState.resetSearch();
     // Clear connection cache for optimized performance
     clearConnectionCache();
+    // Reset screen navigation and challenge mode
+    setCurrentScreen('challenges');
+    setChallengeMode(null);
   };
 
   /**
@@ -259,31 +255,38 @@ export const GameProvider = ({ children }) => {
   const addToBoard = async (entity) => {
     const entityName = entity.name || entity.title || 'Unknown';
     logger.info(`➕ Adding to board: ${entityName} (${entity.media_type})`);
-    
+
     const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
-    
+
     // Remove from regular search results
-    setSearchResults(prev => 
-      prev.filter(item => 
+    setSearchResults(prev =>
+      prev.filter(item =>
         !(item.id === entity.id && item.media_type === entity.media_type)
       )
     );
-    
+
     // Remove from cheat sheet results immediately (to provide instant feedback)
-    setCheatSheetResults(prev => 
-      prev.filter(item => 
+    setCheatSheetResults(prev =>
+      prev.filter(item =>
         !(item.id === entity.id && item.media_type === entity.media_type)
       )
-    );
-    
-    // Remove from connectable items tracking
+    );    // Remove from connectable items tracking
     const itemKey = `${entity.media_type}-${entity.id}`;
     setConnectableItems(prev => {
       const updated = { ...prev };
       delete updated[itemKey];
       return updated;
     });
-    
+
+    // Refresh all searchable entities after adding to board
+    // This ensures new connections are available for search immediately
+    try {
+      logger.debug('🔄 Refreshing searchable entities after adding to board');
+      await fetchAndSetAllSearchableEntities();
+    } catch (error) {
+      logger.error('Error refreshing searchable entities:', error);
+    }
+
     logger.debug(`✅ Successfully added ${entityName} to board`);
     return result;
   };
@@ -316,31 +319,31 @@ export const GameProvider = ({ children }) => {
    */
   const handleSearch = async (term) => {
     if (!term) return;
-    
+
     const startTime = Date.now();
     logger.time('search-operation');
     logger.info(`🔍 Starting local search for: "${term}"`);
-    
+
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
-    setIsLoading(true);    try {
+    setIsLoading(true); try {
       // Use local cache search instead of TMDB API
       const searchResult = searchState.performLocalSearch(term, nodes);
-      
+
       const duration = Date.now() - startTime;
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
-      
+
       // Debug: Log what we're searching for and what we found
       logger.debug(`🔍 Search term: "${term}"`);
-      logger.debug(`🔍 Search results:`, searchResult.results.map(r => ({ 
-        title: r.title || r.name, 
-        type: r.media_type, 
-        id: r.id 
+      logger.debug(`🔍 Search results:`, searchResult.results.map(r => ({
+        title: r.title || r.name,
+        type: r.media_type,
+        id: r.id
       })).slice(0, 10));
-      
+
       logger.timeEnd('search-operation');
-        // Process local search results
+      // Process local search results
       if (searchResult.results.length === 0) {
         setNoMatchFound(true);
         logger.info(`🚫 No results found for: "${term}"`);
@@ -348,7 +351,7 @@ export const GameProvider = ({ children }) => {
         setSearchResults(searchResult.results);
         setExactMatch(searchResult.exactMatch);
         setNoMatchFound(false);
-        
+
         // Mark search results as connectable for UI filtering
         const newConnectableItems = {};
         searchResult.results.forEach(item => {
@@ -356,7 +359,7 @@ export const GameProvider = ({ children }) => {
           newConnectableItems[itemKey] = true; // Assume all search results are potentially connectable
         });
         setConnectableItems(prev => ({ ...prev, ...newConnectableItems }));
-        
+
         logger.info(`✅ Marked ${searchResult.results.length} search results as connectable`);
       }
 
@@ -409,7 +412,7 @@ export const GameProvider = ({ children }) => {
   const toggleShowAllSearchable = () => {
     const newShowAllSearchable = !showAllSearchable;
     setShowAllSearchable(newShowAllSearchable);
-    
+
     logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
 
     // If turning on, fetch all connectable entities
@@ -449,7 +452,10 @@ export const GameProvider = ({ children }) => {
     selectedNode,
     possibleConnections,
     isLoadingConnections,
-    showAllSearchable,
+    showAllSearchable,    // Challenge mode and screen navigation
+    currentScreen,
+    challengeMode,
+    showLeaderboard,
 
     // Functions
     setIsLoading,
@@ -465,8 +471,10 @@ export const GameProvider = ({ children }) => {
     setDidYouMean,
     setExactMatch,
     setOriginalSearchTerm,
-    setConnectableItems,
-    setSearchTerm,
+    setConnectableItems,    setSearchTerm,
+    setCurrentScreen,
+    setChallengeMode,
+    setShowLeaderboard,
 
     // Board functions
     addToBoard,
@@ -486,7 +494,7 @@ export const GameProvider = ({ children }) => {
     selectNode,
     closeConnectionsPanel,
     toggleShowAllSearchable,
-    fetchAndSetAllSearchableEntities,    
+    fetchAndSetAllSearchableEntities,
     randomizeActors,
     handleSearch,
     searchStartActors: searchStartActorsWrapper,
@@ -504,12 +512,7 @@ export const GameProvider = ({ children }) => {
     }
   }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]);
 
-  // Auto-refresh cheat sheet when nodes change (if it's currently open)
-  useEffect(() => {
-    if (showAllSearchable && gameStarted && nodes.length > 0) {
-      fetchAndSetAllSearchableEntities();
-    }
-  }, [nodes, showAllSearchable, gameStarted, fetchAndSetAllSearchableEntities]);
+
 
   return (
     <GameContext.Provider value={contextValue}>

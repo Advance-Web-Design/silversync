@@ -101,7 +101,7 @@ const StartScreen = () => {
             className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           >
             START GAME
-          </button>
+          </button> 
         </div>
       </div>
     </div>

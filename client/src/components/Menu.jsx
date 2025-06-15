@@ -4,12 +4,13 @@ import './Menu.css';
 import { useGameContext } from '../contexts/gameContext'; // Import useGameContext
 import HowToPlay from './HowToPlay';
 import About from './About';
+import Leaderboard from './Leaderboard';
 import LoginWindow from './Login'; // Import Login component
 import RegisterWindow from './Register'; // Import Register component
 import { logger } from '../utils/loggerUtils';
 
 
-import UserProfile from './UserProfile'; 
+import UserProfile from './UserProfile';
 
 
 function Menu(props) {
@@ -24,24 +25,25 @@ function Menu(props) {
 
 
 
-    const menuRef = useRef(null);
-    // Destructure login-related states and functions from context
+    const menuRef = useRef(null);    // Destructure login-related states and functions from context
     const { 
         toggleShowAllSearchable, 
         resetGame,
         isLoggedIn, // Get isLoggedIn state from context
         login,      // Get login function from context
         logout,     // Get logout function from context
-        register    // Get register function from context
-    } = useGameContext(); 
+        register,   // Get register function from context
+        showLeaderboard,
+        setShowLeaderboard
+    } = useGameContext();
 
     const handleMenuToggle = () => {
         setMenuOpen(prev => !prev);
-        if (showHowToPlay) setShowHowToPlay(false); // Close HowToPlay if menu is toggled
-        if (showAbout) setShowAbout(false); // Close About if menu is toggled
+        if (showHowToPlay) setShowHowToPlay(false); // Close HowToPlay if menu is toggled        if (showAbout) setShowAbout(false); // Close About if menu is toggled
         if (showLoginWindow) setShowLoginWindow(false); // Close Login if menu is toggled
         if (showRegisterWindow) setShowRegisterWindow(false); // Close Register if menu is toggled
         if (showUserProfile) setShowUserProfile(false); // Close UserProfile if menu is toggled
+        if (showLeaderboard) setShowLeaderboard(false); // Close Leaderboard if menu is toggled
     };
 
     // Action handlers using context functions
@@ -79,11 +81,10 @@ function Menu(props) {
     const handleHowToPlay = () => {
         setShowHowToPlay(prev => !prev); // Toggle HowToPlay visibility
         setMenuOpen(false); // Close the main menu
-    };
-
-    // Leaderboard action handler
+    };    // Leaderboard action handler
     const handleLeaderboard = () => {
         logger.debug('Leaderboard action triggered');
+        setShowLeaderboard(true);
         setMenuOpen(false);
     };
 
@@ -142,9 +143,12 @@ function Menu(props) {
     };
     const closeUserProfileWindow = () => {
         setShowUserProfile(false);
-    };
-    const closeUserProfile = () => {
+    };    const closeUserProfile = () => {
         setShowUserProfile(false);
+    };
+
+    const closeLeaderboard = () => {
+        setShowLeaderboard(false);
     };
 
     // Function to be passed to About component to close it
@@ -196,10 +200,11 @@ function Menu(props) {
                 )}
             </div>
             {/* Conditionally render the HowToPlay component */}
-            {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
-
-            {/* Conditionally render the About component */}
+            {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}            {/* Conditionally render the About component */}
             {showAbout && <About onClose={closeAbout}/>}
+
+            {/* Conditionally render the Leaderboard component */}
+            {showLeaderboard && <Leaderboard onClose={closeLeaderboard}/>}
 
 
             

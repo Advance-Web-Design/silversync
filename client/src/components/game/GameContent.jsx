@@ -1,15 +1,9 @@
 import React from 'react';
 import { useGameContext } from '../../contexts/gameContext';
 import StartScreen from '../StartScreen';
+import ChallengeScreen from '../ChallengeScreen';
 import GameplayArea from './GameplayArea';
 import { Box } from '@mui/material';
-
-import Profile from '../Profile';
-import ProfileHeader from '../ProfileHeader';
-import Leaderboard from '../Leaderboard';
-import Register from '../Register';
-import Login from '../Login';
-
 
 function GameContent() {
   const { 
@@ -17,24 +11,43 @@ function GameContent() {
     gameCompleted,
     keepPlayingAfterWin, 
     resetGame, 
-    setKeepPlayingAfterWin 
+    setKeepPlayingAfterWin,
+    currentScreen
   } = useGameContext();
   
-  return (
-    <Box 
-      className="flex flex-col h-screen" // Keep other Tailwind classes
-      sx={{
-        backgroundColor: !gameStarted ? 'black' : 'transparent', // Or your desired default
-        // Potentially set to theme.palette.background.default if you want to use MUI theme's default
-      }}
-    >
-      {!gameStarted ? ( <StartScreen /> ) : ( <GameplayArea 
+  const renderScreen = () => {
+    // If game is started, show gameplay area
+    if (gameStarted) {
+      return (
+        <GameplayArea 
           gameCompleted={gameCompleted}
           keepPlayingAfterWin={keepPlayingAfterWin}
           resetGame={resetGame}
           setKeepPlayingAfterWin={setKeepPlayingAfterWin}
         />
-      )}
+      );
+    }
+
+    // Otherwise, show the appropriate screen based on currentScreen state
+    switch (currentScreen) {
+      case 'challenges':
+        return <ChallengeScreen />;
+      case 'actor-selection':
+        return <StartScreen />;
+      case 'start':
+      default:
+        return <ChallengeScreen />;
+    }
+  };
+  
+  return (
+    <Box 
+      className="flex flex-col h-screen"
+      sx={{
+        backgroundColor: !gameStarted ? 'black' : 'transparent',
+      }}
+    >
+      {renderScreen()}
     </Box>
   );
 }

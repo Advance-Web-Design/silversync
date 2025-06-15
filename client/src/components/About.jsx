@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as AboutStyles from '../styles/AboutStyles.js'; // Import the styles
 
-function About() {
+function About({ onClose }) {
   const [isOpen, setIsOpen] = useState(true);
 
   const handleClose = () => {
     setIsOpen(false);
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
