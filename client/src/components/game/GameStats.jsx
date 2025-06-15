@@ -6,7 +6,7 @@ import * as GameStatStyles from '../../styles/GameStatStyles.js';
  * GameStats component - Displays game statistics and guest appearances message
  * Receives pre-calculated values to avoid hook-related errors
  */
-const GameStats = ({ 
+const GameStats = React.memo(({ 
   formattedBestScore, 
   formattedTime,
   pathLength,
@@ -41,7 +41,7 @@ const GameStats = ({
         </div>
         <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestPathStyle}`}>
           SHORTEST PATH: {pathLength}
-        </div>
+        </div>      
       </div>
       
       {/* Guest Appearances Message */}
@@ -52,6 +52,6 @@ const GameStats = ({
       )}
     </>
   );
-};
+});
 
 export default GameStats;

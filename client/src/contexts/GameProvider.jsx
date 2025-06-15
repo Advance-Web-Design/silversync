@@ -104,17 +104,14 @@ export const GameProvider = ({ children }) => {
   };  /**
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
-   */
-  const fetchAndSetAllSearchableEntities = useCallback(async () => {
+   */  const fetchAndSetAllSearchableEntities = useCallback(async () => {
     logger.info('🎯 Fetching all searchable entities');
 
     setIsLoading(true);
-    try {
-
-      // Generate new cheat sheet
+    try {      // Generate new cheat sheet
       const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
         enableProductionFiltering: false,
-        excludeProductionCompanies: challengeMode.remove || [],
+        excludeProductionCompanies: challengeMode?.remove || [],
       });
 
       setCheatSheetResults(cheatSheetEntities);
@@ -132,7 +129,7 @@ export const GameProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [nodes, gameStarted, startActors, setCheatSheetResults, setConnectableItems, setIsLoading]);
+  }, [nodes, gameStarted, startActors, challengeMode?.remove, setCheatSheetResults, setConnectableItems, setIsLoading]);
 
   /**
    * Fetches a random actor for a starting position
@@ -499,15 +496,14 @@ export const GameProvider = ({ children }) => {
 
     // Cheat sheet results
     cheatSheetResults,
-    setCheatSheetResults,
-  };
-  // Auto-generate cache when game starts to enable local search
+    setCheatSheetResults,  };  // Auto-generate cache when game starts to enable local search
   useEffect(() => {
     if (gameStarted && nodes.length > 0) {
       logger.debug('🚀 Game started, generating cache for local search');
       fetchAndSetAllSearchableEntities();
     }
-  }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameStarted, nodes.length]); // Intentionally excluding fetchAndSetAllSearchableEntities to prevent infinite loop
 
 
 

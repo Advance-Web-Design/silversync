@@ -18,10 +18,9 @@ import ConnectionLines from './ConnectionLines';
 import { Box } from '@mui/material';
 import { useZoom } from '../../hooks/useZoom';
 import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
-import { logger } from '../../utils/loggerUtils';
 import './GameBoard.css';
 
-const GameBoard = () => {
+const GameBoard = React.memo(() => {
   // Get game state and functions from context
   const {
     nodes,
@@ -210,10 +209,10 @@ const GameBoard = () => {
         className={BoardStyles.zoomIndicatorStyle} // Use style from BoardStyle.js
         // Removed inline styles (now in zoomIndicatorStyle)
       >
-        Zoom: {(zoomLevel * 100).toFixed(0)}%
-      </div>
+        Zoom: {(zoomLevel * 100).toFixed(0)}%      
+        </div>
     </Box>
   );
-};
+});
 
 export default GameBoard;

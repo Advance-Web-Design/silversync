@@ -35,7 +35,7 @@ const ActorCard = ({
               }}
             />
           </div>
-          <div class={actorCardStyles.actorNameStyle}>
+          <div className={actorCardStyles.actorNameStyle}>
             {selectedActor.name}
           </div>
           

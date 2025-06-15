@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ConnectionLines = ({ 
+const ConnectionLines = React.memo(({ 
   connections, 
   nodePositions,
   connectionRefs,
@@ -56,14 +56,22 @@ const ConnectionLines = ({
             ref={el => connectionRefs.current[connectionId] = el}
             x1={x1}
             y1={y1}
-            x2={x2}
-            y2={y2}
+            x2={x2}            y2={y2}
             className={`connection-line ${isGuestAppearance ? 'guest-appearance' : ''} ${gameCompleted ? 'completed' : ''}`}
           />
         );
       })}
     </svg>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for ConnectionLines
+  return (
+    prevProps.connections.length === nextProps.connections.length &&
+    prevProps.gameCompleted === nextProps.gameCompleted &&
+    prevProps.boardSize.width === nextProps.boardSize.width &&
+    prevProps.boardSize.height === nextProps.boardSize.height &&
+    JSON.stringify(prevProps.nodePositions) === JSON.stringify(nextProps.nodePositions)
+  );
+});
 
 export default ConnectionLines;

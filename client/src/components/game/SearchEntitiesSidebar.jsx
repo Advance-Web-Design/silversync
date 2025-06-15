@@ -3,7 +3,7 @@ import { useGameContext } from '../../contexts/gameContext';
 import { getItemTitle } from '../../utils/stringUtils';
 import * as SidebarStyles from '../../styles/SearchSIderbar.js'; // Import the styles
 
-const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
+const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
   const { 
     nodes, 
     cheatSheetResults,
@@ -175,11 +175,13 @@ const SearchEntitiesSidebar = ({ isOpen, onClose }) => {
                 </div>
               )}
             </>
-          )}
-        </div>
+          )}        
+        </div>      
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.isOpen === false && nextProps.isOpen === false;
+});
 
 export default SearchEntitiesSidebar;

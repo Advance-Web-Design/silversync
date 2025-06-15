@@ -22,8 +22,7 @@ function GameplayArea() {
       {/* VictoryModal no longer needs props passed from here */}
       {gameCompleted && !keepPlayingAfterWin && (
         <VictoryModal />
-      )}
-    </Box>
+      )}    </Box>
   );
 }
 
