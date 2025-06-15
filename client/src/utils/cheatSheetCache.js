@@ -17,10 +17,6 @@ const CACHE_KEYS = {
 // Cache validity duration (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000;
 
-
-
-
-
 /**
  * Generate cheat sheet data based on current board state
  * @param {Array} nodes - Current board nodes
@@ -153,30 +149,6 @@ export const setCachedCheatSheet = (entities, boardState) => {
     sessionStorage.setItem(CACHE_KEYS.CHEAT_SHEET, JSON.stringify(cacheData));
   } catch (error) {
     logger.error('Error caching cheat sheet:', error);
-  }
-};
-
-export const getCachedCheatSheet = (currentBoardState) => {
-  try {
-    const cached = sessionStorage.getItem(CACHE_KEYS.CHEAT_SHEET);
-    if (!cached) return null;
-
-    const cacheData = JSON.parse(cached);
-    const currentHash = generateBoardHash(currentBoardState);
-
-    // Check if cache is valid (same board state and not expired)
-    if (
-      cacheData.boardHash === currentHash &&
-      Date.now() - cacheData.timestamp < CACHE_DURATION
-    ) {
-      logger.info('🎯 Using cached cheat sheet');
-      return cacheData.entities;
-    }
-
-    return null;
-  } catch (error) {
-    logger.error('Error reading cached cheat sheet:', error);
-    return null;
   }
 };
 

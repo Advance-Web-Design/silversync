@@ -21,7 +21,7 @@ import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
-import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
+import { generateCheatSheet } from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
@@ -327,9 +327,9 @@ export const GameProvider = ({ children }) => {
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
-    setIsLoading(true); try {
-      // Use local cache search instead of TMDB API
-      const searchResult = searchState.performLocalSearch(term, nodes);
+    setIsLoading(true);    
+    try {
+      const searchResult = searchState.performLocalSearch(term, cheatSheetResults);
 
       const duration = Date.now() - startTime;
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
@@ -404,10 +404,9 @@ export const GameProvider = ({ children }) => {
     setSelectedNode(null);
     setPossibleConnections([]);
   };
-
   /**
    * Toggles visibility of all searchable entities in the sidebar
-   * When enabled, fetches and displays all entities that can connect to the board
+   * Uses existing cached data instead of regenerating
    */
   const toggleShowAllSearchable = () => {
     const newShowAllSearchable = !showAllSearchable;
@@ -415,13 +414,11 @@ export const GameProvider = ({ children }) => {
 
     logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
 
-    // If turning on, fetch all connectable entities
-    if (newShowAllSearchable) {
-      fetchAndSetAllSearchableEntities();
-    } else {
-      // If turning off, clear the cheat sheet results
+    // If turning off, clear the cheat sheet results display
+    if (!newShowAllSearchable) {
       setCheatSheetResults([]);
     }
+    // When turning on, the existing cache will be used by the search components
   };
 
   const contextValue = {

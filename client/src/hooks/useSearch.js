@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { searchPeople } from '../services/tmdbService';
 import { searchLocal, quickSearch } from '../utils/localSearch';
-import { getCachedCheatSheet,
-         addToSearchHistory } from '../utils/cheatSheetCache';
+import { addToSearchHistory } from '../utils/cheatSheetCache';
 import { logger } from '../utils/loggerUtils';
 
 /**
@@ -16,18 +15,14 @@ export const useSearch = () => {
   const [didYouMean, setDidYouMean] = useState(null);
   const [exactMatch, setExactMatch] = useState(null);
   const [originalSearchTerm, setOriginalSearchTerm] = useState('');  const [connectableItems, setConnectableItems] = useState({});
-  
-  /**
+    /**
    * Search using local cache data
    * @param {string} term - Search term
-   * @param {Array} boardNodes - Current board state for cache context
+   * @param {Array} cachedEntities - Pre-fetched cached entities from GameProvider
    * @param {Object} options - Search options
    * @returns {Object} - Search results with exact match and suggestions
    */
-  const performLocalSearch = (term, boardNodes = [], options = {}) => {
-    // Get cached cheat sheet data
-    const cachedEntities = getCachedCheatSheet(boardNodes) || [];
-    
+  const performLocalSearch = (term, cachedEntities = [], options = {}) => {
     if (cachedEntities.length === 0) {
       logger.warn('No cached entities available for local search');
       return { results: [], exactMatch: null, suggestions: [] };
@@ -42,26 +37,23 @@ export const useSearch = () => {
       ...options
     });
   };
-
   /**
    * Quick search for autocomplete/typeahead functionality
    * @param {string} term - Search term
-   * @param {Array} boardNodes - Current board state for cache context
+   * @param {Array} cachedEntities - Pre-fetched cached entities from GameProvider
    * @returns {Array} - Quick search results
    */
-  const performQuickSearch = (term, boardNodes = []) => {
-    const cachedEntities = getCachedCheatSheet(boardNodes) || [];
+  const performQuickSearch = (term, cachedEntities = []) => {
     return quickSearch(term, cachedEntities, 10);
   };
-
   /**
    * Check for possible misspellings/suggestions using local cache
    * @param {string} term - Term to check for misspellings
-   * @param {Array} boardNodes - Current board state for cache context
+   * @param {Array} cachedEntities - Pre-fetched cached entities from GameProvider
    * @returns {Object|null} - Suggested entity or null
    */
-  const checkForMisspelling = (term, boardNodes = []) => {
-    const searchResult = performLocalSearch(term, boardNodes, {
+  const checkForMisspelling = (term, cachedEntities = []) => {
+    const searchResult = performLocalSearch(term, cachedEntities, {
       maxResults: 1,
       minSimilarity: 0.6 // Lower threshold for suggestions
     });

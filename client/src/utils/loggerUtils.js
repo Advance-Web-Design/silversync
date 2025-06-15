@@ -2,8 +2,8 @@ const isDevelopment = true; // Temporarily enable for debugging
 const isVerbose = true; // Temporarily enable for debugging
 
 export const logger = {
-  info: console.log, // Always show for debugging
-  debug: console.log, // Always show for debugging
+  info: isDevelopment ? console.log : () => {}, // Always show for debugging
+  debug: isDevelopment ? console.log : () => {}, // Always show for debugging
   warn: console.warn, // Always show warnings
   error: console.error, // Always show errors
   
