@@ -21,7 +21,7 @@ import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
-import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
+import { generateCheatSheet} from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
@@ -405,22 +405,22 @@ export const GameProvider = ({ children }) => {
     setSelectedNode(null);
     setPossibleConnections([]);
   };
-
   /**
    * Toggles visibility of all searchable entities in the sidebar
-   * Uses existing cached data instead of regenerating
+   * Regenerates data if needed when turning on
    */
-  const toggleShowAllSearchable = () => {
+  const toggleShowAllSearchable = async () => {
     const newShowAllSearchable = !showAllSearchable;
     setShowAllSearchable(newShowAllSearchable);
 
     logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
 
-    // If turning off, clear the cheat sheet results display
-    if (!newShowAllSearchable) {
-      setCheatSheetResults([]);
+    // When turning on, ensure we have cheat sheet data
+    if (newShowAllSearchable && (!cheatSheetResults || cheatSheetResults.length === 0)) {
+      logger.debug('🔄 Cheat sheet data missing, regenerating...');
+      await fetchAndSetAllSearchableEntities();
     }
-    // When turning on, the existing cache will be used by the search components
+    // When turning off, we keep the data but hide the sidebar
   };
 
   const contextValue = {
