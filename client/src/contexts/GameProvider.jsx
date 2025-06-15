@@ -21,7 +21,7 @@ import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
-import { generateCheatSheet } from '../utils/cheatSheetCache';
+import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
@@ -104,17 +104,21 @@ export const GameProvider = ({ children }) => {
   };  /**
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
-   */  const fetchAndSetAllSearchableEntities = useCallback(async () => {
+   */
+  const fetchAndSetAllSearchableEntities = useCallback(async () => {
     logger.info('🎯 Fetching all searchable entities');
 
     setIsLoading(true);
-    try {      // Generate new cheat sheet
+    try {
+
+      // Generate new cheat sheet with challanges filtering
       const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
         enableProductionFiltering: false,
-        excludeProductionCompanies: challengeMode?.remove || [],
+        filtertype: challengeMode?.type || 'classic',
+        excludeProductionCompanies: challengeMode.remove || [],
       });
 
-      setCheatSheetResults(cheatSheetEntities);
+      setCheatSheetResults(cheatSheetEntities); // Load cheat sheet results into and cashe them for search
 
       // Mark all entities as connectable
       const newConnectableItems = {};
@@ -401,6 +405,7 @@ export const GameProvider = ({ children }) => {
     setSelectedNode(null);
     setPossibleConnections([]);
   };
+
   /**
    * Toggles visibility of all searchable entities in the sidebar
    * Uses existing cached data instead of regenerating
@@ -496,7 +501,9 @@ export const GameProvider = ({ children }) => {
 
     // Cheat sheet results
     cheatSheetResults,
-    setCheatSheetResults,  };  // Auto-generate cache when game starts to enable local search
+    setCheatSheetResults,
+  };
+  // Auto-generate cache when game starts to enable local search
   useEffect(() => {
     if (gameStarted && nodes.length > 0) {
       logger.debug('🚀 Game started, generating cache for local search');

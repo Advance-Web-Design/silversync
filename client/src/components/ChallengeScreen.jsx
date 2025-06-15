@@ -33,6 +33,7 @@ const ChallengeScreen = () => {
             icon: '🦸‍♂️',
             difficulty: 'Medium',
             color: 'bg-red-500',
+            type: 'No production companies',
             remove: ['Marvel Studios', 'Marvel Entertainment', 'Marvel Enterprises', 'Marvel Comics', 'Marvel Television']
         },
         {
@@ -42,15 +43,17 @@ const ChallengeScreen = () => {
             icon: '🦇',
             difficulty: 'Medium',
             color: 'bg-blue-500',
+            type: 'No production companies',
             remove: ['Dc Entertainment', 'DC Comics', 'DC Films', 'DC Universe', 'DC Entertainment Television']
         },
         {
-            id: 'movies-only WIP',
+            id: 'movies-only',
             title: 'Movies Only (WIP)',
             description: 'Connect actors using only movies, no TV shows allowed',
             icon: '🎬',
             difficulty: 'Hard',
             color: 'bg-purple-500',
+            type: 'movies-only',
             remove: []
         },
         {
@@ -60,6 +63,7 @@ const ChallengeScreen = () => {
             icon: '📺',
             difficulty: 'Hard',
             color: 'bg-green-500',
+            type: 'tv-only',
             remove: []
         },
         {
@@ -69,6 +73,7 @@ const ChallengeScreen = () => {
             icon: '🎭',
             difficulty: 'Expert',
             color: 'bg-orange-500',
+            type: 'no-sequels',
             remove: []
         },
         {
@@ -78,6 +83,7 @@ const ChallengeScreen = () => {
             icon: '🎪',
             difficulty: 'Expert',
             color: 'bg-pink-500',
+            type: 'no-sequels',
             remove: []
         },
         {
@@ -87,6 +93,7 @@ const ChallengeScreen = () => {
             icon: '📼',
             difficulty: 'Expert',
             color: 'bg-yellow-500',
+            type: 'no-sequels',
             remove: []
         },
 

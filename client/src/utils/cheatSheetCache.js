@@ -109,8 +109,13 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
       index === self.findIndex(e => e.id === entity.id && e.media_type === entity.media_type)
     );    // Filter out entities already on board
     const filteredEntities = filterExistingBoardEntities(uniqueEntities, nodes);
-      // Apply advanced filtering (controlled by caller)
+    // Apply advanced filtering (controlled by caller)
     let finalEntities = filteredEntities;
+    // Filter for entities with images
+    if (filterOptions.filtertype.includes('movies-only')) {
+      console.log('FILTERRR TIYPE :::::: ' + filterOptions.filtertype);
+      finalEntities = finalEntities.filter(entity => (entity.media_type !== 'tv'));
+    }
     //////! filter movies and tv shows by production companies
     if (filterOptions.enableProductionFiltering || filterOptions.excludeProductionCompanies) {
       logger.debug('🔍 Applying production company filtering');
@@ -120,12 +125,12 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
         maxResults: filterOptions.maxResults || null,
         batchSize: filterOptions.batchSize || 10
       });
-    } 
+    }
 
     const duration = Date.now() - startTime;
     logger.info(`🎯 Cheat sheet generated: ${finalEntities.length} entities in ${duration}ms`);
     logger.timeEnd('cheat-sheet-generation');
-    
+
     // Cache the results
     setCachedCheatSheet(finalEntities, nodes);
 
@@ -399,24 +404,24 @@ export const getProductionCompaniesToExclude = (companies) => {
   if (!companies) {
     return []; // No filtering by default
   }
-  
+
   if (Array.isArray(companies)) {
     return companies; // Custom array of company names
   }
-  
+
   if (typeof companies === 'string') {
     // Handle multiple company types separated by comma
     const companyTypes = companies.split(',').map(type => type.trim().toUpperCase());
     let allCompanies = [];
-    
+
     companyTypes.forEach(type => {
       if (PRODUCTION_COMPANY_FILTERS[type]) {
         allCompanies.push(...PRODUCTION_COMPANY_FILTERS[type]);
       }
     });
-    
+
     return allCompanies;
   }
-  
+
   return [];
 };
