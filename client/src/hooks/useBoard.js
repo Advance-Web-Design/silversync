@@ -194,7 +194,7 @@ export const useBoard = () => {
           
           if (found) {
             // Path length is the number of connections (nodes - 1)
-            const pathLength = path.length - 1;
+            const pathLength = path.length - 2;
             
             // Update the shortest path length
             setShortestPathLength(pathLength);
