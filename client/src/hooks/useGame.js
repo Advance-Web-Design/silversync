@@ -22,10 +22,9 @@ export const useGame = () => {
     const [gameStartTime, setGameStartTime] = useState(null);
     const [startActors, setStartActors] = useState([null, null]);
     const [gameCompleted, setGameCompleted] = useState(false);
-    const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);
-    const [startActorsError, setStartActorsError] = useState(null);
+    const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);    const [startActorsError, setStartActorsError] = useState(null);
     const [knownEntities, setKnownEntities] = useState(INITIAL_KNOWN_ENTITIES);
-  const [bestScore, setBestScore] = useState(() => loadBestScore());
+  const [gameScore, setGameScore] = useState(() => loadBestScore());
   
   const [shortestPathLength, setShortestPathLength] = useState(null);
   
@@ -34,12 +33,11 @@ export const useGame = () => {
   const [actorSearchTerms, setActorSearchTerms] = useState(['', '']);
   const [actorSearchPages, setActorSearchPages] = useState([1, 1]);
   const [actorSearchTotalPages, setActorSearchTotalPages] = useState([1, 1]);
-  
-  // Load best score from localStorage on mount
+    // Load game score from localStorage on mount
   useEffect(() => {
     const savedScore = loadBestScore();
     if (savedScore) {
-      setBestScore(savedScore);
+      setGameScore(savedScore);
     }
   }, []);
     /**
@@ -109,18 +107,17 @@ export const useGame = () => {
     setSearchResults(initialState.searchResults);
     setConnectableItems(initialState.connectableItems);
     // Keep previousSearches and knownEntities for better suggestions across games
-  };
-    /**
-   * Set game as completed and update best score if needed
+  };    /**
+   * Set game as completed and update game score if needed
    * @param {number} score - Current game score
    */
   const completeGame = (score) => {
     setGameCompleted(true);
     
-    // Update best score if current score is better (lower) than previous best
-    const newBestScore = updateBestScore(score, bestScore);
-    if (newBestScore !== bestScore) {
-      setBestScore(newBestScore);
+    // Update game score if current score is better (lower) than previous game score
+    const newBestScore = updateBestScore(score, gameScore);
+    if (newBestScore !== gameScore) {
+      setGameScore(newBestScore);
     }
   };
     /**
@@ -186,11 +183,10 @@ export const useGame = () => {
     keepPlayingAfterWin, 
     setKeepPlayingAfterWin,
     startActorsError,
-    setStartActorsError,
-    knownEntities,
+    setStartActorsError,    knownEntities,
     setKnownEntities,
-    bestScore,
-    setBestScore,
+    gameScore,
+    setGameScore,
     shortestPathLength,
     setShortestPathLength,
     actorSearchResults,

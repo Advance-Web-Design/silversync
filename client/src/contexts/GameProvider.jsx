@@ -439,9 +439,9 @@ export const GameProvider = ({ children }) => {
     noMatchFound,
     didYouMean,
     exactMatch,
-    originalSearchTerm,
-    connectableItems,
+    originalSearchTerm,    connectableItems,
     gameStartTime,
+    gameScore: gameState.gameScore,
     shortestPathLength,
 
     // Board state
