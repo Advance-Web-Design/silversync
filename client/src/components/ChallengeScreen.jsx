@@ -4,16 +4,53 @@
  * This component displays various game challenges that players can select from.
  * Each challenge has specific rules or restrictions (e.g., without Marvel, without DC, etc.)
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameContext } from '../contexts/gameContext';
+import { fetchTwoRandomActorsWithPhotos} from '../services/tmdbService';
+import { logger } from '../utils/loggerUtils';
 import Menu from './Menu';
 import About from './About';
 import Leaderboard from './Leaderboard';
 import './ChallengeScreen.css';
 
 const ChallengeScreen = () => {
-    const { setChallengeMode, setCurrentScreen, showLeaderboard, setShowLeaderboard } = useGameContext();
+    const { 
+        setChallengeMode, 
+        setCurrentScreen, 
+        showLeaderboard, 
+        setShowLeaderboard, 
+        setStartActors,
+        startActors,
+        setIsLoading,
+        startGame
+    } = useGameContext();
     const [showAbout, setShowAbout] = useState(false);
+    const [pendingGameStart, setPendingGameStart] = useState(false);
+    const pendingActorsRef = useRef(null);
+
+    // Effect to start game when actors are set for auto-start challenges
+    useEffect(() => {
+        if (pendingGameStart && startActors[0] && startActors[1] && pendingActorsRef.current) {
+            const startGameAsync = async () => {
+                try {
+                    logger.info('🎮 Starting game with updated actors...');
+                    await startGame();
+                    logger.info('✅ Game started successfully');
+                    setPendingGameStart(false);
+                    pendingActorsRef.current = null;
+                } catch (error) {
+                    logger.error('Error starting game:', error);
+                    setCurrentScreen('actor-selection');
+                    setPendingGameStart(false);
+                    pendingActorsRef.current = null;
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            startGameAsync();
+        }
+    }, [startActors, pendingGameStart, startGame, setCurrentScreen, setIsLoading]);    // Efficient function to get two random actors with photos quickly
+   
 
     // Available challenges
     const challenges = [
@@ -208,16 +245,43 @@ const ChallengeScreen = () => {
                 'DC Universe',
                 'DC Entertainment Television'
             ]
-        },
+        },    ];
 
-    ];
-
-    const handleChallengeSelect = (challenge) => {
+    const handleChallengeSelect = async (challenge) => {
         setChallengeMode(challenge);
-        if (!challenge.id.includes('WIP')) {
+        
+        // If challenge is 'for-fun', go to actor selection screen
+        if (challenge.id === 'for-fun') {
+            setCurrentScreen('actor-selection');
+            return;
+        }
+        
+        // For all other challenges, automatically get 2 random actors and start the game
+        try {
+            logger.info(`🎯 Auto-starting challenge: ${challenge.title}`);
+            
+            // Get actors efficiently
+            const actors = await fetchTwoRandomActorsWithPhotos();
+            const [actor1, actor2] = actors;
+            
+            // Set both actors and mark for pending game start
+            setStartActors([actor1, actor2]);
+            pendingActorsRef.current = [actor1, actor2];
+            setPendingGameStart(true);
+            logger.info(`✅ Random actors selected: ${actor1.name} & ${actor2.name}`);
+            
+        } catch (error) {
+            logger.error('Error auto-starting challenge:', error);
+            logger.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                challengeId: challenge?.id,
+                challengeTitle: challenge?.title
+            });
+            // Fallback to actor selection screen if random actors fail
             setCurrentScreen('actor-selection');
         }
-    }; 
+    };
     const handleShowAbout = () => {
         setShowAbout(true);
     };

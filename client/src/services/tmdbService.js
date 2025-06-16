@@ -635,6 +635,41 @@ export const getImageUrlSync = (path, type = 'poster') => {
   return getImageUrl(path, type);
 };
 
+export const fetchTwoRandomActorsWithPhotos = async () => {
+        logger.info('🎯 Fetching two random actors with photos...');
+        
+        // Simplified approach: get enough candidates quickly, then pick 2 with photos
+        const maxCandidates = 10;
+        const candidates = [];
+        
+        // Fetch multiple candidates in parallel
+        const candidatePromises = Array(maxCandidates).fill(null).map(async () => {
+            try {
+                return await fetchRandomPerson();
+            } catch (error) {
+                logger.debug('Failed to fetch candidate:', error);
+                return null;
+            }
+        });
+        
+        const results = await Promise.all(candidatePromises);
+        const validCandidates = results.filter(actor => actor && actor.profile_path);
+        
+        if (validCandidates.length < 2) {
+            throw new Error(`Only found ${validCandidates.length} valid actors with photos`);
+        }
+        
+        // Pick 2 different actors
+        const actor1 = validCandidates[0];
+        let actor2 = validCandidates.find(actor => actor.id !== actor1.id);
+        
+        if (!actor2) {
+            actor2 = validCandidates[1]; // Fallback to second actor even if same (rare case)
+        }
+        
+        return [actor1, actor2];
+    };
+
 export default {
   fetchRandomPerson,
   getPersonDetails,
@@ -647,5 +682,6 @@ export default {
   searchPeople,
   fetchPopularEntities,
   getImageUrl,
-  getImageUrlSync
+  getImageUrlSync,
+  fetchTwoRandomActorsWithPhotos
 };
