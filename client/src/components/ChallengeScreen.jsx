@@ -18,12 +18,23 @@ const ChallengeScreen = () => {
     // Available challenges
     const challenges = [
         {
-            id: 'classic',
-            title: 'Classic Mode',
-            description: 'No restrictions - connect actors any way you can',
+            id: 'for-fun',
+            title: 'For Fun',
+            description: 'No restrictions - pick any two actors and connect them',
             icon: '⭐',
             difficulty: 'Easy',
             color: 'bg-gray-500',
+            filter: false,
+            remove: []
+        },
+                {
+            id: 'classic',
+            title: 'classic',
+            description: 'No restrictions - start with two random actors and connect them',
+            icon: '⭐',
+            difficulty: 'Easy',
+            color: 'bg-gray-500',
+            filter: false,
             remove: []
         },
         {
@@ -34,6 +45,7 @@ const ChallengeScreen = () => {
             difficulty: 'Medium',
             color: 'bg-red-500',
             type: 'no-production-companie',
+            filter: true,
             remove: ['Marvel Studios', 'Marvel Entertainment', 'Marvel Enterprises', 'Marvel Comics', 'Marvel Television']
         },
         {
@@ -44,7 +56,8 @@ const ChallengeScreen = () => {
             difficulty: 'Medium',
             color: 'bg-blue-500',
             type: 'no-production-companie',
-            remove: ['Dc Entertainment', 'DC Comics', 'DC Films', 'DC Universe', 'DC Entertainment Television']
+            filter: true,
+            remove: ['DC Entertainment', 'DC Comics', 'DC Films', 'DC Universe', 'DC Entertainment Television']
         },
         {
             id: 'movies-only',
@@ -54,6 +67,7 @@ const ChallengeScreen = () => {
             difficulty: 'Hard',
             color: 'bg-purple-500',
             type: 'movies-only',
+            filter: true,
             remove: []
         },
         {
@@ -64,37 +78,136 @@ const ChallengeScreen = () => {
             difficulty: 'Hard',
             color: 'bg-green-500',
             type: 'tv-only',
+            filter: true,
             remove: []
-        },
-        {
-            id: 'no-sequels WIP',
-            title: 'No Sequels (WIP)',
-            description: 'Connect actors without using any sequel movies',
+        },        {
+            id: 'no-disney',
+            title: 'No Disney',
+            description: 'Connect actors without using any Disney or sub companies like Pixar, Marvel, etc.',
             icon: '🎭',
             difficulty: 'Expert',
             color: 'bg-orange-500',
-            type: 'no-sequels',
-            remove: []
+            type: 'no-production-companie',
+            filter: true,
+            remove: [
+                // Disney Core
+                'Walt Disney Pictures',
+                'Walt Disney Animation Studios',
+                'Disney Television Animation',
+                'Disney Channel',
+                'Disney Junior',
+                'Disney XD',
+                'Disney+',
+                'The Walt Disney Company',
+                'Walt Disney Studios',
+                
+                // Pixar
+                'Pixar',
+                'Pixar Animation Studios',
+                
+                // Marvel
+                'Marvel Studios',
+                'Marvel Entertainment',
+                'Marvel Enterprises',
+                'Marvel Comics',
+                'Marvel Television',
+                
+                // Lucasfilm
+                'Lucasfilm',
+                'Lucasfilm Ltd.',
+                'LucasArts',
+                
+                // 20th Century
+                '20th Century Studios',
+                '20th Century Fox',
+                '20th Television',
+                '20th Century Fox Television',
+                
+                // Touchstone/Hollywood Pictures
+                'Touchstone Pictures',
+                'Hollywood Pictures',
+                
+                // ABC/ESPN (Disney-owned networks)
+                'ABC',
+                'ABC Studios',
+                'ABC Family',
+                'ESPN',
+                'Freeform',
+                
+                // Other Disney subsidiaries
+                'Blue Sky Studios',
+                'National Geographic',
+                'FX Networks',
+                'Hulu'
+            ]
         },
         {
-            id: 'indie-only WIP',
-            title: 'Indie Films Only (WIP)',
-            description: 'Connect actors using only independent films',
+            id: 'Nathan',
+            title: 'Developer Challenge',
+            description: 'movie only, no DC ,no Disney or it\'s sub companies like Pixar, Marvel, etc',
             icon: '🎪',
             difficulty: 'Expert',
             color: 'bg-pink-500',
-            type: 'no-sequels',
-            remove: []
-        },
-        {
-            id: 'before-2000 WIP',
-            title: 'Pre-2000 Only (WIP)',
-            description: 'Connect actors using only movies/shows from before year 2000',
-            icon: '📼',
-            difficulty: 'Expert',
-            color: 'bg-yellow-500',
-            type: 'no-sequels',
-            remove: []
+            type: 'no-production-companie-movies-only',
+            filter: true,
+            remove: [
+                // Disney Core
+                'Walt Disney Pictures',
+                'Walt Disney Animation Studios',
+                'Disney Television Animation',
+                'Disney Channel',
+                'Disney Junior',
+                'Disney XD',
+                'Disney+',
+                'The Walt Disney Company',
+                'Walt Disney Studios',
+                
+                // Pixar
+                'Pixar',
+                'Pixar Animation Studios',
+                
+                // Marvel
+                'Marvel Studios',
+                'Marvel Entertainment',
+                'Marvel Enterprises',
+                'Marvel Comics',
+                'Marvel Television',
+
+                // Lucasfilm
+                'Lucasfilm',
+                'Lucasfilm Ltd.',
+                'LucasArts',
+
+                // 20th Century
+                '20th Century Studios',
+                '20th Century Fox',
+                '20th Television',
+                '20th Century Fox Television',
+
+                // Touchstone/Hollywood Pictures
+                'Touchstone Pictures',
+                'Hollywood Pictures',
+
+                // ABC/ESPN (Disney-owned networks)
+                'ABC',
+                'ABC Studios',
+                'ABC Family',
+                'ESPN',
+                'Freeform',
+
+                // Other Disney subsidiaries
+                'Blue Sky Studios',
+                'National Geographic',
+                'FX Networks',
+                'Hulu',
+
+                // DC
+                'DC Entertainment',
+                'DC Comics',
+                'DC Films',
+                'DC Universe',
+                'DC Entertainment Television'
+            ]
         },
 
     ];

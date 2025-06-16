@@ -112,12 +112,12 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
     // Apply advanced filtering (controlled by caller)
     let finalEntities = filteredEntities;
     // Filter for entities with images
-    if (filterOptions.filtertype.includes('movies-only')) {
+    if (filterOptions.enableProductionFiltering && filterOptions.filtertype.includes('movies-only')) {
       finalEntities = finalEntities.filter(entity => (entity.media_type !== 'tv'));
-    }    if (filterOptions.filtertype.includes('tv-only')) {
+    } if (filterOptions.enableProductionFiltering && filterOptions.filtertype.includes('tv-only')) {
       finalEntities = finalEntities.filter(entity => (entity.media_type !== 'movie'));
     }
-    if (filterOptions.enableProductionFiltering && filterOptions.excludeProductionCompanies.includes('no-production-companie')) {
+    if (filterOptions.enableProductionFiltering && filterOptions.filtertype.includes('no-production-companie')) {
       logger.debug('🔍 Applying production company filtering');
       finalEntities = await filterEntitiesAdvanced(finalEntities, {
         excludeProductionCompanies: filterOptions.excludeProductionCompanies || [], // Use caller's choice or no filtering

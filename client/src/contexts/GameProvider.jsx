@@ -113,7 +113,7 @@ export const GameProvider = ({ children }) => {
 
       // Generate new cheat sheet with challanges filtering
       const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
-        enableProductionFiltering: false,
+        enableProductionFiltering: challengeMode?.filter ||false,
         filtertype: challengeMode?.type || 'classic',
         excludeProductionCompanies: challengeMode.remove || [],
       });
