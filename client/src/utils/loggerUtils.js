@@ -1,5 +1,4 @@
-const isDevelopment = true; // Temporarily enable for debugging
-const isVerbose = true; // Temporarily enable for debugging
+const isDevelopment = import.meta.env.DEV; // gets the environment mode from the build tool
 
 export const logger = {
   info: isDevelopment ? console.log : () => {}, // Always show for debugging
