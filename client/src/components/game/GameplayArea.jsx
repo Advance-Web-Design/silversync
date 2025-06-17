@@ -11,15 +11,14 @@ function GameplayArea() {
   const { gameCompleted, keepPlayingAfterWin } = useGameContext();
 
   return (
-    <Box className="relative flex-1 flex flex-col">
+    <Box className="relative flex-1 flex flex-col overflow-hidden">
+
       <BoardHeader /> 
       
-      <GameBoard />
-
-      {/* SearchPanel is rendered outside the flex layout as a fixed element */}
+      <Box className="flex-1 relative overflow-auto"> 
+        <GameBoard /> 
+      </Box>
       <SearchPanel />
-      
-      {/* VictoryModal no longer needs props passed from here */}
       {gameCompleted && !keepPlayingAfterWin && (
         <VictoryModal />
       )}

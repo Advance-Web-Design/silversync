@@ -42,7 +42,7 @@ function GameContent() {
   
   return (
     <Box 
-      className="flex flex-col h-screen"
+      className="flex flex-col min-h-screen"
       sx={{
         backgroundColor: !gameStarted ? 'black' : 'transparent',
       }}

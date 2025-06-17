@@ -3,7 +3,8 @@ import {GameProvider} from './contexts/GameProvider';
 import GameContent from './components/game/GameContent';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline} from '@mui/material';
-import './App.css';
+// import './App.css';
+import { appContainerClasses } from './styles/appStyle'; // Import the classes
 
 // Create a theme instance
 const theme = createTheme({
@@ -32,10 +33,12 @@ const theme = createTheme({
 function App() {
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <GameProvider>
-        <GameContent />
-      </GameProvider>
+      {/* <CssBaseline /> */}
+      <div className={appContainerClasses}> {/* Use the imported class string */}
+        <GameProvider>
+          <GameContent />
+        </GameProvider>
+      </div>
     </ThemeProvider>
   );
 }

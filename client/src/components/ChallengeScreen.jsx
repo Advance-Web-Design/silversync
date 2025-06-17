@@ -97,7 +97,7 @@ const ChallengeScreen = () => {
         if (!challenge.id.includes('WIP')) {
             setCurrentScreen('actor-selection');
         }
-    }; 
+    };
     const handleShowAbout = () => {
         setShowAbout(true);
     };
@@ -123,7 +123,7 @@ const ChallengeScreen = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black">
+        <div className="relative min-h-screen overflow-y-auto bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black">
             {/* Header */}
             <div className="flex justify-between items-center p-4 w-full">
                 <Menu parentName="ChallengeScreen" />

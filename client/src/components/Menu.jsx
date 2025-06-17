@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect, use } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // Removed 'use' import
 import MenuIcon from '@mui/icons-material/Menu';
-import './Menu.css';
 import { useGameContext } from '../contexts/gameContext'; // Import useGameContext
 import HowToPlay from './HowToPlay';
 import About from './About';
@@ -8,6 +7,9 @@ import Leaderboard from './Leaderboard';
 import LoginWindow from './Login'; // Import Login component
 import RegisterWindow from './Register'; // Import Register component
 import { logger } from '../utils/loggerUtils';
+import * as MenuStyles from '../styles/menuStyle.js'; // Import the styles
+import ToggleButton from './ToggleBtn'; // Import ToggleButton component
+
 
 
 import UserProfile from './UserProfile';
@@ -15,24 +17,24 @@ import UserProfile from './UserProfile';
 
 function Menu(props) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [showHowToPlay, setShowHowToPlay] = useState(false); // State for HowToPlay visibility
-    const [showAbout, setShowAbout] = useState(false); // State for About visibility
-    const [showLoginWindow, setShowLoginWindow] = useState(false); // State for Login window visibility
-    const [showRegisterWindow, setShowRegisterWindow] = useState(false); // State for Register window visibility
-    const [loginID, setLoginID] = useState(null); // State for storing user's login ID
-    const [showUserProfile, setShowUserProfile] = useState(null); // State for storing user's login ID
-    const [userProfileData, setUserProfileData] = useState(null); // State for storing user profile data
+    const [showHowToPlay, setShowHowToPlay] = useState(false);
+    const [showAbout, setShowAbout] = useState(false);
+    const [showLoginWindow, setShowLoginWindow] = useState(false);
+    const [showRegisterWindow, setShowRegisterWindow] = useState(false);
+    const [loginID, setLoginID] = useState(null);
+    const [showUserProfile, setShowUserProfile] = useState(false); // Corrected initial state
+    const [userProfileData, setUserProfileData] = useState(null);
+    const [isToggleEnabled, setIsToggleEnabled] = useState(false); // New state for the toggle button
 
 
-
-    const menuRef = useRef(null);    // Destructure login-related states and functions from context
+    const menuRef = useRef(null);
     const { 
         toggleShowAllSearchable, 
         resetGame,
-        isLoggedIn, // Get isLoggedIn state from context
-        login,      // Get login function from context
-        logout,     // Get logout function from context
-        register,   // Get register function from context
+        isLoggedIn, 
+        login,      
+        logout,     
+        register,   
         showLeaderboard,
         setShowLeaderboard
     } = useGameContext();
@@ -69,7 +71,6 @@ function Menu(props) {
         setMenuOpen(false); // Close the main menu
     }
 
-    // Register action handler
     const handleRegister = () => {
         logger.debug('Register action triggered');
         //if (register) register(); // Call register function from context
@@ -77,7 +78,6 @@ function Menu(props) {
         setMenuOpen(false);
     };
 
-    // Other action handlers
     const handleHowToPlay = () => {
         setShowHowToPlay(prev => !prev); // Toggle HowToPlay visibility
         setMenuOpen(false); // Close the main menu
@@ -109,7 +109,18 @@ function Menu(props) {
         setMenuOpen(false);
     };
 
-    // Effect to close the menu when clicking outside
+    // Handler for the toggle button
+    const handleToggleClick = () => {
+        setIsToggleEnabled(prev => !prev);
+        // Add any other logic you want to happen when the toggle changes
+        // For example, if this toggle controls a feature:
+        // if (!isToggleEnabled) {
+        //   enableSomeFeature();
+        // } else {
+        //   disableSomeFeature();
+        // }
+    };
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -127,9 +138,8 @@ function Menu(props) {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [menuOpen, showHowToPlay]); // Re-run effect if menuOpen or showHowToPlay changes
+    }, [menuOpen, showHowToPlay]); 
 
-    // Function to be passed to HowToPlay component to close it
     const closeHowToPlay = () => {
         setShowHowToPlay(false);
     };
@@ -151,70 +161,61 @@ function Menu(props) {
         setShowLeaderboard(false);
     };
 
-    // Function to be passed to About component to close it
     const closeAbout = () => {
         setShowAbout(false);
     };
 
     return (
-        <> {/* Use React Fragment to allow HowToPlay to be a sibling */}
-            <div className="menu-container" ref={menuRef}>
+        <> 
+            <div className={MenuStyles.menuContainerStyle} ref={menuRef}>
                 <button
-                    className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-[#3b3b3b] text-white shadow-md hover:bg-black transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-75"
+                    className={MenuStyles.menuButtonStyle} 
                     onClick={handleMenuToggle}
                 >
-                    <MenuIcon fontSize="medium" /> {/* Adjusted icon size for better fit */}
-                    <span className="mt-1 text-xs">Menu</span> {/* Text below icon, smaller */}
+                    <MenuIcon fontSize="medium" /> 
+                    <span className={MenuStyles.menuButtonIconTextStyle}>Menu</span> 
                 </button>
 
                 {menuOpen && (
-                    <div className="menu-dropdown">
-                        {/* Use isLoggedIn from context for conditional rendering */}
-                        {loginID === null ? ( // Handle undefined case during initial load
+                    <div className={MenuStyles.menuDropdownStyle}>
+                        {loginID === null ? ( 
                             <>
-                                <button onClick={handleLogin} className="menu-item">Login</button>
-                                <button onClick={handleRegister} className="menu-item">Register</button>
+                                <button onClick={handleLogin} className={MenuStyles.menuItemStyle}>Login</button>
+                                <button onClick={handleRegister} className={MenuStyles.menuItemStyle}>Register</button>
                             </>
                         ) : (
                             <>
-                            <button onClick={handleLogout} className="menu-item">Logout</button>
-                            <button onClick={handleUserProfile} className="menu-item">User Profile</button>
+                            <button onClick={handleLogout} className={MenuStyles.menuItemStyle}>Logout</button>
+                            <button onClick={handleUserProfile} className={MenuStyles.menuItemStyle}>User Profile</button>
                             </>
                         )}
 
-                        {/* Conditionally render items based on parentName prop */}
                         {props.parentName === 'StartScreen' && (
                             <>
-                            <button onClick={handleNewGame} className="menu-item">Main Menu</button>
-                            <button onClick={handleLeaderboard} className="menu-item">Leaderboard</button>
-                            <button onClick={handleAbout} className="menu-item">About</button>
+                            <button onClick={handleNewGame} className={MenuStyles.menuItemStyle}>Main Menu</button>
+                            <button onClick={handleLeaderboard} className={MenuStyles.menuItemStyle}>Leaderboard</button>
+                            <button onClick={handleAbout} className={MenuStyles.menuItemStyle}>About</button>
                             </>)}
                         {props.parentName === 'BoardHeader' && (
                             <>
-                            <button onClick={handleNewGame} className="menu-item">New Game</button>
-                            <button onClick={handleLeaderboard} className="menu-item">Leaderboard</button>
-                            <button onClick={handleHowToPlay} className="menu-item">How to Play</button>
-                            <button onClick={handleCheatSheet} className="menu-item">Cheat Sheet</button>
+                            <button onClick={handleNewGame} className={MenuStyles.menuItemStyle}>New Game</button>
+                            <button onClick={handleLeaderboard} className={MenuStyles.menuItemStyle}>Leaderboard</button>
+                            <button onClick={handleHowToPlay} className={MenuStyles.menuItemStyle}>How to Play</button>
+                            <button onClick={handleCheatSheet} className={MenuStyles.menuItemStyle}>Cheat Sheet</button>
+                            {/* Pass state and handler to ToggleButton */}
+                            <div className={MenuStyles.menuItemStyle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span>Toggle Feature</span> {/* Example label */}
+                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} />
+                            </div>
                             </>)}
                     </div>
                 )}
             </div>
-            {/* Conditionally render the HowToPlay component */}
-            {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}            {/* Conditionally render the About component */}
+            {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}            
             {showAbout && <About onClose={closeAbout}/>}
-
-            {/* Conditionally render the Leaderboard component */}
             {showLeaderboard && <Leaderboard onClose={closeLeaderboard}/>}
-
-
-            
-            {/* Conditionally render the login component */}
             {showLoginWindow && <LoginWindow onClose={closeLoginWindow} setLoginID={handleSetLoginID} />}
-
-            {/* Conditionally render the register component */}
             {showRegisterWindow && <RegisterWindow onClose={closeRegisterWindow} />}
-
-            {/* Conditionally render the userprofile component */}
             {showUserProfile && <UserProfile onClose={closeUserProfileWindow} userData={userProfileData} />}
         </>
     );

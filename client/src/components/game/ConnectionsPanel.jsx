@@ -1,7 +1,6 @@
 import React from "react";
 import { useGameContext } from "../../contexts/gameContext";
 import { getItemTitle } from "../../utils/entityUtils";
-import "./ConnectionsPanel.css";
 import ConnectionContent from "./ConnectionContent";
 
 import * as PanelStyles from "../../styles/connectionPanelStyle.js";

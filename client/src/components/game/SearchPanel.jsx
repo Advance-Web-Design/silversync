@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useGameContext } from "../../contexts/gameContext";
-import "./SearchPanel.css";
+
 import SearchPanelUI from "./SearchPanelUI";
 import SearchEntitiesSidebar from "./SearchEntitiesSidebar";
 

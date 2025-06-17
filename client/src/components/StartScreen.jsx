@@ -9,7 +9,7 @@ import { useGameContext } from '../contexts/gameContext';
 import ActorCard from './game/ActorCard';
 import Menu from './Menu';
 import LoadingOverlay from './game/LoadingOverlay';
-import './StartScreen.css';
+//import './StartScreen.css';
 
 const StartScreen = () => {
 
@@ -48,44 +48,45 @@ const StartScreen = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black">
+    <div className="relative min-h-screen overflow-hidden bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 w-full">
+      <div className="flex justify-between items-center p-3 sm:p-4 w-full">
         <Menu parentName="StartScreen" />
-        <h1 className="font-serif font-bold text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500]">
+        <h1 className="font-serif font-bold text-2xl sm:text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500] text-center flex-grow mr-8 sm:mr-0">
           Connect The Stars
         </h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col items-center justify-center p-8 mx-auto h-full">
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 mx-auto h-full flex-grow w-full">
         {startActorsError && (
-          <div className="error-message">
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded relative mb-3 sm:mb-4 text-xs sm:text-sm">
             {startActorsError}
           </div>
         )}
 
-        <div className="flex flex-wrap justify-around w-full max-w-lg m-10 mb-12">
+        {/* Actor Cards Container */}
+        <div className="flex flex-col sm:flex-row flex-wrap justify-around items-center sm:items-start w-full max-w-xs sm:max-w-lg md:max-w-2xl gap-6 sm:gap-4 m-4 sm:m-10 mb-6 sm:mb-12">
           {[0, 1].map((index) => (
-            <ActorCard
-              key={index}
-              index={index}
-              selectedActor={startActors[index]}
-              isLoading={isLoading}
-              onSearchAgain={handleSearchAgain}
+            <div key={index} className="w-full sm:w-auto">
+              <ActorCard
+                index={index}
+                selectedActor={startActors[index]}
+                isLoading={isLoading}
+                onSearchAgain={handleSearchAgain}
 
-              // Data for ActorSelectionSlot (passed via ActorCard)
-              initialSearchTerm={actorSearchTerms[index]}
-              currentActorSearchResults={actorSearchResults[index]}
-              searchPageNum={actorSearchPages[index]}
-              searchTotalPages={actorSearchTotalPages[index]}
+                initialSearchTerm={actorSearchTerms[index]}
+                currentActorSearchResults={actorSearchResults[index]}
+                searchPageNum={actorSearchPages[index]}
+                searchTotalPages={actorSearchTotalPages[index]}
 
-              callbackOnSelectActor={handleSelectActor}
-              callbackOnLoadMore={loadMoreActors}
-              callbackOnRandomize={randomizeActors}
-              callbackSearchActors={searchStartActors}
-              callbackUpdateSearchTerm={setActorSearch}
-            />
+                callbackOnSelectActor={handleSelectActor}
+                callbackOnLoadMore={loadMoreActors}
+                callbackOnRandomize={randomizeActors}
+                callbackSearchActors={searchStartActors}
+                callbackUpdateSearchTerm={setActorSearch}
+              />
+            </div>
           ))}
         </div>
 
@@ -94,11 +95,11 @@ const StartScreen = () => {
         </div>
 
         {/* Control Buttons */}
-        <div className="flex flex-col items-center gap-4 w-full max-w-[300px] p-4">
+        <div className="flex flex-col items-center gap-4 w-full max-w-[280px] sm:max-w-[300px] p-2 sm:p-4">
           <button
             onClick={startGame}
             disabled={!(startActors[0] && startActors[1]) || isLoading}
-            className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-[0.8rem] px-8 text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-2 px-6 sm:py-[0.8rem] sm:px-8 text-base sm:text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           >
             START GAME
           </button> 

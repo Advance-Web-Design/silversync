@@ -19,7 +19,6 @@ import { Box } from '@mui/material';
 import { useZoom } from '../../hooks/useZoom';
 import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
 import { logger } from '../../utils/loggerUtils';
-import './GameBoard.css';
 
 const GameBoard = () => {
   // Get game state and functions from context
@@ -154,10 +153,6 @@ const GameBoard = () => {
     <Box
       ref={boardRef}
       className={BoardStyles.gameBoardContainerStyle} // Use style from BoardStyle.js
-      style={{
-        // backgroundImage remains inline due to its complexity with multiple layers
-        backgroundImage: "url('/game-bg2.png'), radial-gradient(circle, rgba(20,20,35,1) 0%, rgba(10,10,26,1) 100%)"
-      }}
       onWheel={handleWheel}
     >
       <div

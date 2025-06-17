@@ -244,10 +244,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
   };
   
   const nodeBorderColor = getNodeColor();
-  // const draggableStyle = "group absolute w-[120px] h-[180px] rounded-lg border-[3px] border-solid overflow-hidden cursor-grab origin-center shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-[box-shadow_0.2s_ease,transform_0.2s_ease] bg-[rgba(20,20,35,0.9)] select-none touch-none z-10 min-h-[180px] animate-[nodeAppear_0.3s_ease-out] hover:scale-[1.02] hover:shadow-[0_6px_15px_rgba(0,0,0,0.4)]";
-  // const startActorStyle = "border-[5px] border-[gold] shadow-[0_4px_12px_rgba(255,215,0,0.7)]";
-  // const isDraggingStyle = "shadow-[0_4px_20px_rgba(0,0,0,0.5)] scale(1.05)" ;
-
+  
   // Construct className dynamically
   const nodeClassName = `
     ${NodeStyles.draggableNodeBaseStyle}
@@ -278,9 +275,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
                 </div>
           )}
           
-          <div className={NodeStyles.nodeNameOverlayStyle}>
-            {title}
-          </div>
+         
         </div>
       </div>
     </div>

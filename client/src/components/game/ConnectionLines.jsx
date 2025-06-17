@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ConnectionLinesStyles from '../../styles/connectionPanelStyle.js'; // Import styles
 
 const ConnectionLines = ({ 
   connections, 
@@ -9,7 +10,7 @@ const ConnectionLines = ({
 }) => {
   return (
     <svg 
-      className="connections-layer"
+      className={ConnectionLinesStyles.connectionsLayerStyle} 
       width={boardSize.width}
       height={boardSize.height}
     >
@@ -58,7 +59,13 @@ const ConnectionLines = ({
             y1={y1}
             x2={x2}
             y2={y2}
-            className={`connection-line ${isGuestAppearance ? 'guest-appearance' : ''} ${gameCompleted ? 'completed' : ''}`}
+            style={
+              gameCompleted 
+                ? ConnectionLinesStyles.connectionLineCompletedStyle 
+                : isGuestAppearance 
+                  ? ConnectionLinesStyles.connectionLineGuestStyle 
+                  : ConnectionLinesStyles.connectionLineBaseStyle
+            }
           />
         );
       })}
