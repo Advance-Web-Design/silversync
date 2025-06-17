@@ -2,7 +2,7 @@ import React from 'react';
 import { Box } from '@mui/material';
 import DraggableNode from './DraggableNode';
 
-const NodeLayer = ({ 
+const NodeLayer = React.memo(({ 
   nodes, 
   nodePositions, 
   updateNodePosition, 
@@ -30,9 +30,18 @@ const NodeLayer = ({
             zoomLevel={zoomLevel} /* zoom level */
           />
         );
-      })}
-    </Box>
+      })}    </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for NodeLayer
+  return (
+    prevProps.nodes.length === nextProps.nodes.length &&
+    prevProps.zoomLevel === nextProps.zoomLevel &&
+    prevProps.boardSize.width === nextProps.boardSize.width &&
+    prevProps.boardSize.height === nextProps.boardSize.height &&
+    JSON.stringify(prevProps.nodePositions) === JSON.stringify(nextProps.nodePositions) &&
+    JSON.stringify(prevProps.startActors) === JSON.stringify(nextProps.startActors)
+  );
+});
 
 export default NodeLayer;

@@ -20,7 +20,7 @@ import { useZoom } from '../../hooks/useZoom';
 import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
 import { logger } from '../../utils/loggerUtils';
 
-const GameBoard = () => {
+const GameBoard = React.memo(() => {
   // Get game state and functions from context
   const {
     nodes,
@@ -29,10 +29,9 @@ const GameBoard = () => {
     updateNodePosition,
     isLoading,
     gameCompleted,
-    startActors,
-    selectedNode,
+    startActors,    selectedNode,
     gameStartTime,
-    bestScore,
+    gameScore,
     shortestPathLength,
     searchResults   // Get search results to determine if search panel is expanded
   } = useGameContext();
@@ -111,14 +110,13 @@ const GameBoard = () => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
   /**
-   * Format the best score with thousands separator
-   * @returns {string} Formatted best score
+   * Format the game score with thousands separator
+   * @returns {string} Formatted game score
    */
-  const formatBestScore = () => {
-    if (!bestScore) return "???";
-    return bestScore.toLocaleString();
+  const formatGameScore = () => {
+    if (!gameScore) return "???";
+    return gameScore.toLocaleString();
   };
   /**
    * Get the length of the shortest path between the starting actors
@@ -134,10 +132,9 @@ const GameBoard = () => {
     // Fallback to old method as last resort
     return nodes.length - 2;
   };
-
   // Pre-calculate the formatted values to avoid using hooks in the render method
   const formattedTimeValue      = formatTime(elapsedTime);
-  const formattedBestScoreValue = formatBestScore();
+  const formattedGameScoreValue = formatGameScore();
   const pathLengthValue         = getPathLength();
 
   // For debugging purposes, log the search results state
@@ -190,14 +187,13 @@ const GameBoard = () => {
       </div>
 
       {selectedNode && <ConnectionsPanel />}
-      {isLoading    && <LoadingOverlay />}
-
-      <GameStats
-        formattedBestScore={formattedBestScoreValue}
+      {isLoading    && <LoadingOverlay />}      <GameStats
+        formattedGameScore={formattedGameScoreValue}
         formattedTime={formattedTimeValue}
         pathLength={pathLengthValue}
         hasGuestAppearances={hasGuestAppearances}
         hasSearchResults={hasSearchResults}
+        gameCompleted={gameCompleted}
       />
 
       {/* Zoom percentage indicator */}
@@ -205,10 +201,10 @@ const GameBoard = () => {
         className={BoardStyles.zoomIndicatorStyle} // Use style from BoardStyle.js
         // Removed inline styles (now in zoomIndicatorStyle)
       >
-        Zoom: {(zoomLevel * 100).toFixed(0)}%
-      </div>
+        Zoom: {(zoomLevel * 100).toFixed(0)}%      
+        </div>
     </Box>
   );
-};
+});
 
 export default GameBoard;

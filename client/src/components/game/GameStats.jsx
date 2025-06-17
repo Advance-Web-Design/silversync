@@ -6,12 +6,13 @@ import * as GameStatStyles from '../../styles/GameStatStyles.js';
  * GameStats component - Displays game statistics and guest appearances message
  * Receives pre-calculated values to avoid hook-related errors
  */
-const GameStats = ({ 
-  formattedBestScore, 
+const GameStats = React.memo(({ 
+  formattedGameScore, 
   formattedTime,
   pathLength,
   hasGuestAppearances, 
-  hasSearchResults
+  hasSearchResults,
+  gameCompleted
 }) => {
 
   const statsDisplayClasses = [
@@ -28,20 +29,23 @@ const GameStats = ({
 
   return (
     <>
-      {/* Stats display */}
-      <div 
+      {/* Stats display */}      <div 
         className={statsDisplayClasses}
         data-has-results={hasSearchResults ? 'true' : 'false'} // This attribute is not for CSS class styling
       >
-        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestScoreStyle}`}>
-          BEST SCORE: {formattedBestScore}
-        </div>
+        {gameCompleted && (
+          <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestScoreStyle}`}>
+            GAME SCORE: {formattedGameScore}
+          </div>
+        )}
         <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemTimerStyle}`}>
           TIMER: {formattedTime}
         </div>
-        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestPathStyle}`}>
-          SHORTEST PATH: {pathLength}
-        </div>
+        {gameCompleted && (
+          <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestPathStyle}`}>
+            SHORTEST PATH: {pathLength}
+          </div>
+        )}      
       </div>
       
       {/* Guest Appearances Message */}
@@ -52,6 +56,6 @@ const GameStats = ({
       )}
     </>
   );
-};
+});
 
 export default GameStats;

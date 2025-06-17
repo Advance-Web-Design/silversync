@@ -1,7 +1,7 @@
 import React from 'react';
 import * as ConnectionLinesStyles from '../../styles/connectionPanelStyle.js'; // Import styles
 
-const ConnectionLines = ({ 
+const ConnectionLines = React.memo(({ 
   connections, 
   nodePositions,
   connectionRefs,
@@ -71,6 +71,15 @@ const ConnectionLines = ({
       })}
     </svg>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for ConnectionLines
+  return (
+    prevProps.connections.length === nextProps.connections.length &&
+    prevProps.gameCompleted === nextProps.gameCompleted &&
+    prevProps.boardSize.width === nextProps.boardSize.width &&
+    prevProps.boardSize.height === nextProps.boardSize.height &&
+    JSON.stringify(prevProps.nodePositions) === JSON.stringify(nextProps.nodePositions)
+  );
+});
 
 export default ConnectionLines;

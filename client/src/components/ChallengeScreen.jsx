@@ -4,26 +4,74 @@
  * This component displays various game challenges that players can select from.
  * Each challenge has specific rules or restrictions (e.g., without Marvel, without DC, etc.)
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameContext } from '../contexts/gameContext';
+import { fetchTwoRandomActorsWithPhotos} from '../services/tmdbService';
+import { logger } from '../utils/loggerUtils';
 import Menu from './Menu';
 import About from './About';
 import Leaderboard from './Leaderboard';
 import './ChallengeScreen.css';
 
 const ChallengeScreen = () => {
-    const { setChallengeMode, setCurrentScreen, showLeaderboard, setShowLeaderboard } = useGameContext();
+    const { 
+        setChallengeMode, 
+        setCurrentScreen, 
+        showLeaderboard, 
+        setShowLeaderboard, 
+        setStartActors,
+        startActors,
+        setIsLoading,
+        startGame
+    } = useGameContext();
     const [showAbout, setShowAbout] = useState(false);
+    const [pendingGameStart, setPendingGameStart] = useState(false);
+    const pendingActorsRef = useRef(null);
+
+    // Effect to start game when actors are set for auto-start challenges
+    useEffect(() => {
+        if (pendingGameStart && startActors[0] && startActors[1] && pendingActorsRef.current) {
+            const startGameAsync = async () => {
+                try {
+                    logger.info('🎮 Starting game with updated actors...');
+                    await startGame();
+                    logger.info('✅ Game started successfully');
+                    setPendingGameStart(false);
+                    pendingActorsRef.current = null;
+                } catch (error) {
+                    logger.error('Error starting game:', error);
+                    setCurrentScreen('actor-selection');
+                    setPendingGameStart(false);
+                    pendingActorsRef.current = null;
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            startGameAsync();
+        }
+    }, [startActors, pendingGameStart, startGame, setCurrentScreen, setIsLoading]);    // Efficient function to get two random actors with photos quickly
+   
 
     // Available challenges
     const challenges = [
         {
-            id: 'classic',
-            title: 'Classic Mode',
-            description: 'No restrictions - connect actors any way you can',
+            id: 'for-fun',
+            title: 'For Fun',
+            description: 'No restrictions - pick any two actors and connect them',
             icon: '⭐',
             difficulty: 'Easy',
             color: 'bg-gray-500',
+            filter: false,
+            remove: []
+        },
+                {
+            id: 'classic',
+            title: 'classic',
+            description: 'No restrictions - start with two random actors and connect them',
+            icon: '⭐',
+            difficulty: 'Easy',
+            color: 'bg-gray-500',
+            filter: false,
             remove: []
         },
         {
@@ -33,6 +81,8 @@ const ChallengeScreen = () => {
             icon: '🦸‍♂️',
             difficulty: 'Medium',
             color: 'bg-red-500',
+            type: 'no-production-companie',
+            filter: true,
             remove: ['Marvel Studios', 'Marvel Entertainment', 'Marvel Enterprises', 'Marvel Comics', 'Marvel Television']
         },
         {
@@ -42,59 +92,193 @@ const ChallengeScreen = () => {
             icon: '🦇',
             difficulty: 'Medium',
             color: 'bg-blue-500',
-            remove: ['Dc Entertainment', 'DC Comics', 'DC Films', 'DC Universe', 'DC Entertainment Television']
+            type: 'no-production-companie',
+            filter: true,
+            remove: ['DC Entertainment', 'DC Comics', 'DC Films', 'DC Universe', 'DC Entertainment Television']
         },
         {
-            id: 'movies-only WIP',
-            title: 'Movies Only (WIP)',
+            id: 'movies-only',
+            title: 'Movies Only',
             description: 'Connect actors using only movies, no TV shows allowed',
             icon: '🎬',
             difficulty: 'Hard',
             color: 'bg-purple-500',
+            type: 'movies-only',
+            filter: true,
             remove: []
         },
         {
-            id: 'tv-only WIP',
-            title: 'TV Shows Only (WIP)',
+            id: 'tv-only',
+            title: 'TV Shows Only',
             description: 'Connect actors using only TV shows, no movies allowed',
             icon: '📺',
             difficulty: 'Hard',
             color: 'bg-green-500',
+            type: 'tv-only',
+            filter: true,
             remove: []
-        },
-        {
-            id: 'no-sequels WIP',
-            title: 'No Sequels (WIP)',
-            description: 'Connect actors without using any sequel movies',
+        },        {
+            id: 'no-disney',
+            title: 'No Disney',
+            description: 'Connect actors without using any Disney or sub companies like Pixar, Marvel, etc.',
             icon: '🎭',
             difficulty: 'Expert',
             color: 'bg-orange-500',
-            remove: []
+            type: 'no-production-companie',
+            filter: true,
+            remove: [
+                // Disney Core
+                'Walt Disney Pictures',
+                'Walt Disney Animation Studios',
+                'Disney Television Animation',
+                'Disney Channel',
+                'Disney Junior',
+                'Disney XD',
+                'Disney+',
+                'The Walt Disney Company',
+                'Walt Disney Studios',
+                
+                // Pixar
+                'Pixar',
+                'Pixar Animation Studios',
+                
+                // Marvel
+                'Marvel Studios',
+                'Marvel Entertainment',
+                'Marvel Enterprises',
+                'Marvel Comics',
+                'Marvel Television',
+                
+                // Lucasfilm
+                'Lucasfilm',
+                'Lucasfilm Ltd.',
+                'LucasArts',
+                
+                // 20th Century
+                '20th Century Studios',
+                '20th Century Fox',
+                '20th Television',
+                '20th Century Fox Television',
+                
+                // Touchstone/Hollywood Pictures
+                'Touchstone Pictures',
+                'Hollywood Pictures',
+                
+                // ABC/ESPN (Disney-owned networks)
+                'ABC',
+                'ABC Studios',
+                'ABC Family',
+                'ESPN',
+                'Freeform',
+                
+                // Other Disney subsidiaries
+                'Blue Sky Studios',
+                'National Geographic',
+                'FX Networks',
+                'Hulu'
+            ]
         },
         {
-            id: 'indie-only WIP',
-            title: 'Indie Films Only (WIP)',
-            description: 'Connect actors using only independent films',
+            id: 'Nathan',
+            title: 'Developer Challenge',
+            description: 'movie only, no DC ,no Disney or it\'s sub companies like Pixar, Marvel, etc',
             icon: '🎪',
             difficulty: 'Expert',
             color: 'bg-pink-500',
-            remove: []
-        },
-        {
-            id: 'before-2000 WIP',
-            title: 'Pre-2000 Only (WIP)',
-            description: 'Connect actors using only movies/shows from before year 2000',
-            icon: '📼',
-            difficulty: 'Expert',
-            color: 'bg-yellow-500',
-            remove: []
-        },
+            type: 'no-production-companie-movies-only',
+            filter: true,
+            remove: [
+                // Disney Core
+                'Walt Disney Pictures',
+                'Walt Disney Animation Studios',
+                'Disney Television Animation',
+                'Disney Channel',
+                'Disney Junior',
+                'Disney XD',
+                'Disney+',
+                'The Walt Disney Company',
+                'Walt Disney Studios',
+                
+                // Pixar
+                'Pixar',
+                'Pixar Animation Studios',
+                
+                // Marvel
+                'Marvel Studios',
+                'Marvel Entertainment',
+                'Marvel Enterprises',
+                'Marvel Comics',
+                'Marvel Television',
 
-    ];
+                // Lucasfilm
+                'Lucasfilm',
+                'Lucasfilm Ltd.',
+                'LucasArts',
 
-    const handleChallengeSelect = (challenge) => {
+                // 20th Century
+                '20th Century Studios',
+                '20th Century Fox',
+                '20th Television',
+                '20th Century Fox Television',
+
+                // Touchstone/Hollywood Pictures
+                'Touchstone Pictures',
+                'Hollywood Pictures',
+
+                // ABC/ESPN (Disney-owned networks)
+                'ABC',
+                'ABC Studios',
+                'ABC Family',
+                'ESPN',
+                'Freeform',
+
+                // Other Disney subsidiaries
+                'Blue Sky Studios',
+                'National Geographic',
+                'FX Networks',
+                'Hulu',
+
+                // DC
+                'DC Entertainment',
+                'DC Comics',
+                'DC Films',
+                'DC Universe',
+                'DC Entertainment Television'
+            ]
+        },    ];
+
+    const handleChallengeSelect = async (challenge) => {
         setChallengeMode(challenge);
-        if (!challenge.id.includes('WIP')) {
+        
+        // If challenge is 'for-fun', go to actor selection screen
+        if (challenge.id === 'for-fun') {
+            setCurrentScreen('actor-selection');
+            return;
+        }
+        
+        // For all other challenges, automatically get 2 random actors and start the game
+        try {
+            logger.info(`🎯 Auto-starting challenge: ${challenge.title}`);
+            
+            // Get actors efficiently
+            const actors = await fetchTwoRandomActorsWithPhotos();
+            const [actor1, actor2] = actors;
+            
+            // Set both actors and mark for pending game start
+            setStartActors([actor1, actor2]);
+            pendingActorsRef.current = [actor1, actor2];
+            setPendingGameStart(true);
+            logger.info(`✅ Random actors selected: ${actor1.name} & ${actor2.name}`);
+            
+        } catch (error) {
+            logger.error('Error auto-starting challenge:', error);
+            logger.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                challengeId: challenge?.id,
+                challengeTitle: challenge?.title
+            });
+            // Fallback to actor selection screen if random actors fail
             setCurrentScreen('actor-selection');
         }
     };

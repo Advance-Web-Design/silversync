@@ -21,7 +21,7 @@ import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
-import { generateCheatSheet, getCachedCheatSheet } from '../utils/cheatSheetCache';
+import { generateCheatSheet} from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
@@ -67,7 +67,6 @@ export const GameProvider = ({ children }) => {
     gameStartTime,
     shortestPathLength,
   } = gameState;
-
   const {
     nodes, setNodes,
     connections, setConnections,
@@ -76,7 +75,9 @@ export const GameProvider = ({ children }) => {
     checkItemConnectability,
     checkInitialConnectability,
     addToBoard: addToBoardFn,
-    checkGameCompletion
+    checkGameCompletion,
+    initializeActorTrees,
+    resetActorTrees
   } = boardState;
 
   const {
@@ -111,13 +112,14 @@ export const GameProvider = ({ children }) => {
     setIsLoading(true);
     try {
 
-      // Generate new cheat sheet
+      // Generate new cheat sheet with challanges filtering
       const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
-        enableProductionFiltering: false,
+        enableProductionFiltering: challengeMode?.filter ||false,
+        filtertype: challengeMode?.type || 'classic',
         excludeProductionCompanies: challengeMode.remove || [],
       });
 
-      setCheatSheetResults(cheatSheetEntities);
+      setCheatSheetResults(cheatSheetEntities); // Load cheat sheet results into and cashe them for search
 
       // Mark all entities as connectable
       const newConnectableItems = {};
@@ -132,7 +134,7 @@ export const GameProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [nodes, gameStarted, startActors, setCheatSheetResults, setConnectableItems, setIsLoading]);
+  }, [nodes, gameStarted, startActors, challengeMode?.remove, setCheatSheetResults, setConnectableItems, setIsLoading]);
 
   /**
    * Fetches a random actor for a starting position
@@ -165,15 +167,17 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
   /**
    * Starts the game with the selected starting actors
-   * Initializes the board with starting nodes
+   * Initializes the board with starting nodes and actor trees
    */
   const startGame = async () => {
     logger.info('🚀 Starting game with actors:', startActors.map(a => a.name).join(' & '));
     setIsLoading(true);
     try {
+      // Initialize the actor trees first
+      initializeActorTrees(startActors);
+      
       await gameState.startGame(setNodes, setNodePositions);
       setGameStarted(true);
       logger.info('✅ Game started successfully');
@@ -185,7 +189,7 @@ export const GameProvider = ({ children }) => {
     }
   };  /**
    * Resets the game to initial state
-   * Clears board, connections, and search results
+   * Clears board, connections, search results, and actor trees
    */
   const resetGame = () => {
     logger.info('🔄 Resetting game');
@@ -195,7 +199,12 @@ export const GameProvider = ({ children }) => {
       setConnections,
       setSearchResults,
       setConnectableItems
-    );    // Also reset search input and state
+    );
+    
+    // Reset actor trees
+    resetActorTrees();
+    
+    // Also reset search input and state
     searchState.resetSearch();
     // Clear connection cache for optimized performance
     clearConnectionCache();
@@ -327,9 +336,9 @@ export const GameProvider = ({ children }) => {
     setOriginalSearchTerm(term);
     setExactMatch(null);
     setNoMatchFound(false);
-    setIsLoading(true); try {
-      // Use local cache search instead of TMDB API
-      const searchResult = searchState.performLocalSearch(term, nodes);
+    setIsLoading(true);    
+    try {
+      const searchResult = searchState.performLocalSearch(term, cheatSheetResults);
 
       const duration = Date.now() - startTime;
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
@@ -404,24 +413,22 @@ export const GameProvider = ({ children }) => {
     setSelectedNode(null);
     setPossibleConnections([]);
   };
-
   /**
    * Toggles visibility of all searchable entities in the sidebar
-   * When enabled, fetches and displays all entities that can connect to the board
+   * Regenerates data if needed when turning on
    */
-  const toggleShowAllSearchable = () => {
+  const toggleShowAllSearchable = async () => {
     const newShowAllSearchable = !showAllSearchable;
     setShowAllSearchable(newShowAllSearchable);
 
     logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
 
-    // If turning on, fetch all connectable entities
-    if (newShowAllSearchable) {
-      fetchAndSetAllSearchableEntities();
-    } else {
-      // If turning off, clear the cheat sheet results
-      setCheatSheetResults([]);
+    // When turning on, ensure we have cheat sheet data
+    if (newShowAllSearchable && (!cheatSheetResults || cheatSheetResults.length === 0)) {
+      logger.debug('🔄 Cheat sheet data missing, regenerating...');
+      await fetchAndSetAllSearchableEntities();
     }
+    // When turning off, we keep the data but hide the sidebar
   };
 
   const contextValue = {
@@ -440,9 +447,9 @@ export const GameProvider = ({ children }) => {
     noMatchFound,
     didYouMean,
     exactMatch,
-    originalSearchTerm,
-    connectableItems,
+    originalSearchTerm,    connectableItems,
     gameStartTime,
+    gameScore: gameState.gameScore,
     shortestPathLength,
 
     // Board state
@@ -510,7 +517,8 @@ export const GameProvider = ({ children }) => {
       logger.debug('🚀 Game started, generating cache for local search');
       fetchAndSetAllSearchableEntities();
     }
-  }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameStarted, nodes.length]); // Intentionally excluding fetchAndSetAllSearchableEntities to prevent infinite loop
 
 
 

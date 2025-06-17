@@ -21,8 +21,7 @@ function GameplayArea() {
       <SearchPanel />
       {gameCompleted && !keepPlayingAfterWin && (
         <VictoryModal />
-      )}
-    </Box>
+      )}    </Box>
   );
 }
 

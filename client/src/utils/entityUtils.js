@@ -7,6 +7,7 @@ import {
   findTvShowConnectionsOptimized,
   batchCheckConnectability 
 } from './connectionOptimizer';
+import { logger } from './loggerUtils';
 
 /**
  * Gets a display title for any entity type

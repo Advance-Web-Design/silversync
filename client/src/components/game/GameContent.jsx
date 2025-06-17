@@ -47,8 +47,7 @@ function GameContent() {
         backgroundColor: !gameStarted ? 'black' : 'transparent',
       }}
     >
-      {renderScreen()}
-    </Box>
+      {renderScreen()}    </Box>
   );
 }
 
