@@ -67,7 +67,6 @@ export const GameProvider = ({ children }) => {
     gameStartTime,
     shortestPathLength,
   } = gameState;
-
   const {
     nodes, setNodes,
     connections, setConnections,
@@ -76,7 +75,9 @@ export const GameProvider = ({ children }) => {
     checkItemConnectability,
     checkInitialConnectability,
     addToBoard: addToBoardFn,
-    checkGameCompletion
+    checkGameCompletion,
+    initializeActorTrees,
+    resetActorTrees
   } = boardState;
 
   const {
@@ -166,15 +167,17 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
   /**
    * Starts the game with the selected starting actors
-   * Initializes the board with starting nodes
+   * Initializes the board with starting nodes and actor trees
    */
   const startGame = async () => {
     logger.info('🚀 Starting game with actors:', startActors.map(a => a.name).join(' & '));
     setIsLoading(true);
     try {
+      // Initialize the actor trees first
+      initializeActorTrees(startActors);
+      
       await gameState.startGame(setNodes, setNodePositions);
       setGameStarted(true);
       logger.info('✅ Game started successfully');
@@ -186,7 +189,7 @@ export const GameProvider = ({ children }) => {
     }
   };  /**
    * Resets the game to initial state
-   * Clears board, connections, and search results
+   * Clears board, connections, search results, and actor trees
    */
   const resetGame = () => {
     logger.info('🔄 Resetting game');
@@ -196,7 +199,12 @@ export const GameProvider = ({ children }) => {
       setConnections,
       setSearchResults,
       setConnectableItems
-    );    // Also reset search input and state
+    );
+    
+    // Reset actor trees
+    resetActorTrees();
+    
+    // Also reset search input and state
     searchState.resetSearch();
     // Clear connection cache for optimized performance
     clearConnectionCache();
