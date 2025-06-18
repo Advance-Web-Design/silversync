@@ -17,12 +17,12 @@ import { actorTreeManager } from '../utils/actorTreeUtils';
 export const useBoard = () => {
   // State for nodes (actors, movies, TV shows) on the board
   const [nodes, setNodes] = useState([]);
-  
+
   // State for connections between the nodes
   const [connections, setConnections] = useState([]);
-    // State for tracking the position of each node on the board
+  // State for tracking the position of each node on the board
   const [nodePositions, setNodePositions] = useState({});
-  
+
   /**
    * Initialize the actor tree manager with starting actors
    * This should be called when the game starts with the two starting actors
@@ -35,7 +35,7 @@ export const useBoard = () => {
       logger.info('🌳 Initialized actor trees for game');
     }
   };
-  
+
   /**
    * Update a node's position on the board after it's been dragged
    * 
@@ -48,17 +48,17 @@ export const useBoard = () => {
       [nodeId]: position
     }));
   };
-    /**
-   * Check if an item can be connected to existing nodes on the board
-   * 
-   * For each entity type:
-   * - Actors: Check if they were in any movie/show already on the board
-   * - Movies: Check if any actor on the board appeared in the movie
-   * - TV Shows: Check if any actor on the board appeared in the show
-   * 
-   * @param {Object} item - Item to check (person, movie, TV)
-   * @returns {Promise<boolean>} - Whether the item is connectable to current board
-   */
+  /**
+ * Check if an item can be connected to existing nodes on the board
+ * 
+ * For each entity type:
+ * - Actors: Check if they were in any movie/show already on the board
+ * - Movies: Check if any actor on the board appeared in the movie
+ * - TV Shows: Check if any actor on the board appeared in the show
+ * 
+ * @param {Object} item - Item to check (person, movie, TV)
+ * @returns {Promise<boolean>} - Whether the item is connectable to current board
+ */
   const checkItemConnectability = async (item) => {
     try {
       // Use the utility function from entityUtils.js
@@ -92,7 +92,7 @@ export const useBoard = () => {
       // Use the utility function from entityUtils.js
       // Pass the services functions to avoid circular dependencies
       return await checkInitialConnectabilityUtil(
-        item, 
+        item,
         startingActors,
         getPersonDetails,
         getMovieDetails,
@@ -102,7 +102,9 @@ export const useBoard = () => {
       logger.error("Error checking initial connectability:", error);
       return false;
     }
-  };  /**
+  };
+
+  /**
    * Add an item to the board and create necessary connections
    * 
    * @param {Object} item - Item to add (person, movie, TV)
@@ -121,21 +123,21 @@ export const useBoard = () => {
     if (!item) return;
 
     setIsLoading(true);
-    
+
     try {
       const itemKey = `${item.media_type}-${item.id}`;
       const isConnectable = connectableItems[itemKey];
-      
+
       // Don't allow duplicates on the board
-      const existingNode = nodes.find(node => 
+      const existingNode = nodes.find(node =>
         node.id === `${item.media_type}-${item.id}`
       );
-      
+
       if (existingNode || !isConnectable) {
         setIsLoading(false);
         return;
       }
-      
+
       // Process the item by type to add to the board
       let nodeData = null;
       let nodeId = null;
@@ -149,14 +151,14 @@ export const useBoard = () => {
         nodeId = `person-${item.id}`;
         nodeType = 'person';
         newConnections = findPersonConnections(details, nodes, nodeId);
-        
+
       } else if (item.media_type === 'movie') {
         const details = await getMovieDetails(item.id);
         nodeData = details;
         nodeId = `movie-${item.id}`;
         nodeType = 'movie';
         newConnections = findMovieConnections(details, nodes, nodeId);
-        
+
       } else if (item.media_type === 'tv') {
         const details = await getTvShowDetails(item.id);
         nodeData = details;
@@ -164,25 +166,25 @@ export const useBoard = () => {
         nodeType = 'tv';
         newConnections = findTvShowConnections(details, nodes, nodeId);
       }
-      
+
       // Calculate a position for the new node
       const newNodePosition = calculateNodePosition(newConnections, nodePositions, nodeId);
-      
+
       const newNode = {
         id: nodeId,
         type: nodeType,
         data: nodeData,
         position: newNodePosition
       };
-      
+
       // Add to nodes state
-      setNodes(prevNodes => [...prevNodes, newNode]);
-      
-      // Update node positions
+      setNodes(prevNodes => [...prevNodes, newNode]);      // Update node positions
       setNodePositions(prevPositions => ({
         ...prevPositions,
         [nodeId]: newNodePosition
-      }));        // Add new connections
+      }));
+      
+      // Add new connections
       if (newConnections.length > 0) {
         setConnections(prev => [...prev, ...newConnections]);
       }
@@ -190,45 +192,39 @@ export const useBoard = () => {
       // Add the entity to actor trees and check for connections
       if (startActors && startActors[0] && startActors[1] && setShortestPathLength) {
         const treeResult = actorTreeManager.addEntityToTrees(
-          nodeId, 
-          nodeType, 
-          nodeData, 
+          nodeId,
+          nodeType,
+          nodeData,
           newConnections
         );
 
         // Check if this entity created a connection between the starting actors
         if (treeResult.shortestConnection) {
-          const pathLength = treeResult.shortestConnection.pathLength;
-          
-          // Update the shortest path length
+          const pathLength = treeResult.shortestConnection.pathLength;          // Update the shortest path length
           setShortestPathLength(pathLength);
           
           logger.info(`🎉 Connection found! Path length: ${pathLength}`, {
             bridgeNode: treeResult.shortestConnection.bridgeNode,
             fullPath: treeResult.shortestConnection.fullPath
           });
-
-          // If the game wasn't already completed, complete it now
+          
+          // If the game wasn't already completed, use checkGameCompletion to handle scoring
           if (!gameCompleted) {
-            // Calculate score based on path length and time taken
-            if (gameStartTime && completeGame) {
-              const completionTime = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
-              const finalScore = completionTime * pathLength;
-              completeGame(finalScore);
-            }
-            // Mark game as completed
-            if (setGameCompleted) {
-              setGameCompleted(true);
-            }
+            checkGameCompletion(
+              startActors,
+              false, // keepPlayingAfterWin
+              setGameCompleted,
+              completeGame,
+              gameStartTime,
+              setShortestPathLength
+            );
           }
         } else {
           // If no direct connection through this entity, check if actors are connected through any path
           const startActorId1 = `person-${startActors[0].id}`;
           const startActorId2 = `person-${startActors[1].id}`;
-          
-          const connectionCheck = actorTreeManager.checkActorsConnected(startActorId1, startActorId2);
-          
-          if (connectionCheck) {
+
+          const connectionCheck = actorTreeManager.checkActorsConnected(startActorId1, startActorId2);          if (connectionCheck) {
             const pathLength = connectionCheck.pathLength;
             setShortestPathLength(pathLength);
             
@@ -236,19 +232,16 @@ export const useBoard = () => {
               bridgeNode: connectionCheck.bridgeNode,
               fullPath: connectionCheck.fullPath
             });
-
-            // If the game wasn't already completed, complete it now
+            
             if (!gameCompleted) {
-              // Calculate score based on path length and time taken
-              if (gameStartTime && completeGame) {
-                const completionTime = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
-                const finalScore = completionTime * pathLength;
-                completeGame(finalScore);
-              }
-              // Mark game as completed
-              if (setGameCompleted) {
-                setGameCompleted(true);
-              }
+              checkGameCompletion(
+                startActors,
+                false, 
+                setGameCompleted,
+                completeGame,
+                gameStartTime,
+                setShortestPathLength
+              );
             }
           }
         }
@@ -256,13 +249,15 @@ export const useBoard = () => {
 
       // Save this entity to our local database for future fuzzy searches
       saveEntityToLocalDatabase(item);
-      
+
     } catch (error) {
       logger.error("Error adding to board:", error);
     } finally {
       setIsLoading(false);
     }
-  };  /**
+  };
+
+  /**
    * Check if a path exists between the starting actors (win condition)
    * Uses the actor tree manager for more efficient path finding
    * 
@@ -309,19 +304,33 @@ export const useBoard = () => {
       logger.info(`🎯 Game completion check: Connection found! Path length: ${pathLength}`, {
         bridgeNode: connectionResult.bridgeNode,
         fullPath: connectionResult.fullPath
-      });
-      
-      // Calculate score based on path length and time taken
+      });      // Calculate score based on new scoring system
       if (gameStartTime && completeGame) {
         const completionTime = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
-        const finalScore = completionTime * pathLength;
-        completeGame(finalScore);
+        
+        const activeNodes = connectionResult.pathLength; 
+        
+        // Get total unique nodes across all trees (excluding starting actors)
+        const totalNodes = actorTreeManager.getTotalUniqueNodes();        
+        // Calculate final score: (activeNodes / totalNodes) * (10,000 / completionTime)
+        let finalScore = 0;
+        if (totalNodes > 0 && completionTime > 0) {
+          const ratio = activeNodes / totalNodes;
+          const timeBonus = 100000 / completionTime;
+          finalScore = ratio * timeBonus;
+        }
+        
+        logger.info(`🎯 Score calculation: activeNodes=${activeNodes}, totalNodes=${totalNodes}, time=${completionTime}s, score=${finalScore.toFixed(2)}`);
+        
+        const roundedScore = Math.round(finalScore);
+        completeGame(roundedScore);
       }
       
       setGameCompleted(true);
       return true;
     }
-      logger.debug('🎯 Game completion check: No connection found yet');
+    
+    logger.debug('🎯 Game completion check: No connection found yet');
     return false;
   };
 
@@ -333,7 +342,7 @@ export const useBoard = () => {
     actorTreeManager.reset();
     logger.info('🌲 Reset actor trees for new game');
   };
-  
+
   // Using saveEntityToLocalDatabase from boardUtils.js
   // Return methods and state variables from the hook
   return {

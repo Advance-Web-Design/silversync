@@ -318,6 +318,25 @@ export class ActorTreeManager {
   }
 
   /**
+   * Get total count of unique nodes across all trees (excluding starting actors)
+   * @returns {number} Total count of unique nodes
+   */
+  getTotalUniqueNodes() {
+    const uniqueNodes = new Set();
+    
+    for (const [actorId, tree] of this.trees) {
+      for (const nodeId of tree.nodeMap.keys()) {
+        // Exclude the starting actors from the count
+        if (nodeId !== actorId) {
+          uniqueNodes.add(nodeId);
+        }
+      }
+    }
+    
+    return uniqueNodes.size;
+  }
+
+  /**
    * Check if two starting actors are connected
    * @param {string} actor1Id - First actor ID
    * @param {string} actor2Id - Second actor ID

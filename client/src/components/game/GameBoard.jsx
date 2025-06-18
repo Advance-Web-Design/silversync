@@ -32,6 +32,7 @@ const GameBoard = React.memo(() => {
     startActors,    selectedNode,
     gameStartTime,
     gameScore,
+    currentGameScore, // Add current game score
     shortestPathLength,
     searchResults   // Get search results to determine if search panel is expanded
   } = useGameContext();
@@ -109,12 +110,16 @@ const GameBoard = React.memo(() => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  /**
+  };  /**
    * Format the game score with thousands separator
    * @returns {string} Formatted game score
    */
   const formatGameScore = () => {
+    // When game is completed, show the current game's score
+    if (gameCompleted && currentGameScore !== null) {
+      return currentGameScore.toLocaleString();
+    }
+    // Otherwise show the best score or placeholder
     if (!gameScore) return "???";
     return gameScore.toLocaleString();
   };
@@ -136,16 +141,6 @@ const GameBoard = React.memo(() => {
   const formattedTimeValue      = formatTime(elapsedTime);
   const formattedGameScoreValue = formatGameScore();
   const pathLengthValue         = getPathLength();
-
-  // For debugging purposes, log the search results state
-  // TODO: Remove this useEffect before final release
-  useEffect(() => {
-    console.log('Search results state:', {
-      hasResults: hasSearchResults,
-      resultsLength: searchResults?.length || 0
-    });
-  }, [searchResults, hasSearchResults]);
-
   return (
     <Box
       ref={boardRef}
