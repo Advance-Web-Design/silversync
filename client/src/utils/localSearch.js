@@ -5,7 +5,6 @@
  * It replaces the old TMDB API-based search with fast, local filtering and
  * matching algorithms that work entirely on cached entity data.
  */
-
 import { stringSimilarity } from './stringUtils';
 import { getItemTitle } from './entityUtils';
 import { SIMILARITY_THRESHOLDS } from './constants';
@@ -175,9 +174,8 @@ const findLevenshteinMatches = (searchTerm, entities) => {
     
     // Calculate Levenshtein similarity
     const similarity = stringSimilarity(normalizedSearchTerm, normalizedTitle);
-    
-    // Only include matches with good similarity (increased threshold to avoid false positives)
-    if (similarity >= 0.7) { // Increased from 0.5 to 0.7 for better precision
+      // Only include matches with good similarity (using threshold from constants)
+    if (similarity >= SIMILARITY_THRESHOLDS.SUGGESTION) { // Using SIMILARITY_THRESHOLDS.SUGGESTION for better precision
       matches.push({
         entity,
         score: similarity * 0.9, // High score for Levenshtein matches
@@ -219,7 +217,7 @@ const findWordMatches = (searchTerm, entities) => {
     const matchingWords = searchWords.filter(searchWord =>
       titleWords.some(titleWord => {
         const wordSimilarity = stringSimilarity(searchWord, titleWord);
-        return wordSimilarity >= 0.7; // High threshold for word similarity
+        return wordSimilarity >= SIMILARITY_THRESHOLDS.SUGGESTION; // High threshold for word similarity
       })
     );
     
