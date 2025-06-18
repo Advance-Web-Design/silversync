@@ -450,6 +450,7 @@ export const GameProvider = ({ children }) => {
     originalSearchTerm,    connectableItems,
     gameStartTime,
     gameScore: gameState.gameScore,
+    currentGameScore: gameState.currentGameScore, // Add current game score
     shortestPathLength,
 
     // Board state

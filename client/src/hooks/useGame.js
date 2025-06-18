@@ -22,9 +22,11 @@ export const useGame = () => {
     const [gameStartTime, setGameStartTime] = useState(null);
     const [startActors, setStartActors] = useState([null, null]);
     const [gameCompleted, setGameCompleted] = useState(false);
-    const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);    const [startActorsError, setStartActorsError] = useState(null);
+    const [keepPlayingAfterWin, setKeepPlayingAfterWin] = useState(false);  
+    const [startActorsError, setStartActorsError] = useState(null);
     const [knownEntities, setKnownEntities] = useState(INITIAL_KNOWN_ENTITIES);
   const [gameScore, setGameScore] = useState(() => loadBestScore());
+  const [currentGameScore, setCurrentGameScore] = useState(null);
   
   const [shortestPathLength, setShortestPathLength] = useState(null);
   
@@ -90,14 +92,14 @@ export const useGame = () => {
     setConnections, 
     setSearchResults, 
     setConnectableItems
-  ) => {
-    // Reset game state flags
+  ) => {    // Reset game state flags
     setGameStarted(false);
     setGameCompleted(false);
     setGameStartTime(null);
     setKeepPlayingAfterWin(false);
     setStartActors([null, null]);
     setShortestPathLength(null); // Reset shortest path length when starting a new game
+    setCurrentGameScore(null); // Reset current game score when starting a new game
     
     // Reset board state using initial values
     const initialState = getInitialGameState();
@@ -107,14 +109,15 @@ export const useGame = () => {
     setSearchResults(initialState.searchResults);
     setConnectableItems(initialState.connectableItems);
     // Keep previousSearches and knownEntities for better suggestions across games
-  };    /**
+  };  /**
    * Set game as completed and update game score if needed
    * @param {number} score - Current game score
    */
   const completeGame = (score) => {
     setGameCompleted(true);
+    setCurrentGameScore(score); // Store the current game's score
     
-    // Update game score if current score is better (lower) than previous game score
+    // Update best score if current score is better (lower) than previous best score
     const newBestScore = updateBestScore(score, gameScore);
     if (newBestScore !== gameScore) {
       setGameScore(newBestScore);
@@ -138,13 +141,9 @@ export const useGame = () => {
         return;
       }
       
-      setIsLoading(true);
-      
+      setIsLoading(true);      
       // getPersonDetails now handles merging of guest appearances
       const actorDetails = await getPersonDetails(actorId);
-      
-      // Log to confirm structure (optional)
-      // console.log(`Selected actor ${actorDetails.name} details with processed guest appearances:`, actorDetails);
 
       setStartActors(prev => {
         const newStartActors = [...prev];
@@ -187,6 +186,7 @@ export const useGame = () => {
     setKnownEntities,
     gameScore,
     setGameScore,
+    currentGameScore, // Add current game score
     shortestPathLength,
     setShortestPathLength,
     actorSearchResults,
