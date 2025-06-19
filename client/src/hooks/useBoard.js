@@ -263,7 +263,6 @@ export const useBoard = () => {
    * 
    * @param {Array} startActors - The starting actors
    * @param {boolean} keepPlayingAfterWin - Whether to keep playing after finding a path
-   * @param {function} setGameCompleted - Function to set game completion state
    * @param {function} completeGame - Function to handle game completion and score tracking
    * @param {number} gameStartTime - When the game started (for score calculation)
    * @param {function} setShortestPathLength - Function to set the shortest path length
@@ -272,7 +271,6 @@ export const useBoard = () => {
   const checkGameCompletion = (
     startActors, 
     keepPlayingAfterWin, 
-    setGameCompleted, 
     completeGame, 
     gameStartTime, 
     setShortestPathLength
@@ -325,8 +323,7 @@ export const useBoard = () => {
         const roundedScore = Math.round(finalScore);
         completeGame(roundedScore);
       }
-      
-      setGameCompleted(true);
+  
       return true;
     }
     
