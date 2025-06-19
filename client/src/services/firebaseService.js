@@ -124,7 +124,35 @@ export async function verifyUser(username, password) {
     // Throw the backend error message if available
     throw new Error(data.message || 'Registration failed');
   }
-
   return data.userProfile;
+}
+
+/**
+ * Saves a completed game to the user's game history in Firebase
+ * @param {string} userId - The user ID 
+ * @param {string} gameMode - The game mode name (e.g., "Classic", "Medium", "Hard")
+ * @param {Object} gameData - Game data containing:
+ *   - startingActor1: name of first starting actor
+ *   - startingActor2: name of second starting actor  
+ *   - timeTaken: time in seconds to complete the game
+ *   - pathFound: array of entities in the winning path
+ *   - score: final game score
+ *   - completedAt: timestamp when game was completed
+ * @returns {Promise<string>} The ID of the saved game
+ */
+export async function saveGameToHistory(userId, gameMode, gameData) {
+  const res = await fetch(`${API_BASE}/save-game-history/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, gameMode, gameData }),
+  });
+
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to save game to history');
+  }
+
+  return data.gameId;
 }
 
