@@ -25,16 +25,12 @@ function Menu(props) {
     const [showUserProfile, setShowUserProfile] = useState(false); // Corrected initial state
     const [userProfileData, setUserProfileData] = useState(null);
     const [isToggleEnabled, setIsToggleEnabled] = useState(false); // New state for the toggle button
-
-
     const menuRef = useRef(null);
     const { 
         toggleShowAllSearchable, 
         resetGame,
-        isLoggedIn, 
-        login,      
-        logout,     
-        register,   
+        currentUser,
+        setCurrentUser,
         showLeaderboard,
         setShowLeaderboard
     } = useGameContext();
@@ -52,16 +48,15 @@ function Menu(props) {
     const handleLogin = () => {
         setShowLoginWindow(prev => !prev); // Toggle login visibility
         setMenuOpen(false);
-    };
-    const handleSetLoginID = (UserProfile) => {
+    };    const handleSetLoginID = (UserProfile) => {
         setUserProfileData(UserProfile); // Set user profile data state
         setLoginID(UserProfile.userId); // Set loginID state with the user profile
+        setCurrentUser(UserProfile); // Set user in context
     };
-    
-
-    // Logout action handler
+        // Logout action handler
     const handleLogout = () => {
         setLoginID(null); // Reset loginID state
+        setCurrentUser(null); // Clear user from context
         alert('You have logged out.');
         setMenuOpen(false);
     };

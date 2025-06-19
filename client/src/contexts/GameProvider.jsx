@@ -48,9 +48,11 @@ export const GameProvider = ({ children }) => {
     // Challenge and screen navigation state
   const [currentScreen, setCurrentScreen] = useState('challenges'); // 'start', 'challenges', 'actor-selection', 'game'
   const [challengeMode, setChallengeMode] = useState(null);
-  
-  // Leaderboard state
+    // Leaderboard state
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  // User authentication state
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Destructure state from hooks for easier access
   const {
@@ -265,7 +267,7 @@ export const GameProvider = ({ children }) => {
     const entityName = entity.name || entity.title || 'Unknown';
     logger.info(`➕ Adding to board: ${entityName} (${entity.media_type})`);
 
-    const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted);
+    const result = await addToBoardFn(entity, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, gameState.setShortestPathLength, gameState.completeGame, gameStartTime, setGameCompleted, currentUser, challengeMode);
 
     // Remove from regular search results
     setSearchResults(prev =>
@@ -465,6 +467,9 @@ export const GameProvider = ({ children }) => {
     challengeMode,
     showLeaderboard,
 
+    // User authentication
+    currentUser,
+
     // Functions
     setIsLoading,
     setGameStarted,
@@ -479,10 +484,10 @@ export const GameProvider = ({ children }) => {
     setDidYouMean,
     setExactMatch,
     setOriginalSearchTerm,
-    setConnectableItems,    setSearchTerm,
-    setCurrentScreen,
+    setConnectableItems,    setSearchTerm,    setCurrentScreen,
     setChallengeMode,
     setShowLeaderboard,
+    setCurrentUser,
 
     // Board functions
     addToBoard,

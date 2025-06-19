@@ -119,7 +119,7 @@ export const useBoard = () => {
    * @param {Function} setGameCompleted - Function to set game completion state
    * @returns {Promise<void>} - Promise that resolves when item is added
    */
-  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, setShortestPathLength, completeGame, gameStartTime, setGameCompleted) => {
+  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, setShortestPathLength, completeGame, gameStartTime, setGameCompleted, currentUser = null, challengeMode = null) => {
     if (!item) return;
 
     setIsLoading(true);
@@ -209,14 +209,14 @@ export const useBoard = () => {
           });
           
           // If the game wasn't already completed, use checkGameCompletion to handle scoring
-          if (!gameCompleted) {
-            checkGameCompletion(
+          if (!gameCompleted) {            checkGameCompletion(
               startActors,
               false, // keepPlayingAfterWin
-              setGameCompleted,
               completeGame,
               gameStartTime,
-              setShortestPathLength
+              setShortestPathLength,
+              currentUser,
+              challengeMode
             );
           }
         } else {
@@ -233,14 +233,14 @@ export const useBoard = () => {
               fullPath: connectionCheck.fullPath
             });
             
-            if (!gameCompleted) {
-              checkGameCompletion(
+            if (!gameCompleted) {              checkGameCompletion(
                 startActors,
                 false, 
-                setGameCompleted,
                 completeGame,
                 gameStartTime,
-                setShortestPathLength
+                setShortestPathLength,
+                currentUser,
+                challengeMode
               );
             }
           }
@@ -256,7 +256,6 @@ export const useBoard = () => {
       setIsLoading(false);
     }
   };
-
   /**
    * Check if a path exists between the starting actors (win condition)
    * Uses the actor tree manager for more efficient path finding
@@ -266,6 +265,8 @@ export const useBoard = () => {
    * @param {function} completeGame - Function to handle game completion and score tracking
    * @param {number} gameStartTime - When the game started (for score calculation)
    * @param {function} setShortestPathLength - Function to set the shortest path length
+   * @param {Object} currentUser - Current logged in user (optional)
+   * @param {Object} challengeMode - Current challenge mode (optional)
    * @returns {boolean} - Whether a path was found
    */
   const checkGameCompletion = (
@@ -273,7 +274,9 @@ export const useBoard = () => {
     keepPlayingAfterWin, 
     completeGame, 
     gameStartTime, 
-    setShortestPathLength
+    setShortestPathLength,
+    currentUser = null,
+    challengeMode = null
   ) => {
     // If user chose to keep playing after win, don't show completion again
     if (keepPlayingAfterWin) {
@@ -317,11 +320,10 @@ export const useBoard = () => {
           const timeBonus = 100000 / completionTime;
           finalScore = ratio * timeBonus;
         }
-        
-        logger.info(`🎯 Score calculation: activeNodes=${activeNodes}, totalNodes=${totalNodes}, time=${completionTime}s, score=${finalScore.toFixed(2)}`);
+          logger.info(`🎯 Score calculation: activeNodes=${activeNodes}, totalNodes=${totalNodes}, time=${completionTime}s, score=${finalScore.toFixed(2)}`);
         
         const roundedScore = Math.round(finalScore);
-        completeGame(roundedScore);
+        completeGame(roundedScore, connectionResult, completionTime, currentUser, challengeMode);
       }
   
       return true;

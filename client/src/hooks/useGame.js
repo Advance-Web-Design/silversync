@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPersonDetails } from '../services/tmdbService';
+import { saveGameToHistory as saveGameToFirebase } from '../services/firebaseService';
 import { INITIAL_KNOWN_ENTITIES } from '../utils/constants';
 import { logger } from '../utils/loggerUtils';
 import { 
@@ -112,8 +113,12 @@ export const useGame = () => {
   };  /**
    * Set game as completed and update game score if needed
    * @param {number} score - Current game score
+   * @param {Object} connectionResult - Connection result containing path information (optional)
+   * @param {number} timeTaken - Time taken to complete the game in seconds (optional)
+   * @param {Object} currentUser - Current logged in user (optional)
+   * @param {string} challengeMode - Current challenge mode (optional)
    */
-  const completeGame = (score) => {
+  const completeGame = (score, connectionResult = null, timeTaken = null, currentUser = null, challengeMode = null) => {
     setGameCompleted(true);
     setCurrentGameScore(score); // Store the current game's score
     
@@ -121,6 +126,44 @@ export const useGame = () => {
     const newBestScore = updateBestScore(score, gameScore);
     if (newBestScore !== gameScore) {
       setGameScore(newBestScore);
+    }
+
+    // Save game to history if user is logged in
+    if (currentUser && startActors[0] && startActors[1] && connectionResult) {
+      saveGameToHistory(currentUser, score, connectionResult, timeTaken, challengeMode);
+    }  };
+  
+  /**
+   * Save completed game to user's game history
+   * @param {Object} currentUser - Current logged in user
+   * @param {number} score - Final game score
+   * @param {Object} connectionResult - Connection result with path information
+   * @param {number} timeTaken - Time taken to complete the game in seconds
+   * @param {string} challengeMode - Current challenge mode
+   */  const saveGameToHistory = async (currentUser, score, connectionResult, timeTaken, challengeMode) => {
+    try {
+      logger.info('💾 Saving game to history for user:', currentUser.userId);
+        // Determine game mode name
+      const gameModeName = challengeMode?.name || 'Classic';
+        // Get the board's nodes from the hook parameter (we need to pass this in)
+      // For now, just save the path IDs and improve this later
+        const gameData = {
+        startingActor1: startActors[0].name,
+        startingActor2: startActors[1].name,
+        timeTaken: timeTaken || Math.floor((Date.now() - gameStartTime) / 1000),
+        score: score,
+        completedAt: new Date().toISOString()
+      };
+      
+      logger.info('🎮 Client - gameData being sent:', JSON.stringify(gameData, null, 2));
+      logger.info('🎮 Client - gameData keys:', Object.keys(gameData));
+        // Call the imported Firebase service function
+      const result = await saveGameToFirebase(currentUser.userId, gameModeName, gameData);
+      logger.info('✅ Game saved to history successfully, result:', result);
+      
+    } catch (error) {
+      logger.error('❌ Failed to save game to history:', error);
+      // Don't throw error as game completion should still work
     }
   };
     /**

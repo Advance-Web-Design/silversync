@@ -135,7 +135,6 @@ export async function verifyUser(username, password) {
  *   - startingActor1: name of first starting actor
  *   - startingActor2: name of second starting actor  
  *   - timeTaken: time in seconds to complete the game
- *   - pathFound: array of entities in the winning path
  *   - score: final game score
  *   - completedAt: timestamp when game was completed
  * @returns {Promise<string>} The ID of the saved game
@@ -155,4 +154,6 @@ export async function saveGameToHistory(userId, gameMode, gameData) {
 
   return data.gameId;
 }
+
+
 
