@@ -2,7 +2,7 @@
  * GameProvider.jsx 
  * 
  * This file defines and exports the GameProvider component which serves as the central state management
- * for the "Connect the Shows" game. It combines multiple custom hooks to handle different aspects
+ * for the "Silver Sync" game. It combines multiple custom hooks to handle different aspects
  * of the game (board management, searching, game state) and provides this combined state and 
  * functionality to all components via React Context.
  * 
