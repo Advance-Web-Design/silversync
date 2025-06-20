@@ -2,6 +2,7 @@ import React from 'react';
 import {GameProvider} from './contexts/GameProvider';
 import GameContent from './components/game/GameContent';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider as CustomThemeProvider } from './contexts/ThemeContext.jsx';
 import { CssBaseline} from '@mui/material';
 // import './App.css';
 import { appContainerClasses } from './styles/appStyle'; // Import the classes
@@ -33,12 +34,13 @@ const theme = createTheme({
 function App() {
   return (
     <ThemeProvider theme={theme}>
-      {/* <CssBaseline /> */}
+      <CustomThemeProvider>
       <div className={appContainerClasses}> {/* Use the imported class string */}
         <GameProvider>
           <GameContent />
         </GameProvider>
       </div>
+      </CustomThemeProvider>
     </ThemeProvider>
   );
 }

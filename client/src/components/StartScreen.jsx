@@ -9,7 +9,7 @@ import { useGameContext } from '../contexts/gameContext';
 import ActorCard from './game/ActorCard';
 import Menu from './Menu';
 import LoadingOverlay from './game/LoadingOverlay';
-//import './StartScreen.css';
+import { useTheme } from '../contexts/ThemeContext';
 
 const StartScreen = () => {
 
@@ -29,7 +29,7 @@ const StartScreen = () => {
     startActorsError
   } = useGameContext();
 
-
+  const { isLightMode, toggleTheme } = useTheme();
 
   // Handlers for actor-selection UI
   const handleSelectActor = (actorId, index) => {
@@ -48,7 +48,8 @@ const StartScreen = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black flex flex-col">
+    <div className={"relative min-h-screen overflow-hidden bg-cover bg-center bg-fixed text-black flex flex-col " +
+      (isLightMode ? "bg-[url('/bg3.png')]" : "bg-[url('/bg2.png')]")}>
       {/* Header */}
       <div className="flex justify-between items-center p-3 sm:p-4 w-full">
         <Menu parentName="StartScreen" />
@@ -99,7 +100,11 @@ const StartScreen = () => {
           <button
             onClick={startGame}
             disabled={!(startActors[0] && startActors[1]) || isLoading}
-            className="w-full cursor-pointer rounded-lg bg-[#4bbee3] py-2 px-6 sm:py-[0.8rem] sm:px-8 text-base sm:text-[1.2rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            className={"w-full cursor-pointer rounded-lg py-2 px-6 sm:py-[0.8rem] sm:px-8 text-base sm:text-[1.2rem] font-bold shadow-md transition-colors duration-300 " +
+              (isLightMode
+              ? "bg-[#6dd5f8] text-black hover:bg-cyan-500 disabled:bg-slate-300 disabled:text-slate-500"
+              : "bg-[#2a9cc1] text-white hover:bg-cyan-900 disabled:bg-slate-600 disabled:text-slate-400")
+}
           >
             START GAME
           </button> 

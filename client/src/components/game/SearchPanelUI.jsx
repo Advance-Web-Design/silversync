@@ -2,6 +2,8 @@ import React from 'react';
 import { getItemTitle } from '../../utils/stringUtils';
 import { getItemYear } from '../../utils/stringUtils';
 import * as PanelStyles from '../../styles/PanelUIStyle.js';
+import { useTheme } from '../../contexts/ThemeContext';
+
 
 const SearchPanelUI = ({
   handleSubmit,
@@ -18,12 +20,20 @@ const SearchPanelUI = ({
   connectableItems,
   handleAddToBoard,
 }) => {
+  const { isLightMode } = useTheme();
+
   return (
-    <div className={`${PanelStyles.panelUIStyle} ${hasResults ? PanelStyles.panelUIWithResultsStyle : ''}`}>
-      <form onSubmit={handleSubmit} className={`${PanelStyles.searchFormStyle}`}>
+    <div
+      className={
+        PanelStyles.panelUIbaseStyle + " " +
+        (isLightMode ? PanelStyles.panelUiLightStyle : PanelStyles.panelUiDarkStyle) + " " +
+        (hasResults ? PanelStyles.panelUIWithResultsStyle : "")
+      }
+    >
+      <form onSubmit={handleSubmit} className={PanelStyles.searchFormBaseStyle + " " + (isLightMode ? PanelStyles.searchFormLightStyle : PanelStyles.searchFormDarkStyle)}>
         <input
           ref={inputRef}
-          className={`${PanelStyles.searchInputStyle}`}
+          className={PanelStyles.searchInputBaseStyle + " " + (isLightMode ? PanelStyles.searchInputLightStyle : PanelStyles.searchInputDarkStyle)}
           type="text"
           placeholder="Search movies, TV shows, actors..."
           value={searchTerm || ""} // Add fallback here too
@@ -61,7 +71,11 @@ const SearchPanelUI = ({
             <div
               key={`${item.media_type}-${item.id}`}
               // className={`in-game-result-item ${connectableItems[`${item.media_type}-${item.id}`] ? 'can-connect' : ''}`}
-              className={`${PanelStyles.resultItemStyle} ${connectableItems[`${item.media_type}-${item.id}`] ? PanelStyles.resultItemCanConnectStyle : ''} ${item.is_exact_match ? PanelStyles.resultItemExactMatchStyle : ''}`}
+              className={
+              PanelStyles.resultItemBaseStyle + " " +
+              (isLightMode ? PanelStyles.resultItemLightStyle : PanelStyles.resultItemDarkStyle) + " " +
+              (connectableItems[`${item.media_type}-${item.id}`] ? PanelStyles.resultItemCanConnectStyle : "") + " " +
+              (item.is_exact_match ? PanelStyles.resultItemExactMatchStyle : "")}              
               onClick={() => handleAddToBoard(item)}
             >
               <div className={`${PanelStyles.resultImageStyle}`}>
@@ -73,7 +87,7 @@ const SearchPanelUI = ({
               </div>
               <div className={`${PanelStyles.resultInfoStyle}`}>
                 <div className={`${PanelStyles.resultTitleStyle}`}>{getItemTitle(item) + " " + getItemYear(item)} </div>
-                <div className={`${PanelStyles.resultTypeStyle}`}>
+                <div className={`${PanelStyles.resultTypeStyle} ${isLightMode ? PanelStyles.resultTypeLightStyle : PanelStyles.resultTypeDarkStyle}`}>
                   {item.media_type === 'movie' ? 'Movie' : item.media_type === 'tv' ? 'TV Show' : 'Actor'}
                   {/* Show guest appearance tag if applicable */}
                   {item.media_type === 'tv' && (item.is_guest_appearance || item.hasGuestAppearances) && 
@@ -85,7 +99,8 @@ const SearchPanelUI = ({
                 </div>
               </div>
               <button 
-                className={`${PanelStyles.addButtonStyle}`}
+                className={PanelStyles.addButtonBaseStyle + " " +
+                (isLightMode ? PanelStyles.addButtonLightStyle : PanelStyles.addButtonDarkStyle)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddToBoard(item);

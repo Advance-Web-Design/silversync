@@ -3,7 +3,7 @@ import * as MenuStyles from '../styles/menuStyle.js';
 
 function MenuButton(props) {
     return (
-        <button className= {MenuStyles.menuItemStyle} onClick={props.onClick}>
+        <button className= {MenuStyles.menuItemBaseStyle} onClick={props.onClick}>
             {props.label}
         </button>
     );
