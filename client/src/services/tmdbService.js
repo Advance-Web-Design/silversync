@@ -10,7 +10,6 @@ import {  CACHE_TTL,
   SIX_HOURS,
   getValidCachedData,
   setCachedData,
-  getImageUrl,
   processBatchedPromises,
   processMultiPageResults
 } from '../utils/tmdbUtils';
@@ -617,22 +616,7 @@ export const fetchPopularEntities = async () => {
       movies: processedMovies,
       tvShows: processedTvShows,
       people: processedPeople
-    };
-  });
-};
-
-// Export the getImageUrl directly from tmdbUtils
-export { getImageUrl };
-
-/**
- * Backward compatibility function to maintain existing code
- * Simply returns the direct URL now
- * @param {string} path - The image path
- * @param {string} type - The image type (poster, profile, etc.)
- * @returns {string} - The image URL
- */
-export const getImageUrlSync = (path, type = 'poster') => {
-  return getImageUrl(path, type);
+    };  });
 };
 
 export const fetchTwoRandomActorsWithPhotos = async () => {
@@ -681,7 +665,5 @@ export default {
   checkActorInTvShow,
   searchPeople,
   fetchPopularEntities,
-  getImageUrl,
-  getImageUrlSync,
   fetchTwoRandomActorsWithPhotos
 };

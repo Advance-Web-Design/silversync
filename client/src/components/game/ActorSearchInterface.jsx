@@ -1,5 +1,5 @@
 import React from 'react';
-import { getImageUrlSync } from '../../services/tmdbService';
+import { getImageUrl } from '../../utils/tmdbUtils';
 import * as actorInterfaceStyles from '../../styles/ActorsCardStyle.js'; 
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -57,7 +57,7 @@ const ActorSearchInterface = ({
                 <div className={actorInterfaceStyles.actorSearchImageStyle}>
                   <img
                     className={actorInterfaceStyles.actorSearchImageImgStyle}
-                    src={getImageUrlSync(actor.profile_path, 'profile')}
+                    src={getImageUrl(actor.profile_path, 'profile')}
                     alt={actor.name}
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/40?text=?';

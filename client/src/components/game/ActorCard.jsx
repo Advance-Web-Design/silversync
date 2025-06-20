@@ -1,6 +1,6 @@
 import React from 'react';
 import ActorSelectionSlot from './ActorSelectionSlot';
-import { getImageUrlSync } from '../../services/tmdbService';
+import { getImageUrl } from '../../utils/tmdbUtils';
 import * as actorCardStyles from '../../styles/ActorsCardStyle.js'; 
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -34,7 +34,7 @@ const ActorCard = ({
           <div className={actorCardStyles.actorImageContainerStyle}>
             <img
               className={actorCardStyles.actorImageStyle}
-              src={getImageUrlSync(selectedActor.profile_path, 'profile')}
+              src={getImageUrl(selectedActor.profile_path, 'profile')}
               alt={selectedActor.name}
               onError={(e) => {
                 e.target.src = 'https://via.placeholder.com/150?text=No+Image';
