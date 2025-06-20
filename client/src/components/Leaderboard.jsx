@@ -1,6 +1,7 @@
 import React, { useState,useEffect } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as AboutStyles from '../styles/AboutStyles.js'; // Reuse the About styles for consistency
+import { useTheme } from '../contexts/ThemeContext'; // Import the theme context to access light/dark mode
 
 const Leaderboard = ({ onClose }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -36,11 +37,12 @@ const Leaderboard = ({ onClose }) => {
     { rank: 4, name: "FilmFan", score: 5, time: "4:15" },
     { rank: 5, name: "CinemaExpert", score: 5, time: "4:33" },
   ];
-
+  const { isLightMode } = useTheme(); // Get the current theme mode
   return (
     <>
       {isOpen && (
-        <div className={AboutStyles.popupOverlayStyle}>
+        <div className={AboutStyles.popupOverlayBaseStyle + " " +
+                  (isLightMode ? AboutStyles.popupOverlayLightStyle : AboutStyles.popupOverlayDarkStyle)}>
           <div className={AboutStyles.popupContentStyle}>
             <button className={AboutStyles.popupCloseButtonStyle} onClick={handleClose}>
               <CloseIcon />

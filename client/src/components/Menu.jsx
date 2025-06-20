@@ -8,7 +8,6 @@ import LoginWindow from './Login'; // Import Login component
 import RegisterWindow from './Register'; // Import Register component
 import { logger } from '../utils/loggerUtils';
 import * as MenuStyles from '../styles/menuStyle.js'; // Import the styles
-import ToggleButton from './ToggleBtn'; // Import ToggleButton component
 import ToggleButtonCheck from './ToggleButtonCheck'; // Import ToggleButtonCheck component
 import { useTheme } from '../contexts/ThemeContext';
 

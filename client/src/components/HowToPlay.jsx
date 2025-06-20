@@ -17,7 +17,8 @@ function HowToPlay() {
     <>
       {/* The isOpen check here is redundant due to the early return, but kept for consistency if you prefer this pattern */}
       {isOpen && ( 
-        <div className={PopupStyles.popupOverlayStyle} onClick={handleClose}>
+        <div className={PopupStyles.popupOverlayBaseStyle + " " +
+                  (isLightMode ? PopupStyles.popupOverlayLightStyle : PopupStyles.popupOverlayDarkStyle)} onClick={handleClose}>
           <div className={PopupStyles.popupContentBaseStyle + " " + (isLightMode? PopupStyles.popupContentLightStyle : PopupStyles.popupContentDarkStyle)} onClick={(e) => e.stopPropagation()}>
             <button className={PopupStyles.popupCloseButtonBaseStyle + " " + (isLightMode? PopupStyles.popupCloseButtonLightStyle : PopupStyles.popupCloseButtonDarkStyle)} onClick={handleClose}>
               <CloseIcon fontSize="small" /> {/* Consider adjusting icon size if needed */}
