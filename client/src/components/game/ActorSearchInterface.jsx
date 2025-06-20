@@ -1,6 +1,7 @@
 import React from 'react';
 import { getImageUrlSync } from '../../services/tmdbService';
 import * as actorInterfaceStyles from '../../styles/ActorsCardStyle.js'; 
+import { useTheme } from '../../contexts/ThemeContext';
 
 const ActorSearchInterface = ({
   index,
@@ -18,6 +19,7 @@ const ActorSearchInterface = ({
   onLoadMore,
   onRandomize,
 }) => {
+  const { isLightMode } = useTheme();
   return (
     <>
       <div className={actorInterfaceStyles.loadingActorsStyle}>
@@ -85,7 +87,8 @@ const ActorSearchInterface = ({
       </div>
       
       <button 
-        className={actorInterfaceStyles.randomButtonStyle}
+        className={actorInterfaceStyles.randomButtonBaseStyle + " " +
+          (isLightMode ? actorInterfaceStyles.randomButtonLightStyle : actorInterfaceStyles.randomButtonDarkStyle)}
         onClick={onRandomize} // Call without arguments
         disabled={isLoading && activeInputIndex !== index}
       >

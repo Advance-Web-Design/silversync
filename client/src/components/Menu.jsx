@@ -9,7 +9,8 @@ import RegisterWindow from './Register'; // Import Register component
 import { logger } from '../utils/loggerUtils';
 import * as MenuStyles from '../styles/menuStyle.js'; // Import the styles
 import ToggleButton from './ToggleBtn'; // Import ToggleButton component
-
+import ToggleButtonCheck from './ToggleButtonCheck'; // Import ToggleButtonCheck component
+import { useTheme } from '../contexts/ThemeContext';
 
 
 import UserProfile from './UserProfile';
@@ -25,16 +26,14 @@ function Menu(props) {
     const [showUserProfile, setShowUserProfile] = useState(false); // Corrected initial state
     const [userProfileData, setUserProfileData] = useState(null);
     const [isToggleEnabled, setIsToggleEnabled] = useState(false); // New state for the toggle button
-
-
+    const { isLightMode, toggleTheme } = useTheme();
+    
     const menuRef = useRef(null);
     const { 
         toggleShowAllSearchable, 
         resetGame,
-        isLoggedIn, 
-        login,      
-        logout,     
-        register,   
+        currentUser,
+        setCurrentUser,
         showLeaderboard,
         setShowLeaderboard
     } = useGameContext();
@@ -52,16 +51,15 @@ function Menu(props) {
     const handleLogin = () => {
         setShowLoginWindow(prev => !prev); // Toggle login visibility
         setMenuOpen(false);
-    };
-    const handleSetLoginID = (UserProfile) => {
+    };    const handleSetLoginID = (UserProfile) => {
         setUserProfileData(UserProfile); // Set user profile data state
         setLoginID(UserProfile.userId); // Set loginID state with the user profile
+        setCurrentUser(UserProfile); // Set user in context
     };
-    
-
-    // Logout action handler
+        // Logout action handler
     const handleLogout = () => {
         setLoginID(null); // Reset loginID state
+        setCurrentUser(null); // Clear user from context
         alert('You have logged out.');
         setMenuOpen(false);
     };
@@ -112,13 +110,6 @@ function Menu(props) {
     // Handler for the toggle button
     const handleToggleClick = () => {
         setIsToggleEnabled(prev => !prev);
-        // Add any other logic you want to happen when the toggle changes
-        // For example, if this toggle controls a feature:
-        // if (!isToggleEnabled) {
-        //   enableSomeFeature();
-        // } else {
-        //   disableSomeFeature();
-        // }
     };
 
     useEffect(() => {
@@ -165,11 +156,15 @@ function Menu(props) {
         setShowAbout(false);
     };
 
+    const getMenuItemClass = () =>
+        MenuStyles.menuItemBaseStyle + " " +
+            (isLightMode ? MenuStyles.menuItemLightStyle : MenuStyles.menuItemDarkStyle);
+    
     return (
         <> 
             <div className={MenuStyles.menuContainerStyle} ref={menuRef}>
                 <button
-                    className={MenuStyles.menuButtonStyle} 
+                    className={MenuStyles.menuButtonBaseStyle + " " + (isLightMode ? MenuStyles.menuButtonLightStyle : MenuStyles.menuButtonDarkStyle)} 
                     onClick={handleMenuToggle}
                 >
                     <MenuIcon fontSize="medium" /> 
@@ -177,37 +172,53 @@ function Menu(props) {
                 </button>
 
                 {menuOpen && (
-                    <div className={MenuStyles.menuDropdownStyle}>
+                    <div className={MenuStyles.menuDropdownStyle +" " + (isLightMode ? MenuStyles.lightModeDropDownStyle: MenuStyles.darkModeDropDownStyle)}>
                         {loginID === null ? ( 
                             <>
-                                <button onClick={handleLogin} className={MenuStyles.menuItemStyle}>Login</button>
-                                <button onClick={handleRegister} className={MenuStyles.menuItemStyle}>Register</button>
+                                <button onClick={handleLogin} className={getMenuItemClass()}>Login</button>
+                                <button onClick={handleRegister} className={getMenuItemClass()}>Register</button>
                             </>
                         ) : (
                             <>
-                            <button onClick={handleLogout} className={MenuStyles.menuItemStyle}>Logout</button>
-                            <button onClick={handleUserProfile} className={MenuStyles.menuItemStyle}>User Profile</button>
+                            <button onClick={handleLogout} className={getMenuItemClass()}>Logout</button>
+                            <button onClick={handleUserProfile} className={getMenuItemClass()}>User Profile</button>
                             </>
                         )}
 
                         {props.parentName === 'StartScreen' && (
                             <>
-                            <button onClick={handleNewGame} className={MenuStyles.menuItemStyle}>Main Menu</button>
-                            <button onClick={handleLeaderboard} className={MenuStyles.menuItemStyle}>Leaderboard</button>
-                            <button onClick={handleAbout} className={MenuStyles.menuItemStyle}>About</button>
+                            <button onClick={handleNewGame} className={getMenuItemClass()}>Main Menu</button>
+                            <button onClick={handleLeaderboard} className={getMenuItemClass()}>Leaderboard</button>
+                            <button onClick={handleAbout} className={getMenuItemClass()}>About</button>
+                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} /> 
+                                {/* remove it */}
+                            </div>
+                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <ToggleButtonCheck />
+                            </div>
                             </>)}
                         {props.parentName === 'BoardHeader' && (
                             <>
-                            <button onClick={handleNewGame} className={MenuStyles.menuItemStyle}>New Game</button>
-                            <button onClick={handleLeaderboard} className={MenuStyles.menuItemStyle}>Leaderboard</button>
-                            <button onClick={handleHowToPlay} className={MenuStyles.menuItemStyle}>How to Play</button>
-                            <button onClick={handleCheatSheet} className={MenuStyles.menuItemStyle}>Cheat Sheet</button>
-                            {/* Pass state and handler to ToggleButton */}
-                            <div className={MenuStyles.menuItemStyle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span>Toggle Feature</span> {/* Example label */}
-                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} />
+                            <button onClick={handleNewGame} className={getMenuItemClass()}>New Game</button>
+                            <button onClick={handleLeaderboard} className={getMenuItemClass()}>Leaderboard</button>
+                            <button onClick={handleHowToPlay} className={getMenuItemClass()}>How to Play</button>
+                            <button onClick={handleCheatSheet} className={getMenuItemClass()}>Cheat Sheet</button>                           
+                            
+                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <ToggleButtonCheck />
                             </div>
                             </>)}
+                        {props.parentName === 'ChallengeScreen' && (
+                            <>
+                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} />
+                            </div>
+                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <ToggleButtonCheck />
+                            </div>
+                            </>)}
+                        
                     </div>
                 )}
             </div>

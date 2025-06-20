@@ -2,13 +2,16 @@ import React from 'react';
 import ActorSelectionSlot from './ActorSelectionSlot';
 import { getImageUrlSync } from '../../services/tmdbService';
 import * as actorCardStyles from '../../styles/ActorsCardStyle.js'; 
+import { useTheme } from '../../contexts/ThemeContext';
+
+
 
 const ActorCard = ({
   index,
   selectedActor,
   isLoading, // Global loading state
   onSearchAgain, // For "Change Actor" button
-
+  
   // Props for ActorSelectionSlot (passed down from StartScreen)
   initialSearchTerm,
   currentActorSearchResults,
@@ -20,8 +23,11 @@ const ActorCard = ({
   callbackSearchActors,
   callbackUpdateSearchTerm,
 }) => {
+  const { isLightMode, toggleTheme } = useTheme();
+
   return (
-    <div className={actorCardStyles.actorCardStyle}>
+    <div className={actorCardStyles.actorCardBaseStyle + " " +
+      (isLightMode ? actorCardStyles.actorCardLightStyle : actorCardStyles.actorCardDarkStyle)}>
       {selectedActor ? (
         <div className={actorCardStyles.actorContainerStyle}>
           {/* Image container with fixed height */}
@@ -35,7 +41,8 @@ const ActorCard = ({
               }}
             />
           </div>
-          <div className={actorCardStyles.actorNameStyle}>
+          <div className={actorCardStyles.actorNameBaseStyle + " " +
+            (isLightMode ? actorCardStyles.actorNameLightStyle : actorCardStyles.actorNameDarkStyle)}>
             {selectedActor.name}
           </div>
           
@@ -45,7 +52,8 @@ const ActorCard = ({
           {/* Button in fixed position at bottom */}
           <div className="w-full mt-auto">
             <button 
-              className={actorCardStyles.actorSearchButtonStyle}
+              className={actorCardStyles.actorSearchButtonBaseStyle + " " +
+                (isLightMode ? actorCardStyles.actorSearchButtonLightStyle : actorCardStyles.actorSearchButtonDarkStyle)}
               onClick={() => onSearchAgain(index)}
               disabled={isLoading}
             >
