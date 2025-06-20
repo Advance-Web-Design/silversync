@@ -191,10 +191,6 @@ function Menu(props) {
                             <button onClick={handleLeaderboard} className={getMenuItemClass()}>Leaderboard</button>
                             <button onClick={handleAbout} className={getMenuItemClass()}>About</button>
                             <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} /> 
-                                {/* remove it */}
-                            </div>
-                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <ToggleButtonCheck />
                             </div>
                             </>)}
@@ -211,9 +207,6 @@ function Menu(props) {
                             </>)}
                         {props.parentName === 'ChallengeScreen' && (
                             <>
-                            <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <ToggleButton enabled={isToggleEnabled} onClick={handleToggleClick} />
-                            </div>
                             <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <ToggleButtonCheck />
                             </div>

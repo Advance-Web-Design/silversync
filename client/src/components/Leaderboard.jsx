@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as AboutStyles from '../styles/AboutStyles.js'; // Reuse the About styles for consistency
 
