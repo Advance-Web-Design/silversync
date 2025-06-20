@@ -4,6 +4,7 @@ import * as AboutStyles from '../styles/AboutStyles.js'; // Reuse the About styl
 
 const Leaderboard = ({ onClose }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [leaderboardData_DB, setLeaderboardData] = useState([]); // state to hold leaderboard data
 
   const handleClose = () => {
     setIsOpen(false);
@@ -11,6 +12,21 @@ const Leaderboard = ({ onClose }) => {
       onClose();
     }
   };
+
+  /* getting real data from DB */
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+        setLeaderboardData(data);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      }
+    }
+    fetchLeaderboard();
+  }, []);
+
 
   // Mock leaderboard data - replace with real data from your backend
   const leaderboardData = [
@@ -39,6 +55,7 @@ const Leaderboard = ({ onClose }) => {
                   <span>Time</span>
                 </div>
                 {leaderboardData.map((player) => (
+                  //change leaderboardData.map to leaderboardData_DB.map when using real data
                   <div key={player.rank} className="grid grid-cols-4 gap-4 text-sm text-white">
                     <span className="font-bold text-[#ffd700]">#{player.rank}</span>
                     <span>{player.name}</span>
