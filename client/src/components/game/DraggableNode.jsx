@@ -13,7 +13,7 @@
  * - Special highlighting for starting actors
  */
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { getImageUrlSync } from '../../services/tmdbService';
+import { getImageUrl } from '../../utils/tmdbUtils';
 import { getItemTitle } from '../../utils/stringUtils';
 import { useGameContext } from '../../contexts/gameContext';
 import * as NodeStyles from '../../styles/NodeStyles.js'; // Import the styles
@@ -30,7 +30,7 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
   // Determine the appropriate image type and URL based on node type
   const imageType = node.type === 'person' ? 'profile' : 'poster';
   const imageUrl = node.data?.poster_path || node.data?.profile_path 
-    ? getImageUrlSync(node.data.poster_path || node.data.profile_path, imageType)
+    ? getImageUrl(node.data.poster_path || node.data.profile_path, imageType)
     : null;
   
   // Get the display title for the node

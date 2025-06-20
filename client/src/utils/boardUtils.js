@@ -1,5 +1,4 @@
 // Board-specific utility functions
-import { getItemTitle } from './entityUtils';
 import { logger } from './loggerUtils';
 import { findPathBetweenNodesOptimized, clearPathCache } from './connectionOptimizer';
 

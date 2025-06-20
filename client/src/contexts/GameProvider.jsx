@@ -107,18 +107,21 @@ export const GameProvider = ({ children }) => {
   };  /**
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
+   * @param {Array} updatedNodes - Optional updated nodes array to use instead of state
    */
-  const fetchAndSetAllSearchableEntities = useCallback(async () => {
+  const fetchAndSetAllSearchableEntities = useCallback(async (updatedNodes = null) => {
     logger.info('🎯 Fetching all searchable entities');
 
     setIsLoading(true);
     try {
+      // Use provided nodes or fall back to state nodes
+      const nodesToUse = updatedNodes || nodes;
 
-      // Generate new cheat sheet with challanges filtering
-      const cheatSheetEntities = await generateCheatSheet(nodes, gameStarted, startActors, {
-        enableProductionFiltering: challengeMode?.filter ||false,
+      // Generate new cheat sheet with challenge filtering
+      const cheatSheetEntities = await generateCheatSheet(nodesToUse, gameStarted, startActors, {
+        enableProductionFiltering: challengeMode?.filter || false,
         filtertype: challengeMode?.type || 'classic',
-        excludeProductionCompanies: challengeMode.remove || [],
+        excludeProductionCompanies: challengeMode?.remove || [],
       });
 
       setCheatSheetResults(cheatSheetEntities); // Load cheat sheet results into and cashe them for search
@@ -136,7 +139,7 @@ export const GameProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [nodes, gameStarted, startActors, challengeMode?.remove, setCheatSheetResults, setConnectableItems, setIsLoading]);
+  }, [nodes, gameStarted, startActors, challengeMode, setCheatSheetResults, setConnectableItems, setIsLoading]);
 
   /**
    * Fetches a random actor for a starting position
@@ -265,9 +268,7 @@ export const GameProvider = ({ children }) => {
       setActorSearchTotalPages,
       setIsLoading
     );
-  };
-
-  /**
+  };  /**
    * Generic function to add any entity to the board
    * @param {Object} entity - Entity to add (person, movie, or TV show)
    */
@@ -289,7 +290,9 @@ export const GameProvider = ({ children }) => {
       prev.filter(item =>
         !(item.id === entity.id && item.media_type === entity.media_type)
       )
-    );    // Remove from connectable items tracking
+    );
+
+    // Remove from connectable items tracking
     const itemKey = `${entity.media_type}-${entity.id}`;
     setConnectableItems(prev => {
       const updated = { ...prev };
@@ -297,14 +300,7 @@ export const GameProvider = ({ children }) => {
       return updated;
     });
 
-    // Refresh all searchable entities after adding to board
-    // This ensures new connections are available for search immediately
-    try {
-      logger.debug('🔄 Refreshing searchable entities after adding to board');
-      await fetchAndSetAllSearchableEntities();
-    } catch (error) {
-      logger.error('Error refreshing searchable entities:', error);
-    }
+    // The cheat sheet will be automatically updated by the useEffect that watches nodes.length
 
     logger.debug(`✅ Successfully added ${entityName} to board`);
     return result;
@@ -422,10 +418,9 @@ export const GameProvider = ({ children }) => {
     logger.debug('❌ Closing connections panel');
     setSelectedNode(null);
     setPossibleConnections([]);
-  };
-  /**
+  };  /**
    * Toggles visibility of all searchable entities in the sidebar
-   * Regenerates data if needed when turning on
+   * Only shows/hides the sidebar, doesn't regenerate data
    */
   const toggleShowAllSearchable = async () => {
     const newShowAllSearchable = !showAllSearchable;
@@ -433,9 +428,9 @@ export const GameProvider = ({ children }) => {
 
     logger.debug(`🔧 Toggling cheat sheet: ${newShowAllSearchable ? 'ON' : 'OFF'}`);
 
-    // When turning on, ensure we have cheat sheet data
+    // When turning on, only fetch if we have no data yet
     if (newShowAllSearchable && (!cheatSheetResults || cheatSheetResults.length === 0)) {
-      logger.debug('🔄 Cheat sheet data missing, regenerating...');
+      logger.debug('🔄 Cheat sheet data missing, fetching initial data...');
       await fetchAndSetAllSearchableEntities();
     }
     // When turning off, we keep the data but hide the sidebar
@@ -524,15 +519,23 @@ export const GameProvider = ({ children }) => {
     // Cheat sheet results
     cheatSheetResults,
     setCheatSheetResults,
-  };
-  // Auto-generate cache when game starts to enable local search
+  };  // Auto-generate cache when game starts to enable local search
   useEffect(() => {
-    if (gameStarted && nodes.length > 0) {
+    if (gameStarted && nodes.length === 2) { // Only when game starts with initial 2 actors
       logger.debug('🚀 Game started, generating cache for local search');
       fetchAndSetAllSearchableEntities();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameStarted, nodes.length]); // Intentionally excluding fetchAndSetAllSearchableEntities to prevent infinite loop
+  }, [gameStarted]); // Only depend on gameStarted, not nodes.length
+
+  // Update cheat sheet when nodes change (after entities are added)
+  useEffect(() => {
+    if (gameStarted && nodes.length > 2) { // Only for mid-game additions
+      logger.debug('🔄 Nodes updated, refreshing cheat sheet for new connections');
+      fetchAndSetAllSearchableEntities();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes.length]); // Trigger when board size changes
 
 
 

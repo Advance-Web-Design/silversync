@@ -1,5 +1,5 @@
 import React from 'react';
-import { getImageUrlSync } from '../../services/tmdbService';
+import { getImageUrl } from '../../utils/tmdbUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as connectionItemStyles from '../../styles/connectionPanelStyle.js';
 
@@ -38,7 +38,7 @@ const ConnectionItem = ({
       <div className={connectionItemStyles.connectionImageStyle}>
         <img 
           className={connectionItemStyles.connectionImageImgStyle}
-          src={getImageUrlSync(imagePath, imageType)} 
+          src={getImageUrl(imagePath, imageType)} 
           alt={title} 
           onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image' }}
         />
