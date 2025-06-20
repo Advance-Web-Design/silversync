@@ -54,7 +54,7 @@ const StartScreen = () => {
       <div className="flex justify-between items-center p-3 sm:p-4 w-full">
         <Menu parentName="StartScreen" />
         <h1 className="font-serif font-bold text-2xl sm:text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500] text-center flex-grow mr-8 sm:mr-0">
-          Connect The Stars
+          Silver Sync
         </h1>
       </div>
 

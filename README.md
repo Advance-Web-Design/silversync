@@ -1,13 +1,13 @@
-# Connect The Shows 🎬
+# Silver Sync 🎬
 
 A web application that challenges users to find connections between actors through their movie and TV show appearances. Built with React and Next.js, powered by The Movie Database (TMDB) API.
 
 ## 🚨 Known Issues
 1. **Z-Index Issue**: When a card is behind the header, it cannot be clicked
 
-## 🎯 What is Connect The Shows?
+## 🎯 What is Silver Sync?
 
-Connect The Shows is an interactive game where players:
+Silver Sync is an interactive game where players:
 1. **Search** for actors, movies, or TV shows
 2. **Place** items on a visual board
 3. **Connect** actors through shared movies/shows

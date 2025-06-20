@@ -780,7 +780,6 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
   }
 
   logger.debug(`🔍 Fast filtering: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);
-
   // Apply media type filters
   let finalEntities = processedEntities;
   if (filterOptions.enableProductionFiltering) {
@@ -790,20 +789,26 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
       finalEntities = finalEntities.filter(entity => entity.media_type !== 'movie');
     }
   }
-
-  // Skip production company filtering if it would be too slow
+  // Apply production company filtering with adaptive limits based on dataset size
   if (filterOptions.enableProductionFiltering && 
-      filterOptions.filtertype?.includes('no-production-companie') &&
-      finalEntities.length < 200) { // Only apply to smaller datasets
-    logger.debug('🔍 Applying limited production company filtering');
-    finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
-      ...filterOptions,
-      maxResults: Math.min(filterOptions.maxResults || 100, 100), // Cap at 100
-      batchSize: 50 // Larger batches
-    });
-  } else if (filterOptions.enableProductionFiltering && 
-             filterOptions.filtertype?.includes('no-production-companie')) {
-    logger.debug('⚠️ Skipping production company filtering due to large dataset size');
+      filterOptions.filtertype?.includes('no-production-companie')) {
+    
+    if (finalEntities.length < 200) {
+      logger.debug('🔍 Applying full production company filtering');
+      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
+        ...filterOptions,
+        maxResults: Math.min(filterOptions.maxResults || 100, 100), // Cap at 100
+        batchSize: 50 // Larger batches
+      });
+    } else {
+      logger.debug('🔍 Applying optimized production company filtering for large dataset');
+      // For large datasets, apply filtering but with stricter limits
+      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities.slice(0, 300), {
+        ...filterOptions,
+        maxResults: Math.min(filterOptions.maxResults || 150, 150), // Increased cap for large datasets
+        batchSize: 100 // Even larger batches for efficiency
+      });
+    }
   }
 
   return finalEntities.slice(0, maxResults);

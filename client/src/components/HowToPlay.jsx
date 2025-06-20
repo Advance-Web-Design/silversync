@@ -25,7 +25,7 @@ function HowToPlay() {
             <div className={PopupStyles.popupBodyStyle}>
               <h2 className={PopupStyles.popupBodyH2BaseStyle + " " + (isLightMode? PopupStyles.popupBodyH2LightStyle: PopupStyles.popupBodyH2DarkStyle)}>How to Play</h2>
               <p className={PopupStyles.popupBodyPBaseStyle + " " + (isLightMode? PopupStyles.popupBodyPLightStyle: PopupStyles.popupBodyPDarkStyle)}>
-                Welcome to Connect the Shows! This game challenges you to find connections between TV shows and movies through actors.
+                Welcome to Silver Sync! This game challenges you to find connections between TV shows and movies through actors.
               </p>
               <ul className="list-disc list-inside mt-4 space-y-2"> {/* Added ul for better list formatting */}
                 <li className={PopupStyles.popupBodyPBaseStyle + " " + (isLightMode? PopupStyles.popupBodyPLightStyle: PopupStyles.popupBodyPDarkStyle)}>Select actors that connect different shows.</li>
