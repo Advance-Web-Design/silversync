@@ -21,7 +21,7 @@ import {
   fetchAllPossibleConnections as fetchEntityConnections,
   checkActorTvShowConnection as checkActorTvConnection,
 } from '../utils/entityUtils';
-import { generateCheatSheet} from '../utils/cheatSheetCache';
+import { generateCheatSheet, clearCheatSheetCacheForNewGame } from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
 import { logger } from '../utils/loggerUtils';
@@ -208,8 +208,16 @@ export const GameProvider = ({ children }) => {
     
     // Also reset search input and state
     searchState.resetSearch();
+    
+    // Clear cheat sheet cache for new game (but preserve connection data)
+    clearCheatSheetCacheForNewGame();
+    
+    // Clear cheat sheet results from state
+    setCheatSheetResults([]);
+    
     // Clear connection cache for optimized performance
     clearConnectionCache();
+    
     // Reset screen navigation and challenge mode
     setCurrentScreen('challenges');
     setChallengeMode(null);

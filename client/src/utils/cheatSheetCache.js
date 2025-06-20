@@ -34,12 +34,6 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
       return [];
     }
 
-    // Check for valid cached results first
-    const cachedResults = getCachedCheatSheet(nodes);
-    if (cachedResults) {
-      logger.info('🚀 Using cached cheat sheet results');
-      return cachedResults;
-    }
 
     // Early limit to prevent massive datasets
     const maxEntitiesPerNode = filterOptions.maxEntitiesPerNode || 100;
@@ -91,6 +85,21 @@ export const setCachedCheatSheet = (entities, boardState) => {
     sessionStorage.setItem(CACHE_KEYS.CHEAT_SHEET, JSON.stringify(cacheData));
   } catch (error) {
     logger.error('Error caching cheat sheet:', error);
+  }
+};
+
+/**
+ * Clear cheat sheet cache when starting a new game
+ * This clears cached entities but preserves connection data (previousSearches, knownEntities)
+ */
+export const clearCheatSheetCacheForNewGame = () => {
+  try {
+    // Clear only the cheat sheet cache, not connection data
+    sessionStorage.removeItem(CACHE_KEYS.CHEAT_SHEET);
+    // Note: PREVIOUS_SEARCHES and KNOWN_ENTITIES are preserved for better user experience
+    logger.info('🗑️ Cleared cheat sheet cache for new game (preserved connection data)');
+  } catch (error) {
+    logger.error('Error clearing cheat sheet cache:', error);
   }
 };
 
@@ -468,7 +477,7 @@ export const filterByProductionCompaniesOptimized = async (entity, excludeCompan
       return !hasExcludedProductionCompany(entity.production_companies, excludeCompanies);
     }
 
-    // Check cache first if provided
+    // Check cache first
     const cacheKey = `details-${entity.media_type}-${entity.id}`;
     let details = cache?.get(cacheKey);
 
