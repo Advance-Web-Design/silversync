@@ -1,6 +1,4 @@
-// This file contains the styles for the Panel UI component in a React application.
 
-// It defines the styles for the panel that appears at the bottom of the screen,
 //export const panelUIStyle = "fixed bottom-2 sm:bottom-2.5 left-0 right-0 w-[95%] sm:w-[90%] mx-auto bg-[rgba(10,10,26,0.95)] border border-[rgba(255,215,0,0.3)] rounded-lg p-2 sm:p-4 z-[100] shadow-[0_5px_20px_rgba(0,0,0,0.5)] text-white h-[60px] sm:h-[70px] max-h-[60px] sm:max-h-[70px] overflow-y-auto transition-all duration-300 ease-in-out";
 export const panelUIbaseStyle = "fixed bottom-2 sm:bottom-2.5 left-0 right-0 w-[95%] sm:w-[90%] mx-auto  border  rounded-lg p-2 sm:p-4 z-[100] shadow-[0_5px_20px_rgba(0,0,0,0.5)]  h-[60px] sm:h-[70px] max-h-[60px] sm:max-h-[70px] overflow-y-auto transition-all duration-300 ease-in-out";
 export const panelUiLightStyle = "bg-[rgba(255,255,255,0.75)] border border-[rgba(0,0,0,0.1)] text-black shadow-[0_5px_20px_rgba(0,0,0,0.1)]";

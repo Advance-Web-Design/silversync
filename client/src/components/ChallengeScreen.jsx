@@ -307,7 +307,7 @@ const ChallengeScreen = () => {
     };
 
     return (
-        <div className="relative min-h-screen overflow-y-auto bg-[url('/bg2.png')] bg-cover bg-center bg-fixed text-black">
+        <div className="relative min-h-screen overflow-y-auto bg-[url('/bg3.svg')] bg-cover bg-center bg-fixed text-black">
             {/* Header */}
             <div className="flex justify-between items-center p-4 w-full">
                 <Menu parentName="ChallengeScreen" />

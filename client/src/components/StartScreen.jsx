@@ -48,12 +48,12 @@ const StartScreen = () => {
   };
 
   return (
-    <div className={"relative min-h-screen overflow-hidden bg-cover bg-center bg-fixed text-black flex flex-col " +
-      (isLightMode ? "bg-[url('/bg3.png')]" : "bg-[url('/bg2.png')]")}>
+    <div className={"relative min-h-screen backdrop-blur-sm overflow-hidden bg-no-repeat bg-cover bg-center bg-fixed text-black flex flex-col " +
+      (isLightMode ? "bg-[url('/bg2.svg')]" : "bg-[url('/bg3.svg')]")}>
       {/* Header */}
       <div className="flex justify-between items-center p-3 sm:p-4 w-full">
         <Menu parentName="StartScreen" />
-        <h1 className="font-serif font-bold text-2xl sm:text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500] text-center flex-grow mr-8 sm:mr-0">
+        <h1 className={"font-serif font-bold text-2xl sm:text-[2.75rem]  text-center flex-grow mr-8 sm:mr-0 " +(isLightMode? "text-gray-700 [text-shadow:0_0_8px_white]":"text-gray-200 [text-shadow:0_0_8px_white]") }>
           Silver Sync
         </h1>
       </div>

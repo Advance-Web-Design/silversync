@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
 import { logger } from '../utils/loggerUtils';
-
-
+import {  useTheme} from '../contexts/ThemeContext'; // Import the ThemeContext
+import * as RegStyle from '../styles/AboutStyles.js'
 function RegisterWindow({onClose}) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -72,17 +72,17 @@ function RegisterWindow({onClose}) {
 //    console.log("user side register log")
     //alert(`Email: ${email}\nUsername: ${username}\nPassword: ${password}`);
   };
-
+  const { isLightMode } = useTheme(); // Get the current theme mode
   return (
     <>
       { (
-        <div className="popup-overlay">
-          <div className="popup-content">
-            <button className="popup-close-button" onClick={handleClose}>
+        <div className={RegStyle.popupOverlayBaseStyle + " " + (isLightMode ? RegStyle.popupOverlayLightStyle : RegStyle.popupOverlayDarkStyle)}>
+          <div className={RegStyle.popupContentStyle + " " + (isLightMode ? RegStyle.popupContentLightStyle : RegStyle.popupContentDarkStyle)}>
+            <button className={RegStyle.popupCloseButtonBaseStyle + " " + (isLightMode ? RegStyle.popupCloseButtonLightStyle : RegStyle.popupCloseButtonDarkStyle)} onClick={handleClose}>
               <CloseIcon />
             </button>
             <div className={FormStyles.formBodyStyle}>
-              <h2 className={FormStyles.formTitleStyle}>Create Account</h2>
+              <h2 className={FormStyles.formTitleBaseStyle + " " + (isLightMode? FormStyles.formTitleLightStyle : FormStyles.formTitleDarkStyle)}>Create Account</h2>
               <form onSubmit={handleRegister} className={FormStyles.formStyle}>
                 <input
                   type="text" // Changed to text for email, can also be type="email"
@@ -90,7 +90,7 @@ function RegisterWindow({onClose}) {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className={FormStyles.formInputStyle}
+                  className={FormStyles.formInputBaseStyle + " " + (isLightMode ? FormStyles.formInputLightStyle : FormStyles.formInputDarkStyle)}
                 />
                 <input
                   type="text"
@@ -98,7 +98,7 @@ function RegisterWindow({onClose}) {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
-                  className={FormStyles.formInputStyle}
+                  className={FormStyles.formInputBaseStyle + " " + (isLightMode ? FormStyles.formInputLightStyle : FormStyles.formInputDarkStyle)}
                 />
                 <input
                   type="password"
@@ -106,9 +106,9 @@ function RegisterWindow({onClose}) {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  className={FormStyles.formInputStyle}
+                  className={FormStyles.formInputBaseStyle + " " + (isLightMode ? FormStyles.formInputLightStyle : FormStyles.formInputDarkStyle)}
                 />
-                <button type="submit" className={FormStyles.formSubmitButtonStyle}>
+                <button type="submit" className={FormStyles.formSubmitButtonBaseStyle + " " + (isLightMode ? FormStyles.formSubmitButtonLightStyle : FormStyles.formSubmitButtonDarkStyle)}>
                   Register
                 </button>
               </form>
