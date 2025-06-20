@@ -1,4 +1,3 @@
-// export const menuButtonStyle = "flex flex-col items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full bg-[#3b3b3b] text-white shadow-md hover:bg-black transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-75";
 export const menuButtonBaseStyle = "flex flex-col items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-75";
 export const menuButtonDarkStyle = "bg-[#3b3b3b] text-white hover:bg-black focus:ring-black";
 export const menuButtonLightStyle = "bg-white text-black hover:bg-gray-200 focus:ring-gray-400";

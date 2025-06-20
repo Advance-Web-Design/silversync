@@ -19,6 +19,7 @@ import { Box } from '@mui/material';
 import { useZoom } from '../../hooks/useZoom';
 import * as BoardStyles from '../../styles/BoardStyle.js'; // Import BoardStyle
 import { logger } from '../../utils/loggerUtils';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const GameBoard = React.memo(() => {
   // Get game state and functions from context
@@ -57,7 +58,7 @@ const GameBoard = React.memo(() => {
 
   // Check if search has results to adjust stats display position
   const hasSearchResults = Boolean(searchResults && searchResults.length > 0);
-
+  
   /**
    * Dynamically update board dimensions when window resizes or zoom changes
    */
@@ -141,10 +142,14 @@ const GameBoard = React.memo(() => {
   const formattedTimeValue      = formatTime(elapsedTime);
   const formattedGameScoreValue = formatGameScore();
   const pathLengthValue         = getPathLength();
+
+  //boolean for dark or light mode
+  const { isLightMode } = useTheme();
   return (
     <Box
       ref={boardRef}
-      className={BoardStyles.gameBoardContainerStyle} // Use style from BoardStyle.js
+      className={BoardStyles.gameBoardContainerBaseStyle + " " +
+        (isLightMode ? BoardStyles.gameBoardContainerLightStyle : BoardStyles.gameBoardContainerDarkStyle)} // Use styles from BoardStyle.js
       onWheel={handleWheel}
     >
       <div

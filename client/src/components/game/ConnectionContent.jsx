@@ -1,6 +1,7 @@
 import React from 'react';
 import ConnectionSection from './ConnectionSection';
-import * as contentStyle from '../../styles/connectionPanelStyle.js'; // Adjust the import path as necessary
+import * as contentStyle from '../../styles/connectionPanelStyle.js'; // Adjust the import path as necessary#
+import { useTheme } from '../../contexts/ThemeContext';
 
 /**
  * ConnectionsContent - Renders different connection sections based on the type of node
@@ -13,8 +14,11 @@ const ConnectionContent = ({
   handleAddToBoard,
   isGuestStar
 }) => {
+  const { isLightMode } = useTheme();
+
   return (
-    <div className={contentStyle.connectionsContentStyle}>
+    <div className={contentStyle.connectionsContentBaseStyle + " " +
+      (isLightMode ? contentStyle.connectionsContentLightStyle : contentStyle.connectionsContentDarkStyle)}>
       {nodeType === 'person' && (
         <>
           <ConnectionSection
@@ -48,7 +52,8 @@ const ConnectionContent = ({
       
       {/* Empty state message */}
       {Object.values(connections).every(arr => !arr || arr.length === 0) && (
-        <div className={contentStyle.noConnectionsMessageStyle}>
+        <div className={contentStyle.noConnectionBaseStyle + " " +
+          (isLightMode ? contentStyle.noConnectionLightStyle : contentStyle.noConnectionDarkStyle)}>
           No connections found for this {
             nodeType === 'person' ? 'actor' : 
             nodeType === 'movie' ? 'movie' : 'TV show'

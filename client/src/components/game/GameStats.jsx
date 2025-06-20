@@ -1,6 +1,7 @@
 import React from 'react';
 // import './GameBoard.css'; // You can remove this if GameStats no longer uses direct classes from it
 import * as GameStatStyles from '../../styles/GameStatStyles.js';
+import { useTheme } from '../../contexts/ThemeContext'; // Import the theme context to access light/dark mode
 
 /**
  * GameStats component - Displays game statistics and guest appearances message
@@ -15,6 +16,8 @@ const GameStats = React.memo(({
   gameCompleted
 }) => {
 
+  const { isLightMode } = useTheme();
+
   const statsDisplayClasses = [
     GameStatStyles.statsDisplayStyle,
     hasSearchResults 
@@ -27,22 +30,43 @@ const GameStats = React.memo(({
     hasSearchResults ? GameStatStyles.guestAppearancesMessageSearchResultsModifier : ''
   ].filter(Boolean).join(' ');
 
+  // Compose the stat item style for light/dark mode
+  const statItemModeStyle = isLightMode
+    ? GameStatStyles.statItemLightStyle
+    : GameStatStyles.statItemDarkStyle;
+
   return (
     <>
-      {/* Stats display */}      <div 
+      {/* Stats display */}
+      <div 
         className={statsDisplayClasses}
-        data-has-results={hasSearchResults ? 'true' : 'false'} // This attribute is not for CSS class styling
+        data-has-results={hasSearchResults ? 'true' : 'false'}
       >
         {gameCompleted && (
-          <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestScoreStyle}`}>
+          <div className={
+            `${GameStatStyles.statItemBaseStyle} ${statItemModeStyle} ` +
+            (isLightMode
+              ? GameStatStyles.statItemBestScoreLightStyle
+              : GameStatStyles.statItemBestScoreDarkStyle)
+          }>
             GAME SCORE: {formattedGameScore}
           </div>
         )}
-        <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemTimerStyle}`}>
+        <div className={
+          `${GameStatStyles.statItemBaseStyle} ${statItemModeStyle} ` +
+          (isLightMode
+            ? GameStatStyles.statItemTimerLightStyle
+            : GameStatStyles.statItemTimerDarkStyle)
+        }>
           TIMER: {formattedTime}
         </div>
         {gameCompleted && (
-          <div className={`${GameStatStyles.statItemBaseStyle} ${GameStatStyles.statItemBestPathStyle}`}>
+          <div className={
+            `${GameStatStyles.statItemBaseStyle} ${statItemModeStyle} ` +
+            (isLightMode
+              ? GameStatStyles.statItemBestPathLightStyle
+              : GameStatStyles.statItemBestPathDarkStyle)
+          }>
             SHORTEST PATH: {pathLength}
           </div>
         )}      

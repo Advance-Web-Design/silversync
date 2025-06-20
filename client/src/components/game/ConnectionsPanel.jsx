@@ -2,7 +2,7 @@ import React from "react";
 import { useGameContext } from "../../contexts/gameContext";
 import { getItemTitle } from "../../utils/entityUtils";
 import ConnectionContent from "./ConnectionContent";
-
+import { useTheme } from '../../contexts/ThemeContext';
 import * as PanelStyles from "../../styles/connectionPanelStyle.js";
 
 const ConnectionsPanel = () => {
@@ -153,12 +153,14 @@ const ConnectionsPanel = () => {
     }
     return false; // Default to false if no guest indicators found
   };
-
+  const { isLightMode } = useTheme();
   return (
-    <div className={PanelStyles.connectionsPanelStyle}>
-      <div className={PanelStyles.connectionsHeaderStyle}>
-        <h2 className={PanelStyles.connectionsHeaderH2Style}>{title}</h2>
-        <button className={PanelStyles.closeButtonStyle} onClick={closeConnectionsPanel}>
+    <div className={PanelStyles.connectionsPanelBaseStyle + " " +
+      (isLightMode ? PanelStyles.connectionsPanelLightStyle : PanelStyles.connectionsPanelDarkStyle)}>
+      <div className={PanelStyles.connectionsHeaderBaseStyle + " " +
+        (isLightMode ? PanelStyles.connectionsHeaderLightStyle : PanelStyles.connectionsHeaderDarkStyle)}>
+        <h2 className={PanelStyles.connectionsHeaderH2BaseStyle + " " + (isLightMode? PanelStyles.connectionsHeaderH2LightStyle : PanelStyles.connectionsHeaderH2DarkStyle)}>{title}</h2>
+        <button className={PanelStyles.closeButtonBaseStyle + " " + (isLightMode ? PanelStyles.closeButtonLightStyle: PanelStyles.closeButtonDarkStyle)} onClick={closeConnectionsPanel}>
           ×
         </button>
       </div>

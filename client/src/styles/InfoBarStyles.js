@@ -11,3 +11,12 @@ export const gameStatusStyle = "flex items-center justify-center w-full max-w-[9
 export const successMessageStyle = "py-1 px-2 sm:py-[0.4rem] sm:px-4 bg-[#4caf50] text-white rounded font-bold shadow-[0_2px_4px_rgba(0,0,0,0.2)] w-full text-center text-xs sm:text-sm";
 
 export const goalMessageStyle = "py-1 px-2 sm:py-[0.4rem] sm:px-4 bg-[#ff9900] text-white rounded font-bold shadow-[0_2px_4px_rgba(0,0,0,0.2)] w-full text-center text-xs sm:text-sm";
+
+export const infoBarBaseStyle = "flex justify-center items-center py-1.5 px-2 sm:py-2 sm:px-6 mt-0 border-t-0 shadow-[0_4px_8px_-4px_rgba(0,0,0,0.3)] relative z-[5] border-b flex-col md:flex-row md:py-2";
+export const infoBarDarkStyle = "bg-[#1a1a2e] border-b border-[#2a2a4e]";
+export const infoBarLightStyle = "bg-[rgba(255,255,255,0.92)]  border-b border-blue-200";
+
+// Success message
+export const successMessageBaseStyle = "py-1 px-2 sm:py-[0.4rem] sm:px-4 rounded font-bold shadow-[0_2px_4px_rgba(0,0,0,0.08)] w-full text-center text-xs sm:text-sm transition-colors duration-200";
+export const successMessageDarkStyle = "bg-[#4caf50] text-white";
+export const successMessageLightStyle = "bg-[#d4f5dd] text-green-800";

@@ -1,5 +1,6 @@
 import React from 'react';
 import { getImageUrlSync } from '../../services/tmdbService';
+import { useTheme } from '../../contexts/ThemeContext';
 import * as connectionItemStyles from '../../styles/connectionPanelStyle.js';
 
 /**
@@ -24,9 +25,15 @@ const ConnectionItem = ({
   // Get character info if applicable
   const character = item.character || (item.roles && item.roles.length > 0 ? item.roles[0].character : null);
   
+  const { isLightMode } = useTheme();
   return (
-    <div 
-      className={`${connectionItemStyles.connectionItemStyle} ${isOnBoard ? connectionItemStyles.alreadyOnBoardStyle : ''} ${isGuestAppearance ? connectionItemStyles.guestAppearanceStyle : ''}`}
+    <div
+      className={
+        connectionItemStyles.connectionItemBaseStyle + " " +
+        (isLightMode ? connectionItemStyles.connectionItemLightStyle : connectionItemStyles.connectionItemDarkStyle) + " " +
+        (isOnBoard? (isLightMode ? connectionItemStyles.alreadyOnBoardLightStyle : connectionItemStyles.alreadyOnBoardDarkStyle): ""
+        ) + " " +(isGuestAppearance ? connectionItemStyles.connectionItemGuestAppearanceStyle : "")
+      }
     >
       <div className={connectionItemStyles.connectionImageStyle}>
         <img 
@@ -39,7 +46,8 @@ const ConnectionItem = ({
       </div>
       <div className={connectionItemStyles.connectionInfoStyle}>
         <div className={connectionItemStyles.connectionTitleStyle}>{title}</div>
-        {character && <div className={connectionItemStyles.connectionDetailStyle}><span>as {character}</span></div>}
+        {character && <div className={connectionItemStyles.connectionDetailBaseStyle + " "+ (isLightMode? connectionItemStyles.connectionDetailLightStyle : connectionItemStyles.connectionDetailDarkStyle)}>
+        <span>as {character}</span></div>}
         {!isOnBoard ? (
           <button 
             className={connectionItemStyles.addConnectionButtonStyle}
@@ -48,7 +56,7 @@ const ConnectionItem = ({
             Add
           </button>
         ) : (
-          <div className={connectionItemStyles.onBoardIndicatorStyle}>On Board</div>
+          <div className={connectionItemStyles.onBoardIndicatorBaseStyle + " "+ (isLightMode? connectionItemStyles.onBoardIndicatorLightStyle : connectionItemStyles.onBoardIndicatorDarkStyle)}>On Board</div>
         )}
       </div>
     </div>
