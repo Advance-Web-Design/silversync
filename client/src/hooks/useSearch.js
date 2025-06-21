@@ -14,7 +14,8 @@ export const useSearch = () => {
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [didYouMean, setDidYouMean] = useState(null);
   const [exactMatch, setExactMatch] = useState(null);
-  const [originalSearchTerm, setOriginalSearchTerm] = useState('');  const [connectableItems, setConnectableItems] = useState({});
+  const [originalSearchTerm, setOriginalSearchTerm] = useState('');  
+  const [connectableItems, setConnectableItems] = useState({});
     /**
    * Search using local cache data
    * @param {string} term - Search term

@@ -29,30 +29,18 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
   try {
     if (nodes.length === 0 || !gameStarted) {
       return [];
-    }
+    }    // No limits - get entire cast for complete coverage
 
+    let relevantEntities = [];    // Always use the advanced phase logic to get all connectable entities
+    logger.debug('🎯 Fetching all connectable entities from board');
+    logger.debug(`🔍 Board has ${nodes.length} nodes:`, nodes.map(n => `${n.type}-${n.data?.name || n.data?.title || n.id}`));
+    relevantEntities = await fetchConnectableEntitiesOptimized(nodes);
 
-    // Early limit to prevent massive datasets
-    const maxEntitiesPerNode = filterOptions.maxEntitiesPerNode || 100;
-    const absoluteMaxResults = filterOptions.absoluteMaxResults || 500;    let relevantEntities = [];
-    // Initial game phase: show connections to starting actors
-    if (nodes.length <= 2 && startActors.length === 2) {
-      logger.debug('🎯 Initial game phase - extracting connections from starting actors');
-      relevantEntities = await extractConnectionsFromNodes(nodes, maxEntitiesPerNode);
-    } else {
-      // Advanced game phase: get all connectable entities from board (optimized)
-      logger.debug('🎯 Advanced game phase - fetching connectable entities');
-      relevantEntities = await fetchConnectableEntitiesOptimized(nodes, maxEntitiesPerNode);
-    }
-
-    logger.debug(`🔍 Total entities before filtering: ${relevantEntities.length}`);
-
-    // Fast filtering pipeline with early termination
+    logger.debug(`🔍 Total entities before filtering: ${relevantEntities.length}`);    // Fast filtering pipeline without hard limits
     const finalEntities = await optimizeEntityFilteringFast(
       relevantEntities, 
       nodes, 
-      filterOptions, 
-      absoluteMaxResults
+      filterOptions
     );
 
     const duration = Date.now() - startTime;
@@ -212,11 +200,9 @@ const hasExcludedProductionCompany = (productionCompanies, excludeCompanies) => 
 /**
  * Ultra-optimized filtering for better performance
  */
-export const filterEntitiesAdvancedOptimized = async (entities, filterOptions = {}) => {
-  const {
+export const filterEntitiesAdvancedOptimized = async (entities, filterOptions = {}) => {  const {
     excludeProductionCompanies = [],
     minPopularity = 0,
-    maxResults = 100, // Lower default
     batchSize = 50 // Larger batches
   } = filterOptions;
 
@@ -232,25 +218,19 @@ export const filterEntitiesAdvancedOptimized = async (entities, filterOptions = 
   if (minPopularity > 0) {
     filteredEntities = entities.filter(entity => (entity.popularity || 0) >= minPopularity);
   }
-
   // Early exit if no production company filtering needed
   if (excludeProductionCompanies.length === 0) {
-    const result = maxResults ? filteredEntities.slice(0, maxResults) : filteredEntities;
-    logger.debug(`🔍 No production filtering needed: ${entities.length} → ${result.length} in ${Date.now() - startTime}ms`);
-    return result;
+    logger.debug(`🔍 No production filtering needed: ${entities.length} → ${filteredEntities.length} in ${Date.now() - startTime}ms`);
+    return filteredEntities;
   }
 
   // Cache for production company data with aggressive caching strategy
   const productionCompanyCache = new Map();
   const failedFetches = new Set(); // Track failed API calls to avoid retries
+    const finalEntities = [];
   
-  const finalEntities = [];
-  let processedCount = 0;
-
   // Process in larger batches with timeout protection
   for (let i = 0; i < filteredEntities.length; i += batchSize) {
-    if (processedCount >= maxResults) break; // Early termination
-    
     const batch = filteredEntities.slice(i, i + batchSize);
     
     // Set a timeout for the entire batch
@@ -259,34 +239,26 @@ export const filterEntitiesAdvancedOptimized = async (entities, filterOptions = 
       new Promise((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 3000)) // 3 second timeout
     ]);
 
-    try {
-      const batchResults = await batchPromise;
+    try {      const batchResults = await batchPromise;
       const validResults = batchResults.filter(entity => entity !== null);
       finalEntities.push(...validResults);
-      processedCount += validResults.length;
-      
-      // Very short delay
-      if (i + batchSize < filteredEntities.length && processedCount < maxResults) {
+        // Very short delay between batches
+      if (i + batchSize < filteredEntities.length) {
         await new Promise(resolve => setTimeout(resolve, 25)); // Reduced to 25ms
       }
-    } catch (error) {
-      if (error.message === 'Batch timeout') {
+    } catch (error) {      if (error.message === 'Batch timeout') {
         logger.warn(`⚠️ Batch ${i}-${i + batchSize} timed out, skipping`);
         // Add entities without filtering on timeout
-        const timeoutBatch = batch.slice(0, Math.min(batch.length, maxResults - processedCount));
-        finalEntities.push(...timeoutBatch);
-        processedCount += timeoutBatch.length;
+        finalEntities.push(...batch);
       } else {
         logger.error('Batch processing error:', error);
       }
     }
   }
-
-  const finalResults = maxResults ? finalEntities.slice(0, maxResults) : finalEntities;
   const duration = Date.now() - startTime;
 
-  logger.debug(`🔍 Ultra-optimized filtering complete: ${entities.length} → ${finalResults.length} in ${duration}ms`);
-  return finalResults;
+  logger.debug(`🔍 Ultra-optimized filtering complete: ${entities.length} → ${finalEntities.length} in ${duration}ms`);
+  return finalEntities;
 };
 
 /**
@@ -350,153 +322,102 @@ export const getCachedCheatSheet = (boardState) => {
 };
 
 /**
- * Fast extraction of connections from nodes with early limits
+ * Optimized version of fetchConnectableEntitiesFromBoard
  */
-const extractConnectionsFromNodes = async (nodes, maxPerNode) => {
-  const relevantEntities = [];
-  
-  for (const node of nodes) {
-    let nodeEntities = [];
-    
-    if (node.type === 'person' && node.data) {
-      // Add movie credits with limit
-      if (node.data.movie_credits?.cast) {
-        const movieCredits = node.data.movie_credits.cast
-          .slice(0, maxPerNode) // Early limit
-          .filter(movie => movie.poster_path) // Filter with images immediately
-          .map(movie => ({
-            ...movie,
-            media_type: 'movie',
-            source_node: node.id
-          }));
-        nodeEntities.push(...movieCredits);
-      }
-      
-      // Add TV credits with limit
-      if (node.data.tv_credits?.cast) {
-        const tvCredits = node.data.tv_credits.cast
-          .slice(0, maxPerNode) // Early limit
-          .filter(show => show.poster_path) // Filter with images immediately
-          .map(show => ({
-            ...show,
-            media_type: 'tv',
-            source_node: node.id
-          }));
-        nodeEntities.push(...tvCredits);
-      }
-    } else if (node.type === 'movie' && node.data.credits?.cast) {
-      const actors = node.data.credits.cast
-        .slice(0, maxPerNode) // Early limit
-        .filter(actor => actor.profile_path) // Filter with images immediately
-        .map(actor => ({
-          ...actor,
-          media_type: 'person',
-          source_node: node.id
-        }));
-      nodeEntities.push(...actors);
-    } else if (node.type === 'tv' && node.data.credits?.cast) {
-      const actors = node.data.credits.cast
-        .slice(0, maxPerNode) // Early limit
-        .filter(actor => actor.profile_path) // Filter with images immediately
-        .map(actor => ({
-          ...actor,
-          media_type: 'person',
-          source_node: node.id
-        }));
-      nodeEntities.push(...actors);
-    }
-    
-    relevantEntities.push(...nodeEntities);
-  }
-  
-  return relevantEntities;
-};
-
-/**
- * Optimized version of fetchConnectableEntitiesFromBoard with limits
- */
-const fetchConnectableEntitiesOptimized = async (nodes, maxPerNode) => {
+const fetchConnectableEntitiesOptimized = async (nodes) => {
   const allConnectableEntities = [];
   const seenEntities = new Set(); // For fast duplicate detection
+  
+  logger.debug(`🔍 Processing ${nodes.length} nodes for connections`);
   
   for (const node of nodes) {
     if (!node?.data?.id) continue;
 
     let nodeConnections = [];
+    logger.debug(`🔍 Processing node: ${node.type}-${node.id} (${node.data?.name || node.data?.title})`);
 
-    if (node.type === 'person') {
-      // Process movie credits with early filtering
+    if (node.type === 'person') {// Process movie credits - no limits, get full cast (including those without images)
       if (node.data.movie_credits?.cast) {
         const movies = node.data.movie_credits.cast
-          .filter(movie => movie.poster_path && movie.id) // Filter early
-          .slice(0, maxPerNode) // Limit early
+          .filter(movie => movie.id && movie.title) // Filter by essential data only
           .map(movie => ({
             ...movie,
             media_type: 'movie',
-            source_node: node.id
+            source_node: node.id,
+            poster_path: movie.poster_path || null
           }));
         nodeConnections.push(...movies);
       }
 
-      // Process TV credits with early filtering
+      // Process TV credits - no limits, get full cast (including those without images)
       if (node.data.tv_credits?.cast) {
         const shows = node.data.tv_credits.cast
-          .filter(show => show.poster_path && show.id) // Filter early
-          .slice(0, maxPerNode) // Limit early
+          .filter(show => show.id && show.name) // Filter by essential data only
           .map(show => ({
             ...show,
             media_type: 'tv',
             source_node: node.id,
+            poster_path: show.poster_path || null,
             connection_type: show.is_guest_appearance ? 'guest' : 'cast'
           }));
         nodeConnections.push(...shows);
       }
-
-      // Process guest appearances with early filtering
+        // Process guest appearances - no limits, get all guest appearances (including those without images)
       if (node.data.guest_appearances) {
         const guests = node.data.guest_appearances
-          .filter(show => show.poster_path && show.id) // Filter early
-          .slice(0, Math.floor(maxPerNode / 2)) // Smaller limit for guests
+          .filter(show => show.id && show.name) // Filter by essential data only
           .map(show => ({
             ...show,
             media_type: 'tv',
             is_guest_appearance: true,
             connection_type: 'guest',
-            source_node: node.id
+            source_node: node.id,
+            poster_path: show.poster_path || null
           }));
         nodeConnections.push(...guests);
-      }
-    } else if (node.type === 'movie' && node.data.credits?.cast) {
+      }    } else if (node.type === 'movie' && node.data.credits?.cast) {
       const actors = node.data.credits.cast
-        .filter(actor => actor.profile_path && actor.id) // Filter early
-        .slice(0, maxPerNode) // Limit early
+        .filter(actor => actor.id && actor.name) // Filter by essential data only
         .map(actor => ({
           ...actor,
           media_type: 'person',
-          source_node: node.id
+          source_node: node.id,
+          profile_path: actor.profile_path || null
         }));
-      nodeConnections.push(...actors);
-    } else if (node.type === 'tv' && node.data.credits?.cast) {
-      const actors = node.data.credits.cast
-        .filter(actor => actor.profile_path && actor.id) // Filter early
-        .slice(0, maxPerNode) // Limit early
-        .map(actor => ({
-          ...actor,
-          media_type: 'person',
-          source_node: node.id
-        }));
-      nodeConnections.push(...actors);
-
-      // Process guest stars with smaller limit
+      nodeConnections.push(...actors);    } else if (node.type === 'tv') {
+      logger.debug(`🔍 TV node: ${node.data?.name}, has aggregate_credits: ${!!node.data.aggregate_credits?.cast}, cast count: ${node.data.aggregate_credits?.cast?.length || 0}`);
+      
+      // Use aggregate_credits.cast for more comprehensive actor list - no limits
+      if (node.data.aggregate_credits?.cast) {
+        const actors = node.data.aggregate_credits.cast
+          .filter(actor => actor.id && actor.name) // Include ALL actors with id/name, regardless of profile_path
+          .map(actor => ({
+            ...actor,
+            media_type: 'person',
+            source_node: node.id,
+            profile_path: actor.profile_path || null
+          }));
+        nodeConnections.push(...actors);
+      } else if (node.data.credits?.cast) {        // Fallback to regular credits if aggregate_credits not available - no limits
+        const actors = node.data.credits.cast
+          .filter(actor => actor.id && actor.name) // Remove profile_path requirement for consistency
+          .map(actor => ({
+            ...actor,
+            media_type: 'person',
+            source_node: node.id,
+            profile_path: actor.profile_path || null
+          }));
+        nodeConnections.push(...actors);
+      }      // Process guest stars - no limits, get all guest stars (including those without images)
       if (node.data.guest_stars) {
         const guestStars = node.data.guest_stars
-          .filter(actor => actor.profile_path && actor.id) // Filter early
-          .slice(0, Math.floor(maxPerNode / 2)) // Smaller limit for guests
+          .filter(actor => actor.id && actor.name) // Filter by essential data only
           .map(actor => ({
             ...actor,
             media_type: 'person',
             is_guest_star: true,
-            source_node: node.id
+            source_node: node.id,
+            profile_path: actor.profile_path || null
           }));
         nodeConnections.push(...guestStars);
       }
@@ -505,45 +426,38 @@ const fetchConnectableEntitiesOptimized = async (nodes, maxPerNode) => {
     // Add to results with duplicate checking
     for (const entity of nodeConnections) {
       const entityKey = `${entity.media_type}-${entity.id}`;
-      if (!seenEntities.has(entityKey)) {
-        seenEntities.add(entityKey);
+      if (!seenEntities.has(entityKey)) {        seenEntities.add(entityKey);
         allConnectableEntities.push(entity);
       }
     }
+    
+    logger.debug(`🔍 Node ${node.type}-${node.id} contributed ${nodeConnections.length} connections`);
   }
 
+  logger.debug(`🔍 Total connectable entities: ${allConnectableEntities.length}`);
   return allConnectableEntities;
 };
 
 /**
- * Ultra-fast filtering pipeline with early termination
+ * Ultra-fast filtering pipeline
  */
-const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOptions, maxResults) => {
+const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOptions) => {
   const startFilterTime = Date.now();
   
   // Pre-compute board entities for fast lookup
   const existingBoardIds = new Set(nodes.map(node => `${node.type}-${node.data?.id}`));
-  
-  // Single-pass filtering with early termination
+    // Single-pass filtering
   const processedEntities = [];
-  let processedCount = 0;
   
   for (const entity of relevantEntities) {
-    // Early termination if we have enough results
-    if (processedCount >= maxResults) {
-      logger.debug(`🚀 Early termination at ${processedCount} entities`);
-      break;
-    }
-    
     if (!entity?.id) continue;
 
     // Skip if already on board (fast Set lookup)
     const entityKey = `${entity.media_type}-${entity.id}`;
     if (existingBoardIds.has(entityKey)) continue;
 
-    // Entity already has image (filtered early in extraction)
+    // Include all entities (already filtered for images during extraction)
     processedEntities.push(entity);
-    processedCount++;
   }
 
   logger.debug(`🔍 Fast filtering: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);
@@ -560,25 +474,20 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
   if (filterOptions.enableProductionFiltering && 
       filterOptions.filtertype?.includes('no-production-companie')) {
     
-    if (finalEntities.length < 200) {
-      logger.debug('🔍 Applying full production company filtering');
+    if (finalEntities.length < 200) {      logger.debug('🔍 Applying full production company filtering');
       finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
         ...filterOptions,
-        maxResults: Math.min(filterOptions.maxResults || 100, 100), // Cap at 100
         batchSize: 50 // Larger batches
       });
-    } else {
-      logger.debug('🔍 Applying optimized production company filtering for large dataset');
-      // For large datasets, apply filtering but with stricter limits
-      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities.slice(0, 300), {
+    } else {      logger.debug('🔍 Applying optimized production company filtering for large dataset');      // For large datasets, apply filtering but without limits
+      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
         ...filterOptions,
-        maxResults: Math.min(filterOptions.maxResults || 150, 150), // Increased cap for large datasets
         batchSize: 100 // Even larger batches for efficiency
       });
     }
   }
 
-  return finalEntities.slice(0, maxResults);
+  return finalEntities;
 };
 
 /**

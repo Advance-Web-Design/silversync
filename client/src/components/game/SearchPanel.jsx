@@ -132,17 +132,21 @@ const handleKonamiActivation = () => {
   setDidYouMean(null);
   setExactMatch(null);
   
-  // Open sidebar
-  if (typeof toggleShowAllSearchable === "function") {
-    if (!showAllSearchable) {
-      toggleShowAllSearchable();
-    }
-  } else {
-    setSidebarOpen(true);
-  }
+  // Open sidebar directly
+  setSidebarOpen(true);
   
   console.log("Cheat sheet activated!");
 };
+
+// Effect to handle the global toggle after state updates
+React.useEffect(() => {
+  if (sidebarOpen && !showAllSearchable) {
+    // Ensure cheat sheet data is loaded when sidebar opens
+    if (typeof toggleShowAllSearchable === "function") {
+      toggleShowAllSearchable();
+    }
+  }
+}, [sidebarOpen, showAllSearchable, toggleShowAllSearchable]);
 
   // Determine if search has results AND there's an active search term
   const hasResults =
@@ -174,9 +178,7 @@ const handleKonamiActivation = () => {
     if (searchTerm.trim()) {
       handleSearch(searchTerm);
     }
-  };
-
-  const handleAddToBoard = (item) => {
+  };  const handleAddToBoard = (item) => {
     addToBoard(item);
 
     // Clear search results and term after adding to board
@@ -197,15 +199,9 @@ const handleKonamiActivation = () => {
       inputRef.current.focus();
     }
   };
-
   const handleCloseSidebar = () => {
     setSidebarOpen(false);
   };
-
-  // Update sidebar open state when showAllSearchable changes in context
-  useEffect(() => {
-    setSidebarOpen(showAllSearchable);
-  }, [showAllSearchable]);
 
   // Only show results section if we have a search term and results
   const shouldShowResults =
