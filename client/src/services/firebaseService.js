@@ -134,6 +134,8 @@ export async function verifyUser(username, password) {
  * @param {Object} gameData - Game data containing:
  *   - startingActor1: name of first starting actor
  *   - startingActor2: name of second starting actor  
+ *   - pathLength: length of the solution path
+ *   - fullPath: array containing the complete path from actor1 to actor2
  *   - timeTaken: time in seconds to complete the game
  *   - score: final game score
  *   - completedAt: timestamp when game was completed
@@ -153,6 +155,27 @@ export async function saveGameToHistory(userId, gameMode, gameData) {
   }
 
   return data.gameId;
+}
+
+/**
+ * Fetches leaderboard data for a specific challenge or all challenges
+ * @param {string} challengeId - The challenge ID to fetch leaderboard for (optional, defaults to 'all')
+ * @returns {Promise<Object|Array>} Leaderboard data - array for specific challenge, object for all challenges
+ */
+export async function fetchLeaderboard(challengeId = 'all') {
+  const params = challengeId !== 'all' ? `?challenge=${challengeId}` : '';
+  const res = await fetch(`${API_BASE}/leaderboard${params}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to fetch leaderboard');
+  }
+
+  return data;
 }
 
 

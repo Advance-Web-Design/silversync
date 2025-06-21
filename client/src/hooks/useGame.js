@@ -142,8 +142,8 @@ export const useGame = () => {
    */  const saveGameToHistory = async (currentUser, score,connectionResult, timeTaken, challengeMode) => {
     try {
       logger.info('💾 Saving game to history for user:', currentUser.userId);
-        // Determine game mode name
-      const gameModeName = challengeMode?.name || 'for-fun';
+        // Determine game mode name using the challenge id
+      const gameModeName = challengeMode?.id || 'for-fun';
         // Get the board's nodes from the hook parameter (we need to pass this in)
       // For now, just save the path IDs and improve this later
         const gameData = {
