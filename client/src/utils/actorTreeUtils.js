@@ -278,7 +278,8 @@ export class ActorTreeManager {
 
         // Get paths from each root to the bridge node
         const pathFromRoot1 = tree1.getPathToNode(bridgeNodeId);
-        const pathFromRoot2 = tree2.getPathToNode(bridgeNodeId);        if (pathFromRoot1 && pathFromRoot2) {
+        const pathFromRoot2 = tree2.getPathToNode(bridgeNodeId);          
+        if (pathFromRoot1 && pathFromRoot2) {
           // Calculate total path length
           // Path is: root1 -> ... -> bridge <- ... <- root2
           // We subtract 1 because the bridge node is counted in both paths
@@ -286,12 +287,7 @@ export class ActorTreeManager {
 
           if (totalLength < shortestLength) {
             shortestLength = totalLength;
-            
-            // Create the full path: actor1 -> entities -> bridge -> entities -> actor2
-            // pathFromRoot1: [actor1, entity1, entity2, bridge]
-            // pathFromRoot2: [actor2, entity3, entity4, bridge] 
-            // Result should be: [actor1, entity1, entity2, bridge, entity4, entity3, actor2]
-            const pathFromActor2ToBridge = pathFromRoot2.slice(0, -1).reverse(); // Remove bridge and reverse
+            const pathFromActor2ToBridge = pathFromRoot2.slice(0, -1).reverse();
             const constructedPath = [...pathFromRoot1, ...pathFromActor2ToBridge];
             
             logger.debug('🔗 Constructing path between trees:', {
@@ -381,17 +377,16 @@ export class ActorTreeManager {
 
     for (const commonNodeId of commonNodes) {
       const pathFromActor1 = tree1.getPathToNode(commonNodeId);
-      const pathFromActor2 = tree2.getPathToNode(commonNodeId);
-
-      if (pathFromActor1 && pathFromActor2) {        const totalLength = pathFromActor1.length + pathFromActor2.length - 1;
+      const pathFromActor2 = tree2.getPathToNode(commonNodeId);      if (pathFromActor1 && pathFromActor2) {
+        const totalLength = pathFromActor1.length + pathFromActor2.length - 1;
         if (totalLength < shortestLength) {
           shortestLength = totalLength;
-            // Create the full path: actor1 -> entities -> bridge -> entities -> actor2
+          // Create the full path: actor1 -> entities -> bridge -> entities -> actor2
           // pathFromActor1: [actor1, entity1, entity2, bridge]
           // pathFromActor2: [actor2, entity3, entity4, bridge] 
           // Result should be: [actor1, entity1, entity2, bridge, entity4, entity3, actor2]
           const pathFromActor2ToBridge = pathFromActor2.slice(0, -1).reverse(); // Remove bridge and reverse
-          const constructedPath = [...pathFromActor1, ...pathFromActor2ToBridge, actor2Id];
+          const constructedPath = [...pathFromActor1, ...pathFromActor2ToBridge];
           
           logger.debug('🔗 checkActorsConnected constructing path:', {
             actor1: actor1Id,

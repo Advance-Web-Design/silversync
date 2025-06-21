@@ -117,6 +117,8 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
     const newGameEntry = {
         startingActor1: gameData.startingActor1,
         startingActor2: gameData.startingActor2,
+        pathLength: gameData.pathLength,
+        fullPath: gameData.fullPath,
         timeTaken: gameData.timeTaken,
         score: gameData.score,
         completedAt: gameData.completedAt

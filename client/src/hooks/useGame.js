@@ -139,7 +139,7 @@ export const useGame = () => {
    * @param {number} score - Final game score
    * @param {number} timeTaken - Time taken to complete the game in seconds
    * @param {string} challengeMode - Current challenge mode
-   */  const saveGameToHistory = async (currentUser, score, timeTaken, challengeMode) => {
+   */  const saveGameToHistory = async (currentUser, score,connectionResult, timeTaken, challengeMode) => {
     try {
       logger.info('💾 Saving game to history for user:', currentUser.userId);
         // Determine game mode name
@@ -149,6 +149,8 @@ export const useGame = () => {
         const gameData = {
         startingActor1: startActors[0].name,
         startingActor2: startActors[1].name,
+        pathLength: connectionResult?.pathLength || 0,
+        fullPath: connectionResult?.fullPath || [],
         timeTaken: timeTaken || Math.floor((Date.now() - gameStartTime) / 1000),
         score: score,
         completedAt: new Date().toISOString()
