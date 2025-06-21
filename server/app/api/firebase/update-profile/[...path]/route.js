@@ -28,7 +28,7 @@ export async function OPTIONS() {
 }
 
 /**
- * POST handler for user login
+ * POST handler for updating user profile
  * This function verifies the user's credentials and returns the user profile if successful.
  * @param {*} request 
  * @description This function retrieves the username and hashed password from the request body, verifies the user using the `verifyUser` function, and returns the user profile if successful. If verification fails, it returns an error message with a 400 status.
@@ -39,20 +39,30 @@ export async function POST(request) {
 
     const { verifyUser } = await import('../../utils/firebaseLogic.js');
 
-    const { username, hashedPassword } = await request.json();
+    const { username, userDetails, hashedPassword } = await request.json();
     try {
       const userProfile = await verifyUser(username, hashedPassword);
+        if (!userProfile) {
+            throw new Error('User not found or invalid credentials');
+        }
+        else
+        {
+            // Update user profile with new details
+            const { updateUserProfile } = await import('../../utils/firebaseLogic.js');
+            await updateUserProfile(username, userDetails, hashedPassword);
+            userProfile.userDetails = userDetails;
+        }
 
       return withCors(NextResponse.json({ success: true, userProfile }));
     }
     catch (error) {
       // Forward error to the user with a 400 status
-      console.error('User verification error:', error.message);
+      console.error('User Login error:', error.message);
       return withCors(NextResponse.json({ success: false, message: error.message }, { status: 400 }));
     }
   } catch (err) {
 
-    console.error('serverside error in verifying user:', err);
+    console.error('Error logging in user:', err);
     return withCors(NextResponse.json({ success: false, error: err.message }, { status: 500 }));
   }
 }

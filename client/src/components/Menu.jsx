@@ -219,7 +219,11 @@ function Menu(props) {
             {showAbout && <About onClose={closeAbout}/>}
             {showLeaderboard && <Leaderboard onClose={closeLeaderboard}/>}
             {showLoginWindow && <LoginWindow onClose={closeLoginWindow} setLoginID={handleSetLoginID} />}
-            {showRegisterWindow && <RegisterWindow onClose={closeRegisterWindow} />}
+
+            {/* Conditionally render the register component */}
+            {showRegisterWindow && <RegisterWindow onClose={closeRegisterWindow} setLoginID={handleSetLoginID} />}
+
+            {/* Conditionally render the userprofile component */}
             {showUserProfile && <UserProfile onClose={closeUserProfileWindow} userData={userProfileData} />}
         </>
     );

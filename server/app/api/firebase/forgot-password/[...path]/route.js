@@ -37,22 +37,22 @@ export async function OPTIONS() {
 export async function POST(request) {
   try {
 
-    const { verifyUser } = await import('../../utils/firebaseLogic.js');
+    const { forgotPassword } = await import('../../utils/firebaseLogic.js');
 
-    const { username, hashedPassword } = await request.json();
+    const { username, email } = await request.json();
     try {
-      const userProfile = await verifyUser(username, hashedPassword);
+      const forgotPasswordReply = await forgotPassword(username, email);
 
-      return withCors(NextResponse.json({ success: true, userProfile }));
+      return withCors(NextResponse.json({ success: true, forgotPasswordReply }));
     }
     catch (error) {
       // Forward error to the user with a 400 status
-      console.error('User verification error:', error.message);
+      console.error('User forgot password error:', error.message);
       return withCors(NextResponse.json({ success: false, message: error.message }, { status: 400 }));
     }
   } catch (err) {
 
-    console.error('serverside error in verifying user:', err);
+    console.error('Error resetting password for user:', err);
     return withCors(NextResponse.json({ success: false, error: err.message }, { status: 500 }));
   }
 }

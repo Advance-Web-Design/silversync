@@ -13,7 +13,59 @@ import { logger } from '../utils/loggerUtils';
 
 
 
+
+
+
+
+
+
+
 const API_BASE = `${config.backend.baseUrl}/api/firebase` ; 
+
+
+
+export async function updateUserProfile(username, userDetails, verifyPassword) {
+  logger.info("Updating user profile for user:", username, userDetails);
+  
+  const hashedPassword = await hashPassword(verifyPassword);
+  //hashing the password before sending it to the server
+  if (userDetails.hashedPassword) 
+    userDetails.hashedPassword = await hashPassword(userDetails.hashedPassword);
+  const res = await fetch(`${API_BASE}/update-profile/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, userDetails, hashedPassword }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    // Throw the backend error message if available
+    throw new Error(data.message || 'Profile update failed');
+  }
+
+  return data.success;
+}
+
+export async function forgotPassword(username, email) {
+  logger.info("Forgot password for user:", username, email);
+  
+  const res = await fetch(`${API_BASE}/forgot-password/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    // Throw the backend error message if available
+    throw new Error(data.message || 'Forgot password failed');
+  }
+
+  return data.success;
+
+}
 
 /**
  * creates a new user in Firebase, with data organized into UserDetails and gamehistory sections
@@ -94,7 +146,7 @@ export async function record_game_session(
 }
 
 
-async function hashPassword(password) {
+export async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -102,6 +154,11 @@ async function hashPassword(password) {
               .map(b => b.toString(16).padStart(2, '0'))
               .join('');
 }
+
+
+
+
+
 
 /**
  * verifies a user by checking their username and password against the Firebase database.
@@ -122,7 +179,7 @@ export async function verifyUser(username, password) {
   
   if (!res.ok) {
     // Throw the backend error message if available
-    throw new Error(data.message || 'Registration failed');
+    throw new Error(data.message || 'login failed');
   }
   return data.userProfile;
 }

@@ -1,8 +1,150 @@
 import { getDatabase, ref, push, set, get } from 'firebase-admin/database';
 import { initializeFirebase, getDatabaseReference } from './firebaseAdmin.js';
+//import { sendEmail } from '../../email/sendEmail.js'; //TODO: implement this
 
 
-// Register a new user
+function sendEmail({ to, subject, text }) {
+    // Placeholder function for sending email
+    // In a real application, you would implement this using an email service
+    console.log(`Sending email to ${to} with subject "${subject}" and text: ${text}`);
+    return Promise.resolve();
+}
+
+/**
+ * Generates a random password with at least one uppercase letter and one number.
+ * @returns {string} A random password of length 8 containing at least one uppercase letter and one number.
+ * @description This function generates a random password that is 8 characters long, ensuring it contains at least one uppercase letter and one number. The rest of the characters can be any combination of uppercase letters, lowercase letters, and numbers.
+ * */
+function generateRandomPassword() {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const all = upper + lower + numbers;
+
+    let password = '';
+    // Ensure at least one uppercase and one number
+    password += upper[Math.floor(Math.random() * upper.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    // Fill the rest
+    for (let i = 2; i < 8; i++) {
+        password += all[Math.floor(Math.random() * all.length)];
+    }
+    // Shuffle the password
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
+/**
+ * Hashes a password using SHA-256. 
+ * @param {string} password - The password to hash.
+ * @returns {Promise<string>} A promise that resolves to the hashed password in hexadecimal format.
+ * */
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+/**
+ * Function to handle forgot password functionality
+ * @description This function checks if the user exists in the database and if the provided email matches the user's email. If both checks pass, it generates a new random password, hashes it, updates the user's password in the database, and sends an email with the new password.
+ * @param {*} username 
+ * @param {*} email 
+ * @returns {Promise<{ success: boolean, message: string }>} A promise that resolves to an object indicating success and a message.
+ */
+export async function forgotPassword(username, email) {
+    const { db } = initializeFirebase();
+    if (!db) {
+        throw new Error('Firebase database not available');
+    }
+
+    console.log('Forgot password for user:', username, email);
+
+    const userRef = db.ref(`users/${username}`);
+    const userSnapshot = await userRef.once('value');
+
+    if (!userSnapshot.exists()) {
+        return Promise.reject(new Error('User does not exist'));
+    }
+
+    const user = userSnapshot.val();
+
+    // Check if email matches
+    if (user.UserDetails.email !== email) {
+        return Promise.reject(new Error('Email does not match'));
+    }
+
+    const newPassword = generateRandomPassword();
+
+    await userRef.child('UserDetails/hashedPassword').set(hashPassword(newPassword));
+
+    await sendEmail({
+        to: email,
+        subject: 'Your New Password',
+        text: `Hello ${username},\n\nYour new password is: ${newPassword}\n\nPlease log in and change it as soon as possible.`
+    });
+
+
+    return { success: true, message: 'New Password was sent to your email' };
+}
+/**
+ * function to update user info in the Firebase database
+ * @param {*} username 
+ * @param {*} hashedPassword 
+ * @param {*} email 
+ * @description updates user info, email or password.
+ * @returns username or an error if the user already exists
+ */
+export async function updateUserProfile(username, userDetails, hashedOldPassword) {
+    const { app, db } = initializeFirebase();
+    if (!db) {
+        throw new Error('Firebase database not available');
+    }
+
+    console.log('updating user:', username, userDetails.email);
+
+
+    // Check if username exists by trying to get the user directly
+    const userRef = db.ref(`users/${username}`);
+    const userSnapshot = await userRef.once('value');
+
+    if (!userSnapshot.exists()) {
+        return Promise.reject(new Error('Username does not  exist'));
+    }
+
+    // user wants to update their email, so we need to check if the new email is already in use
+    if (userSnapshot.val().UserDetails.email !== userDetails.email && userDetails.email) {
+        // Check if email already exists by querying all users
+        const usersSnapshot = await db.ref('users').orderByChild('UserDetails/email').equalTo(userDetails.email).once('value');
+        if (usersSnapshot.exists()) {
+            return Promise.reject(new Error('Email already in use'));
+        }
+        else{
+            // update email
+            await userRef.child('UserDetails/email').set(userDetails.email);
+        }
+    }
+    //if true, user wants to update their password
+    if (userSnapshot.val().UserDetails.hashedPassword !== userDetails.hashedOldPassword && userDetails.hashedPassword) {
+        // update password
+        await userRef.child('UserDetails/hashedPassword').set(userDetails.hashedPassword);
+    }
+
+
+
+    return username; // Return the username as the user ID
+}
+
+/**
+ * function to add a new user to the Firebase database
+ * @param {*} username 
+ * @param {*} hashedPassword 
+ * @param {*} email 
+ * @description This function checks if the username already exists in the database. If it does, it returns an error. It also checks if the email is already in use by querying all users. If both checks pass, it adds the user with the provided username, hashed password, and email.
+ * @returns username or an error if the user already exists
+ */
 export async function addUser(username, hashedPassword, email) {
     const { app, db } = initializeFirebase();
     if (!db) {
@@ -10,6 +152,7 @@ export async function addUser(username, hashedPassword, email) {
     }
 
     console.log('Adding user:', username, email);
+
 
     // Check if username already exists by trying to get the user directly
     const userRef = db.ref(`users/${username}`);    
@@ -40,7 +183,13 @@ export async function addUser(username, hashedPassword, email) {
     return username; // Return the username as the user ID
 }
 
-// Verify user
+/**
+ * verifyUser function to check if a user exists and if the password matches
+ * @param {*} username 
+ * @param {*} hashedPassword 
+ * @description This function retrieves the user by username (which is the key in the database). It checks if the user exists and if the provided hashed password matches the stored hashed password. If both checks pass, it returns the user profile excluding the password. If the user does not exist or the password does not match, it returns an error.
+ * @returns user profile object or an error if the user does not exist or password does not match
+ */
 export async function verifyUser(username, hashedPassword) {
     const { app, db } = initializeFirebase();
     if (!db) {
@@ -51,12 +200,12 @@ export async function verifyUser(username, hashedPassword) {
     console.log('verifying password:', hashedPassword);
 
     // Get user directly by username (which is now the key)
-    const userRef = db.ref(`users/${username}`);    const userSnapshot = await userRef.once('value');
+    const userRef = db.ref(`users/${username}`); const userSnapshot = await userRef.once('value');
 
     if (!userSnapshot.exists()) {
         return Promise.reject(new Error('Invalid username or password'));
-    }    const user = userSnapshot.val();
-    
+    } const user = userSnapshot.val();
+
     // Check if password matches (password is now in UserDetails section)
     if (!user.UserDetails || user.UserDetails.hashedPassword !== hashedPassword) {
         return Promise.reject(new Error('Invalid username or password'));
@@ -87,7 +236,7 @@ export async function recordGameSession(sessionData) {
     await set(newSessionRef, {
         ...sessionData,
         createdAt: new Date().toISOString(),
-    });    return newSessionRef.key;
+    }); return newSessionRef.key;
 }
 
 // Save game to user's game history
@@ -104,7 +253,7 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
     // Get user reference
     const userRef = db.ref(`users/${userId}`);
     const userSnapshot = await userRef.once('value');
-    
+
     if (!userSnapshot.exists()) {
         throw new Error('User not found');
     }
@@ -128,10 +277,10 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
         score: gameData.score,
         completedAt: gameData.completedAt
     };
-    
+
     console.log('Server - newGameEntry being saved:', JSON.stringify(newGameEntry, null, 2));
     console.log('Server - newGameEntry keys:', Object.keys(newGameEntry));
-    
+
     gameHistory[gameMode].unshift(newGameEntry);
 
     // Keep only the last 10 games for this mode
@@ -156,7 +305,7 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
 
     // Generate a unique game ID for this save
     const gameId = `${userId}_${gameMode}_${Date.now()}`;
-    
+
     console.log('Game saved to history with ID:', gameId);
     return gameId;
 }
@@ -210,7 +359,7 @@ async function updateChallengeLeaderboard(db, gameMode, userId, gameEntry) {
 
         // Update the leaderboard in Firebase
         await leaderboardRef.set(leaderboard);
-        console.log(`Updated leaderboard for ${gameMode}, new entry rank:`, 
+        console.log(`Updated leaderboard for ${gameMode}, new entry rank:`,
             leaderboard.findIndex(entry => entry.gameId === newEntry.gameId) + 1);
 
     } catch (error) {
