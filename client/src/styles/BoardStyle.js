@@ -14,8 +14,8 @@ export const connectTextStyle =
 export const actorNameStyle ="text-yellow-300 font-extrabold px-2 py-1 rounded bg-[rgba(255,215,0,0.08)] shadow-[0_2px_8px_rgba(255,215,0,0.18)] border border-yellow-200/40";
 export const actorNameBaseStyle = "font-extrabold px-2 py-1 rounded  border ";
 export const actorNameDarkStyle = "bg-[rgba(255,215,0,0.08)] text-yellow-300 shadow-[0_2px_8px_rgba(255,215,0,0.18)] border border-yellow-200/40";
-export const actorNameLightStyle = "bg-[rgba(0,215,255,0.08)] text-blue-200 shadow-[0_2px_8px_rgba(0,215,255,0.18)] border border-blue-200/40";
-
+export const actorNameLightStyle = "bg-[rgba(0,215,255,0.08)] text-[#F7AD2F] shadow-[0_2px_8px_rgba(0,215,255,0.18)] border border-[#F7AD2F]/40";
+// #F7AD2F-orange goody , 
 
 
 export const TextStyle ="mx-2 text-lg sm:text-xl md:text-2xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,255,255,0.18)] uppercase tracking-wider";  

@@ -38,7 +38,7 @@ export const generateCheatSheet = async (nodes, gameStarted, startActors, filter
     let relevantEntities = [];    // Always use the advanced phase logic to get all connectable entities
     logger.debug('🎯 Fetching all connectable entities from board');
     logger.debug(`🔍 Board has ${nodes.length} nodes:`, nodes.map(n => `${n.type}-${n.data?.name || n.data?.title || n.id}`));
-    relevantEntities = await fetchConnectableEntitiesOptimized(nodes);
+    relevantEntities = await fetchConnectableEntitiesOptimized(nodes, filterOptions);
 
     logger.debug(`🔍 Total entities before filtering: ${relevantEntities.length}`);    // Fast filtering pipeline without hard limits
     const finalEntities = await optimizeEntityFilteringFast(
@@ -328,9 +328,9 @@ export const getCachedCheatSheet = (boardState) => {
 /**
  * Optimized version of fetchConnectableEntitiesFromBoard
  */
-const fetchConnectableEntitiesOptimized = async (nodes) => {
+const fetchConnectableEntitiesOptimized = async (nodes, filterOptions = {}) => {
   const allConnectableEntities = [];
-  const seenEntities = new Set(); // For fast duplicate detection
+  const seenEntities = new Set();
   
   logger.debug(`🔍 Processing ${nodes.length} nodes for connections`);
   
@@ -340,10 +340,13 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
     let nodeConnections = [];
     logger.debug(`🔍 Processing node: ${node.type}-${node.id} (${node.data?.name || node.data?.title})`);
 
-    if (node.type === 'person') {      // Process movie credits - get full cast with images
-      if (node.data.movie_credits?.cast) {
+    if (node.type === 'person') {
+      // Process movie credits - include movies UNLESS we're in tv-only mode
+      if (node.data.movie_credits?.cast && 
+          (!filterOptions?.enableProductionFiltering || 
+           !filterOptions?.filtertype?.includes('tv-only'))) {
         const movies = node.data.movie_credits.cast
-          .filter(movie => movie.id && movie.title) // Filter by essential data only
+          .filter(movie => movie.id && movie.title)
           .map(movie => ({
             ...movie,
             media_type: 'movie',
@@ -353,10 +356,12 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
         nodeConnections.push(...movies);
       }
 
-      // Process TV credits - get full cast with images
-      if (node.data.tv_credits?.cast) {
+      // Process TV credits - include TV shows UNLESS we're in movies-only mode
+      if (node.data.tv_credits?.cast && 
+          (!filterOptions?.enableProductionFiltering || 
+           !filterOptions?.filtertype?.includes('movies-only'))) {
         const shows = node.data.tv_credits.cast
-          .filter(show => show.id && show.name) // Filter by essential data only
+          .filter(show => show.id && show.name)
           .map(show => ({
             ...show,
             media_type: 'tv',
@@ -365,12 +370,14 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             connection_type: show.is_guest_appearance ? 'guest' : 'cast'
           }));
         nodeConnections.push(...shows);
-      }        
-      
-      // Process guest appearances - get all guest appearances with images
-      if (node.data.guest_appearances) {
+      }
+
+      // Process guest appearances - include UNLESS we're in movies-only mode
+      if (node.data.guest_appearances && 
+          (!filterOptions?.enableProductionFiltering || 
+           !filterOptions?.filtertype?.includes('movies-only'))) {
         const guests = node.data.guest_appearances
-          .filter(show => show.id && show.name) // Filter by essential data only
+          .filter(show => show.id && show.name)
           .map(show => ({
             ...show,
             media_type: 'tv',
@@ -380,22 +387,27 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             poster_path: show.poster_path || null
           }));
         nodeConnections.push(...guests);
-      }    } else if (node.type === 'movie' && node.data.credits?.cast) {
+      }
+    } 
+    else if (node.type === 'movie' && node.data.credits?.cast) {
+      // Always include actors from movies (no filtering needed for actors)
       const actors = node.data.credits.cast
-        .filter(actor => actor.id && actor.name) // Filter by essential data only
+        .filter(actor => actor.id && actor.name)
         .map(actor => ({
           ...actor,
           media_type: 'person',
           source_node: node.id,
           profile_path: actor.profile_path || null
         }));
-      nodeConnections.push(...actors);} else if (node.type === 'tv') {
+      nodeConnections.push(...actors);
+    } 
+    else if (node.type === 'tv') {
+      // Always include actors from TV shows (no filtering needed for actors)
       logger.debug(`🔍 TV node: ${node.data?.name}, has aggregate_credits: ${!!node.data.aggregate_credits?.cast}, cast count: ${node.data.aggregate_credits?.cast?.length || 0}`);
       
-      // Use aggregate_credits.cast for more comprehensive actor list with images
       if (node.data.aggregate_credits?.cast) {
         const actors = node.data.aggregate_credits.cast
-          .filter(actor => actor.id && actor.name) // Include ALL actors with id/name, regardless of profile_path
+          .filter(actor => actor.id && actor.name)
           .map(actor => ({
             ...actor,
             media_type: 'person',
@@ -403,9 +415,9 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             profile_path: actor.profile_path || null
           }));
         nodeConnections.push(...actors);
-      } else if (node.data.credits?.cast) {        // Fallback to regular credits if aggregate_credits not available
+      } else if (node.data.credits?.cast) {
         const actors = node.data.credits.cast
-          .filter(actor => actor.id && actor.name) // Remove profile_path requirement for consistency
+          .filter(actor => actor.id && actor.name)
           .map(actor => ({
             ...actor,
             media_type: 'person',
@@ -413,10 +425,12 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             profile_path: actor.profile_path || null
           }));
         nodeConnections.push(...actors);
-      }      // Process guest stars - get all guest stars with images
+      }
+
+      // Process guest stars
       if (node.data.guest_stars) {
         const guestStars = node.data.guest_stars
-          .filter(actor => actor.id && actor.name) // Filter by essential data only
+          .filter(actor => actor.id && actor.name)
           .map(actor => ({
             ...actor,
             media_type: 'person',
@@ -431,7 +445,8 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
     // Add to results with duplicate checking
     for (const entity of nodeConnections) {
       const entityKey = `${entity.media_type}-${entity.id}`;
-      if (!seenEntities.has(entityKey)) {        seenEntities.add(entityKey);
+      if (!seenEntities.has(entityKey)) {
+        seenEntities.add(entityKey);
         allConnectableEntities.push(entity);
       }
     }

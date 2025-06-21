@@ -6,7 +6,7 @@ export const challengeScreenHeaderStyle = "flex justify-between items-center p-4
 
 export const challangeScreenTitleBaseStyle = "font-serif font-bold text-2xl sm:text-[2.75rem] text-center flex-grow mr-8 sm:mr-0";
 export const challengeScreenTitleLightStyle = "text-gray-500 [text-shadow:0_0_8px_white]";
-export const challengeScreenTitleDarkStyle = "text-gray-100 [text-shadow:0_0_8px_white]";
+export const challengeScreenTitleDarkStyle = "text-[#F4F2E9] [text-shadow:0_0_8px_white]";
 
 export const challengeScreenMainContentStyle = "flex flex-col items-center justify-center p-8 mx-auto";
 
