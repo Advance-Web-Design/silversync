@@ -12,11 +12,14 @@ export async function addUser(username, hashedPassword, email) {
     console.log('Adding user:', username, email);
 
     // Check if username already exists by trying to get the user directly
-    const userRef = db.ref(`users/${username}`);    const userSnapshot = await userRef.once('value');
+    const userRef = db.ref(`users/${username}`);    
+    const userSnapshot = await userRef.once('value');
     
     if (userSnapshot.exists()) {
         return Promise.reject(new Error('Username already exists'));
-    }    // Check if email already exists by querying all users
+    }    
+    
+    // Check if email already exists by querying all users
     const usersSnapshot = await db.ref('users').orderByChild('UserDetails/email').equalTo(email).once('value');
     if (usersSnapshot.exists()) {
         return Promise.reject(new Error('Email already in use'));

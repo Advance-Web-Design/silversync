@@ -28,7 +28,6 @@ function Menu(props) {
     const { isLightMode, toggleTheme } = useTheme();
     
     const menuRef = useRef(null);    const { 
-        toggleShowAllSearchable, 
         resetGame,
         currentUser,
         setCurrentUser,
@@ -108,14 +107,6 @@ function Menu(props) {
         setMenuOpen(false);
     };
 
-    // Cheat Sheet action handler
-    // this will need to be removed later
-    // as it is not a part of the final game
-    const handleCheatSheet = () => {
-        toggleShowAllSearchable(); // Call the function from context
-        setMenuOpen(false);
-    };
-
     // Handler for the toggle button
     const handleToggleClick = () => {
         setIsToggleEnabled(prev => !prev);
@@ -153,7 +144,9 @@ function Menu(props) {
     };
     const closeUserProfileWindow = () => {
         setShowUserProfile(false);
-    };    const closeUserProfile = () => {
+    };    
+    
+    const closeUserProfile = () => {
         setShowUserProfile(false);
     };
 
@@ -207,9 +200,7 @@ function Menu(props) {
                             <>
                             <button onClick={handleNewGame} className={getMenuItemClass()}>New Game</button>
                             <button onClick={handleLeaderboard} className={getMenuItemClass()}>Leaderboard</button>
-                            <button onClick={handleHowToPlay} className={getMenuItemClass()}>How to Play</button>
-                            <button onClick={handleCheatSheet} className={getMenuItemClass()}>Cheat Sheet</button>                           
-                            
+                            <button onClick={handleHowToPlay} className={getMenuItemClass()}>How to Play</button>                          
                             <div className={getMenuItemClass()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <ToggleButtonCheck />
                             </div>
