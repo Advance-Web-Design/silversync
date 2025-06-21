@@ -19,14 +19,7 @@ function VictoryModal() {
   const titleStyle = isLightMode
     ? "text-blue-700 [text-shadow:0_0_8px_rgba(0,215,255,0.12)]"
     : "text-yellow-400 [text-shadow:0_0_8px_rgba(255,215,0,0.5)]";
-  const messageStyle = isLightMode
-    ? "text-gray-700"
-    : "text-gray-300";
 
-  // Add a gradient background for the message area
-  const messageBoxStyle = isLightMode
-    ? "bg-gradient-to-r from-blue-100 via-yellow-50 to-blue-100"
-    : "bg-gradient-to-r from-yellow-600 via-slate-800 to-yellow-600";
   const dividerStyle = isLightMode
     ? "border-t border-blue-200 my-4"
     : "border-t border-yellow-700 my-4";
@@ -46,9 +39,9 @@ function VictoryModal() {
             Congratulations!
           </Typography>
         </div>
-        <div className={`w-full rounded-lg shadow-sm px-4 py-4 mb-8 text-center ${messageBoxStyle}`}>
+        <div className={`w-full rounded-lg shadow-sm px-4 py-4 mb-8 text-center ` + (isLightMode ? "text-blue-900" : "text-yellow-300")}>
           <Typography
-            className={`text-lg sm:text-xl font-semibold ${messageStyle}`}
+            className={`text-lg sm:text-xl font-semibold`}
           >
             You've successfully connected the stars!
           </Typography>
@@ -59,7 +52,7 @@ function VictoryModal() {
             variant={isLightMode ? "contained" : "outlined"}
             color="primary"
             onClick={resetGame}
-            className="px-6 py-2 font-bold rounded-lg shadow"
+            className={"px-6 py-2 font-bold rounded-lg shadow"}
             style={isLightMode ? {} : { borderColor: "#ffd700" }}
           >
             New Game

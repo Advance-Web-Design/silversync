@@ -11,7 +11,9 @@ import { logger } from '../utils/loggerUtils';
 import Menu from './Menu';
 import About from './About';
 import Leaderboard from './Leaderboard';
-import './ChallengeScreen.css';
+//import './ChallengeScreen.css';
+import { useTheme } from '../contexts/ThemeContext'; // Import the ThemeContext
+import * as ChallengeScreenStyles from '../styles/ChallangeStyle.js'; // Import styles for ChallengeScreen
 
 const ChallengeScreen = () => {
     const { 
@@ -296,53 +298,59 @@ const ChallengeScreen = () => {
         setShowLeaderboard(false);
     };
 
-    const getDifficultyColor = (difficulty) => {
+    const getDifficultyColor = (difficulty, isLightMode) => {
         switch (difficulty) {
-            case 'Easy': return 'text-green-400';
-            case 'Medium': return 'text-yellow-400';
-            case 'Hard': return 'text-orange-400';
-            case 'Expert': return 'text-red-400';
-            default: return 'text-gray-400';
+            case 'Easy':
+                return isLightMode ? 'text-green-600' : 'text-green-400';
+            case 'Medium':
+                return isLightMode ? 'text-yellow-600' : 'text-yellow-400';
+            case 'Hard':
+                return isLightMode ? 'text-orange-500' : 'text-orange-300';
+            case 'Expert':
+                return isLightMode ? 'text-red-800' : 'text-red-400';
+            default:
+                return isLightMode ? 'text-gray-600' : 'text-gray-400';
         }
     };
-
+    
+    const { isLightMode } = useTheme(); // Get the current theme mode
     return (
-        <div className="relative min-h-screen overflow-y-auto bg-[url('/bg3.svg')] bg-cover bg-center bg-fixed text-black">
+        <div className={ChallengeScreenStyles.challengeScreenBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeScreenLightStyle : ChallengeScreenStyles.challengeScreenDarkStyle)}>
             {/* Header */}
-            <div className="flex justify-between items-center p-4 w-full">
+            <div className={ChallengeScreenStyles.challengeScreenHeaderStyle}>
                 <Menu parentName="ChallengeScreen" />
-                <h1 className="font-serif font-bold text-[2.75rem] text-[#ffd700] [text-shadow:0_0_8px_#ff4500]">
+                <h1 className={ChallengeScreenStyles.challangeScreenTitleBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeScreenTitleLightStyle : ChallengeScreenStyles.challengeScreenTitleDarkStyle)}>
                     Choose Your Challenge
                 </h1>
             </div>
 
             {/* Main Content */}
-            <div className="flex flex-col items-center justify-center p-8 mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mb-8">
+            <div className={ChallengeScreenStyles.challengeScreenMainContentStyle}>
+                <div className={ChallengeScreenStyles.challengeScreenGridStyle}>
                     {challenges.map((challenge) => (
                         <div
                             key={challenge.id}
                             onClick={() => handleChallengeSelect(challenge)}
-                            className="challenge-card bg-black/80 backdrop-blur-sm rounded-xl p-6 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:bg-black/90 border border-gray-600 hover:border-[#ffd700]"
+                            className={ChallengeScreenStyles.challangeCardBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeCardLightStyle : ChallengeScreenStyles.challengeCardDarkStyle)}
                         >
                             <div className="flex flex-col items-center text-center h-full">
-                                <div className={`w-16 h-16 rounded-full ${challenge.color} flex items-center justify-center text-2xl mb-4`}>
+                                <div className={ChallengeScreenStyles.challengeCardIconStyle + " " + challenge.color}>
                                     {challenge.icon}
                                 </div>
 
-                                <h3 className="text-xl font-bold text-[#ffd700] mb-2">
+                                <h3 className={ChallengeScreenStyles.challengeCardTitleBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeCardTitleLightStyle : ChallengeScreenStyles.challengeCardTitleDarkStyle)}>
                                     {challenge.title}
                                 </h3>
 
-                                <p className="text-gray-300 text-sm mb-4 flex-grow">
+                                <p className={ChallengeScreenStyles.challangeCardDescBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challangeCardDescLightStyle : ChallengeScreenStyles.challangeCardDescDarkStyle)}>
                                     {challenge.description}
                                 </p>
 
-                                <div className="flex items-center justify-between w-full">
-                                    <span className={`text-sm font-semibold ${getDifficultyColor(challenge.difficulty)}`}>
+                                <div className={ChallengeScreenStyles.challengeCardFooterStyle}>
+                                    <span className={`text-sm font-semibold ${getDifficultyColor(challenge.difficulty, isLightMode)}`}>
                                         {challenge.difficulty}
                                     </span>
-                                    <span className="text-[#4bbee3] text-sm font-medium">
+                                    <span className={ChallengeScreenStyles.challengeCardSelectBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeCardSelectLightStyle : ChallengeScreenStyles.challengeCardSelectDarkStyle)}>
                                         Select →
                                     </span>
                                 </div>
@@ -351,18 +359,18 @@ const ChallengeScreen = () => {
                     ))}        </div>
 
                 {/* Menu Buttons */}
-                <div className="flex flex-col gap-4 w-full max-w-[400px] mb-6">
+                <div className={ChallengeScreenStyles.challengeScreenMenuButtonsWrapper}>
                     <div className="flex gap-4">
                         <button
                             onClick={handleShowLeaderboard}
-                            className="flex-1 cursor-pointer rounded-lg bg-[#4bbee3] py-[0.8rem] px-6 text-[1.1rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-cyan-700"
+                            className={ChallengeScreenStyles.challengeScreenLeaderboardButtonBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeScreenLeaderboardButtonLightStyle : ChallengeScreenStyles.challengeScreenLeaderboardButtonDarkStyle)}
                         >
                             🏆 Leaderboard
                         </button>
 
                         <button
                             onClick={handleShowAbout}
-                            className="flex-1 cursor-pointer rounded-lg bg-[#10b981] py-[0.8rem] px-6 text-[1.1rem] font-bold text-white shadow-md transition-colors duration-300 hover:bg-emerald-700"
+                            className={ChallengeScreenStyles.challengeScreenAboutButtonBaseStyle + " " + (isLightMode ? ChallengeScreenStyles.challengeScreenAboutButtonLightStyle : ChallengeScreenStyles.challengeScreenAboutButtonDarkStyle)}
                         >
                             ℹ️ About
                         </button>
