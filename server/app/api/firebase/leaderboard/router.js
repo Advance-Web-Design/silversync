@@ -1,3 +1,6 @@
+// DEPRECATED: This file is replaced by route.js 
+// Keeping for reference only - DO NOT USE
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/utils/firebaseAdmin';
 

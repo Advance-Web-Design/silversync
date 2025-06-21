@@ -113,7 +113,9 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
     // Initialize game mode if it doesn't exist
     if (!gameHistory[gameMode]) {
         gameHistory[gameMode] = [];
-    }    // Add new game to the beginning of the array and keep only the last 10
+    }
+
+    // Add new game to the beginning of the array and keep only the last 10
     const newGameEntry = {
         startingActor1: gameData.startingActor1,
         startingActor2: gameData.startingActor2,
@@ -146,9 +148,70 @@ export async function saveGameToUserHistory(userId, gameMode, gameData) {
         await userRef.update({ gamehistory: gameHistory });
     }
 
+    // Update challenge-specific leaderboard if this is a top 10 score
+    await updateChallengeLeaderboard(db, gameMode, userId, newGameEntry);
+
     // Generate a unique game ID for this save
     const gameId = `${userId}_${gameMode}_${Date.now()}`;
     
     console.log('Game saved to history with ID:', gameId);
     return gameId;
+}
+
+/**
+ * Update the leaderboard for a specific challenge
+ * Maintains top 10 scores per challenge
+ */
+async function updateChallengeLeaderboard(db, gameMode, userId, gameEntry) {
+    try {
+        // Get current leaderboard for this challenge
+        const leaderboardRef = db.ref(`leaderboards/${gameMode}`);
+        const leaderboardSnapshot = await leaderboardRef.once('value');
+        let leaderboard = leaderboardSnapshot.val() || [];
+
+        // Convert to array if it's an object (legacy compatibility)
+        if (!Array.isArray(leaderboard)) {
+            leaderboard = Object.values(leaderboard);
+        }        // Create new leaderboard entry
+        const newEntry = {
+            username: userId,
+            score: gameEntry.score,
+            time: gameEntry.timeTaken,
+            startingActor1: gameEntry.startingActor1,
+            startingActor2: gameEntry.startingActor2,
+            pathLength: gameEntry.pathLength,
+            fullPath: gameEntry.fullPath,
+            completedAt: gameEntry.completedAt,
+            gameId: `${userId}_${gameMode}_${Date.now()}`
+        };
+
+        // Add new entry to leaderboard
+        leaderboard.push(newEntry);        // Sort by score (higher is better), then by time (faster is better)
+        leaderboard.sort((a, b) => {
+            if (a.score === b.score) {
+                const timeA = typeof a.time === 'string' ? parseInt(a.time) : a.time;
+                const timeB = typeof b.time === 'string' ? parseInt(b.time) : b.time;
+                return timeA - timeB; // Lower time is better
+            }
+            return b.score - a.score; // Higher score is better
+        });
+
+        // Keep only top 10
+        leaderboard = leaderboard.slice(0, 10);
+
+        // Add ranks
+        leaderboard = leaderboard.map((entry, index) => ({
+            ...entry,
+            rank: index + 1
+        }));
+
+        // Update the leaderboard in Firebase
+        await leaderboardRef.set(leaderboard);
+        console.log(`Updated leaderboard for ${gameMode}, new entry rank:`, 
+            leaderboard.findIndex(entry => entry.gameId === newEntry.gameId) + 1);
+
+    } catch (error) {
+        console.error('Error updating challenge leaderboard:', error);
+        // Don't throw error as game saving should still work
+    }
 }

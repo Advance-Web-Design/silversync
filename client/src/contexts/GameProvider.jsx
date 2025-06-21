@@ -50,9 +50,34 @@ export const GameProvider = ({ children }) => {
   const [challengeMode, setChallengeMode] = useState(null);
     // Leaderboard state
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-
   // User authentication state
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Initialize user from localStorage on component mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser(parsedUser);
+        logger.info('🔄 Restored user session:', parsedUser.userId);
+      } catch (error) {
+        logger.error('❌ Error parsing saved user session:', error);
+        localStorage.removeItem('currentUser');
+      }
+    }
+  }, []);
+
+  // Save user to localStorage whenever currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      logger.info('💾 Saved user session:', currentUser.userId);
+    } else {
+      localStorage.removeItem('currentUser');
+      logger.info('🗑️ Cleared user session');
+    }
+  }, [currentUser]);
 
   // Destructure state from hooks for easier access
   const {
