@@ -65,10 +65,28 @@ export const createCreditIndex = (person) => {
  */
 export const createCastIndex = (mediaItem) => {
   const castIndex = new Map();
-  const cast = mediaItem.credits?.cast || [];
+  
+  // For TV shows, prefer aggregate_credits.cast for more comprehensive actor list
+  let cast = [];
+  
+  if (mediaItem.aggregate_credits?.cast && mediaItem.aggregate_credits.cast.length > 0) {
+    cast = mediaItem.aggregate_credits.cast;
+    console.log(`🔍 Found ${cast.length} actors in aggregate_credits for ${mediaItem.name || mediaItem.title}`);
+    console.log('🔍 First 5 actors:', cast.slice(0, 5).map(actor => ({ 
+      id: actor.id, 
+      name: actor.name, 
+      profile_path: actor.profile_path,
+      total_episode_count: actor.total_episode_count 
+    })));
+  } else if (mediaItem.credits?.cast && mediaItem.credits.cast.length > 0) {
+    cast = mediaItem.credits.cast;
+    console.log(`🔍 Using regular credits, found ${cast.length} actors for ${mediaItem.name || mediaItem.title}`);
+  }
   
   for (const actor of cast) {
-    castIndex.set(actor.id, actor);
+    if (actor.id && actor.name) {
+      castIndex.set(actor.id, actor);
+    }
   }
   
   return castIndex;
@@ -174,7 +192,6 @@ export const findTvShowConnectionsOptimized = (tvShow, connectionIndex, tvNodeId
         source: personNode.id,
         target: tvNodeId
       });
-      logger.debug(`Found regular cast connection between TV show ${tvNodeId} and actor ${personNode.id}`);
     }
   }
   
@@ -192,7 +209,6 @@ export const findTvShowConnectionsOptimized = (tvShow, connectionIndex, tvNodeId
           target: tvNodeId,
           isGuestAppearance
         });
-        logger.debug(`Found ${isGuestAppearance ? 'guest appearance' : 'cast'} connection between TV show ${tvNodeId} and actor ${personNode.id}`);
       }
     }
   }

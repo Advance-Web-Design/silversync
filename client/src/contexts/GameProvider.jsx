@@ -133,8 +133,7 @@ export const GameProvider = ({ children }) => {
    * Fetches and displays all entities that can be added to the current board
    * Shows different results based on game state (starting phase vs. mid-game)
    * @param {Array} updatedNodes - Optional updated nodes array to use instead of state
-   */
-  const fetchAndSetAllSearchableEntities = useCallback(async (updatedNodes = null) => {
+   */  const fetchAndSetAllSearchableEntities = useCallback(async (updatedNodes = null) => {
     logger.info('🎯 Fetching all searchable entities');
 
     setIsLoading(true);
@@ -446,8 +445,7 @@ export const GameProvider = ({ children }) => {
   };  /**
    * Toggles visibility of all searchable entities in the sidebar
    * Only shows/hides the sidebar, doesn't regenerate data
-   */
-  const toggleShowAllSearchable = async () => {
+   */  const toggleShowAllSearchable = async () => {
     const newShowAllSearchable = !showAllSearchable;
     setShowAllSearchable(newShowAllSearchable);
 
@@ -477,7 +475,8 @@ export const GameProvider = ({ children }) => {
     noMatchFound,
     didYouMean,
     exactMatch,
-    originalSearchTerm,    connectableItems,
+    originalSearchTerm,    
+    connectableItems,
     gameStartTime,
     gameScore: gameState.gameScore,
     currentGameScore: gameState.currentGameScore, // Add current game score

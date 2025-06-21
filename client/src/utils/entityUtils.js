@@ -4,8 +4,7 @@ import {
   createConnectionIndex, 
   findPersonConnectionsOptimized, 
   findMovieConnectionsOptimized, 
-  findTvShowConnectionsOptimized,
-  batchCheckConnectability 
+  findTvShowConnectionsOptimized
 } from './connectionOptimizer';
 import { logger } from './loggerUtils';
 
@@ -452,11 +451,14 @@ export const fetchAllPossibleConnections = async (node, services) => {
       const credits = await getMovieDetails(node.data.id);
       if (credits?.cast) {
         connections.push(...mapCreditsToEntities(credits.cast, 'person'));
-      }
-    } else if (node.type === 'tv') {
+      }    } else if (node.type === 'tv') {
       const credits = await getTvShowDetails(node.data.id);
-      if (credits?.cast) {
-        connections.push(...mapCreditsToEntities(credits.cast, 'person'));
+      // Use aggregate_credits.cast for more comprehensive actor list
+      if (credits?.aggregate_credits?.cast) {
+        connections.push(...mapCreditsToEntities(credits.aggregate_credits.cast, 'person'));
+      } else if (credits?.credits?.cast) {
+        // Fallback to regular credits if aggregate_credits not available
+        connections.push(...mapCreditsToEntities(credits.credits.cast, 'person'));
       }
     }
 
@@ -554,13 +556,22 @@ export const fetchConnectableEntitiesFromBoard = async (nodes) => {
         node.data.credits.cast, 
         'person', 
         { source_node: node.id }
-      ));
-    } else if (node.type === 'tv' && node.data.credits?.cast) {
-      nodeConnections.push(...mapCreditsToEntities(
-        node.data.credits.cast, 
-        'person', 
-        { source_node: node.id }
-      ));
+      ));    } else if (node.type === 'tv') {
+      // Use aggregate_credits.cast for more comprehensive actor list
+      if (node.data.aggregate_credits?.cast) {
+        nodeConnections.push(...mapCreditsToEntities(
+          node.data.aggregate_credits.cast, 
+          'person', 
+          { source_node: node.id }
+        ));
+      } else if (node.data.credits?.cast) {
+        // Fallback to regular credits if aggregate_credits not available
+        nodeConnections.push(...mapCreditsToEntities(
+          node.data.credits.cast, 
+          'person', 
+          { source_node: node.id }
+        ));
+      }
 
       if (node.data.guest_stars) {
         nodeConnections.push(...mapCreditsToEntities(

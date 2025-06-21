@@ -3,23 +3,23 @@ import { useGameContext } from '../../contexts/gameContext';
 import { getItemTitle } from '../../utils/stringUtils';
 import * as SidebarStyles from '../../styles/SearchSIderbar.js'; // Import the styles
 
-const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
-  const { 
+const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {  const { 
     nodes, 
     cheatSheetResults,
     isLoading, 
     showAllSearchable, 
-    toggleShowAllSearchable, 
     addToBoard,
     connectableItems
   } = useGameContext();
-
   const connectableEntities = React.useMemo(() => {
     if (!cheatSheetResults || !connectableItems) return [];
-    return cheatSheetResults.filter(item => {
+    
+    const filtered = cheatSheetResults.filter(item => {
       const itemKey = `${item.media_type}-${item.id}`;
       return connectableItems[itemKey];
     });
+    
+    return filtered;
   }, [cheatSheetResults, connectableItems]);
 
   const groupedEntities = React.useMemo(() => {
@@ -51,9 +51,9 @@ const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
   const handleAddToBoard = (item) => {
     addToBoard(item);
   };
-
   const handleClose = () => {
-    toggleShowAllSearchable();
+    // Don't toggle showAllSearchable - just close the sidebar
+    // This prevents clearing the cheat sheet data when closing
     onClose();
   };
 
@@ -90,10 +90,9 @@ const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
       });
     }
     return connectedNodesList;
-  };
-
-  const renderEntitySection = (title, entities, mediaType) => {
+  };  const renderEntitySection = (title, entities, mediaType) => {
     if (entities.length === 0) return null;
+    
     let h4Style = SidebarStyles.entityTypeSectionH4BaseStyle;
     if (mediaType === 'person') h4Style = SidebarStyles.entityTypeSectionH4PersonStyle;
     if (mediaType === 'movie') h4Style = SidebarStyles.entityTypeSectionH4MovieStyle;
@@ -101,23 +100,38 @@ const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
 
     return (
       <div className={SidebarStyles.entityTypeSectionStyle}>
-        <h4 className={h4Style}>{title} ({entities.length})</h4>
-        <div className={SidebarStyles.searchEntitiesListStyle}>
-          {entities.map(item => {
+        <h4 className={h4Style}>{title} ({entities.length})</h4>        
+        <div className={SidebarStyles.searchEntitiesListStyle}>          {entities.map((item, index) => {
             const connectedNodes = getConnectedNodes(item);
             const imagePath = item.media_type === 'person' ? item.profile_path : item.poster_path;
-            return (
-              <div
-                key={`${item.media_type}-${item.id}`}
+            
+            return (              <div
+                key={`${item.media_type}-${item.id}-${item.source_node || 'unknown'}-${index}`}
                 className={SidebarStyles.searchEntityItemStyle}
                 onClick={() => handleAddToBoard(item)}
               >
                 <div className={SidebarStyles.searchEntityImageStyle}>
-                  <img
-                    src={`https://image.tmdb.org/t/p/w92${imagePath}`}
-                    alt={getItemTitle(item)}
-                    className={SidebarStyles.searchEntityImageImgStyle}
-                  />
+                  {imagePath ? (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${imagePath}`}
+                      alt={getItemTitle(item)}
+                      className={SidebarStyles.searchEntityImageImgStyle}
+                    />
+                  ) : (
+                    <div 
+                      className={SidebarStyles.searchEntityImageImgStyle}
+                      style={{
+                        backgroundColor: '#444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        color: '#ccc'
+                      }}
+                    >
+                      No Image
+                    </div>
+                  )}
                 </div>
                 <div className={SidebarStyles.searchEntityInfoStyle}>
                   <div className={SidebarStyles.searchEntityTitleStyle}>{getItemTitle(item)}</div>
@@ -149,7 +163,6 @@ const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
       </div>
     );
   };
-
   return (
     <div className={SidebarStyles.sidebarOverlayStyle} onClick={handleClose}>
       <div className={SidebarStyles.sidebarStyle} onClick={(e) => e.stopPropagation()}>
@@ -177,11 +190,9 @@ const SearchEntitiesSidebar = React.memo(({ isOpen, onClose }) => {
             </>
           )}        
         </div>      
-      </div>
+      </div>    
     </div>
   );
-}, (prevProps, nextProps) => {
-  return prevProps.isOpen === false && nextProps.isOpen === false;
 });
 
 export default SearchEntitiesSidebar;
