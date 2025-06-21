@@ -27,8 +27,7 @@ function Menu(props) {
     const [isToggleEnabled, setIsToggleEnabled] = useState(false); // New state for the toggle button
     const { isLightMode, toggleTheme } = useTheme();
     
-    const menuRef = useRef(null);
-    const { 
+    const menuRef = useRef(null);    const { 
         toggleShowAllSearchable, 
         resetGame,
         currentUser,
@@ -36,6 +35,17 @@ function Menu(props) {
         showLeaderboard,
         setShowLeaderboard
     } = useGameContext();
+
+    // Sync local loginID with currentUser from context
+    useEffect(() => {
+        if (currentUser) {
+            setLoginID(currentUser.userId);
+            setUserProfileData(currentUser);
+        } else {
+            setLoginID(null);
+            setUserProfileData(null);
+        }
+    }, [currentUser]);
 
     const handleMenuToggle = () => {
         setMenuOpen(prev => !prev);
@@ -172,7 +182,7 @@ function Menu(props) {
 
                 {menuOpen && (
                     <div className={MenuStyles.menuDropdownStyle +" " + (isLightMode ? MenuStyles.lightModeDropDownStyle: MenuStyles.darkModeDropDownStyle)}>
-                        {loginID === null ? ( 
+                        {currentUser === null ? ( 
                             <>
                                 <button onClick={handleLogin} className={getMenuItemClass()}>Login</button>
                                 <button onClick={handleRegister} className={getMenuItemClass()}>Register</button>
