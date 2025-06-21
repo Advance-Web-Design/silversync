@@ -45,10 +45,10 @@ export const GameProvider = ({ children }) => {
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [showAllSearchable, setShowAllSearchable] = useState(false);
   const [cheatSheetResults, setCheatSheetResults] = useState([]);
-    // Challenge and screen navigation state
+  // Challenge and screen navigation state
   const [currentScreen, setCurrentScreen] = useState('challenges'); // 'start', 'challenges', 'actor-selection', 'game'
   const [challengeMode, setChallengeMode] = useState(null);
-    // Leaderboard state
+  // Leaderboard state
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   // User authentication state
   const [currentUser, setCurrentUser] = useState(null);
@@ -374,7 +374,6 @@ export const GameProvider = ({ children }) => {
       logger.info(`📊 Local search completed: ${searchResult.results.length} results in ${duration}ms`);
 
       // Debug: Log what we're searching for and what we found
-      logger.debug(`🔍 Search term: "${term}"`);
       logger.debug(`🔍 Search results:`, searchResult.results.map(r => ({
         title: r.title || r.name,
         type: r.media_type,
@@ -549,17 +548,23 @@ export const GameProvider = ({ children }) => {
       logger.debug('🚀 Game started, generating cache for local search');
       fetchAndSetAllSearchableEntities();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameStarted]); // Only depend on gameStarted, not nodes.length
+  }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]); // Include all dependencies
 
-  // Update cheat sheet when nodes change (after entities are added)
+  // Update cheat sheet when nodes change (after entities are added) OR when challenge mode changes
   useEffect(() => {
     if (gameStarted && nodes.length > 2) { // Only for mid-game additions
       logger.debug('🔄 Nodes updated, refreshing cheat sheet for new connections');
       fetchAndSetAllSearchableEntities();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length]); // Trigger when board size changes
+  }, [gameStarted, nodes.length, fetchAndSetAllSearchableEntities]); // Include all dependencies
+
+  // Update cheat sheet when challenge mode changes during the game
+  useEffect(() => {
+    if (gameStarted && nodes.length >= 2) {
+      logger.debug('🔄 Challenge mode changed, refreshing cheat sheet with new filters');
+      fetchAndSetAllSearchableEntities();
+    }
+  }, [challengeMode, fetchAndSetAllSearchableEntities, gameStarted, nodes.length]);
 
 
 

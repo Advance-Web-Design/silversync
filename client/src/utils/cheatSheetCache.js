@@ -1,5 +1,9 @@
 /**
  * Cheat Sheet Cache - Consolidated caching and enrichment system
+ * 
+ * GLOBAL IMAGE FILTER: All entities (movies, TV shows, actors) without images
+ * are automatically excluded from the game in ALL modes. This ensures that
+ * players only encounter entities with poster_path (movies/TV) or profile_path (actors).
  */
 import { getMovieDetails, getTvShowDetails } from '../services/tmdbService';
 import { logger } from './loggerUtils';
@@ -336,7 +340,7 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
     let nodeConnections = [];
     logger.debug(`🔍 Processing node: ${node.type}-${node.id} (${node.data?.name || node.data?.title})`);
 
-    if (node.type === 'person') {// Process movie credits - no limits, get full cast (including those without images)
+    if (node.type === 'person') {      // Process movie credits - get full cast with images
       if (node.data.movie_credits?.cast) {
         const movies = node.data.movie_credits.cast
           .filter(movie => movie.id && movie.title) // Filter by essential data only
@@ -349,7 +353,7 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
         nodeConnections.push(...movies);
       }
 
-      // Process TV credits - no limits, get full cast (including those without images)
+      // Process TV credits - get full cast with images
       if (node.data.tv_credits?.cast) {
         const shows = node.data.tv_credits.cast
           .filter(show => show.id && show.name) // Filter by essential data only
@@ -361,8 +365,9 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             connection_type: show.is_guest_appearance ? 'guest' : 'cast'
           }));
         nodeConnections.push(...shows);
-      }
-        // Process guest appearances - no limits, get all guest appearances (including those without images)
+      }        
+      
+      // Process guest appearances - get all guest appearances with images
       if (node.data.guest_appearances) {
         const guests = node.data.guest_appearances
           .filter(show => show.id && show.name) // Filter by essential data only
@@ -384,10 +389,10 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
           source_node: node.id,
           profile_path: actor.profile_path || null
         }));
-      nodeConnections.push(...actors);    } else if (node.type === 'tv') {
+      nodeConnections.push(...actors);} else if (node.type === 'tv') {
       logger.debug(`🔍 TV node: ${node.data?.name}, has aggregate_credits: ${!!node.data.aggregate_credits?.cast}, cast count: ${node.data.aggregate_credits?.cast?.length || 0}`);
       
-      // Use aggregate_credits.cast for more comprehensive actor list - no limits
+      // Use aggregate_credits.cast for more comprehensive actor list with images
       if (node.data.aggregate_credits?.cast) {
         const actors = node.data.aggregate_credits.cast
           .filter(actor => actor.id && actor.name) // Include ALL actors with id/name, regardless of profile_path
@@ -398,7 +403,7 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             profile_path: actor.profile_path || null
           }));
         nodeConnections.push(...actors);
-      } else if (node.data.credits?.cast) {        // Fallback to regular credits if aggregate_credits not available - no limits
+      } else if (node.data.credits?.cast) {        // Fallback to regular credits if aggregate_credits not available
         const actors = node.data.credits.cast
           .filter(actor => actor.id && actor.name) // Remove profile_path requirement for consistency
           .map(actor => ({
@@ -408,7 +413,7 @@ const fetchConnectableEntitiesOptimized = async (nodes) => {
             profile_path: actor.profile_path || null
           }));
         nodeConnections.push(...actors);
-      }      // Process guest stars - no limits, get all guest stars (including those without images)
+      }      // Process guest stars - get all guest stars with images
       if (node.data.guest_stars) {
         const guestStars = node.data.guest_stars
           .filter(actor => actor.id && actor.name) // Filter by essential data only
@@ -448,20 +453,31 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
   const existingBoardIds = new Set(nodes.map(node => `${node.type}-${node.data?.id}`));
     // Single-pass filtering
   const processedEntities = [];
-  
-  for (const entity of relevantEntities) {
+    for (const entity of relevantEntities) {
     if (!entity?.id) continue;
 
     // Skip if already on board (fast Set lookup)
     const entityKey = `${entity.media_type}-${entity.id}`;
     if (existingBoardIds.has(entityKey)) continue;
 
-    // Include all entities (already filtered for images during extraction)
+    // GLOBAL IMAGE FILTER: Always exclude entities without images
+    // This applies to all game modes and challenges
+    if (entity.media_type === 'person') {
+      // For actors, require profile_path
+      if (!entity.profile_path) {
+        continue; // Skip this entity
+      }
+    } else {
+      // For movies/TV shows, require poster_path
+      if (!entity.poster_path) {
+        continue; // Skip this entity
+      }
+    }
+
     processedEntities.push(entity);
   }
 
-  logger.debug(`🔍 Fast filtering: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);
-  // Apply media type filters
+  logger.debug(`🔍 Fast filtering with global image filter: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);  // Apply media type filters
   let finalEntities = processedEntities;
   if (filterOptions.enableProductionFiltering) {
     if (filterOptions.filtertype?.includes('movies-only')) {
