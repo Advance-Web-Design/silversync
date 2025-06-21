@@ -5,7 +5,7 @@ import { verifyUser } from "../services/firebaseService";
 import * as FormStyles from '../styles/FormStyle.js'; // Import the styles
 import { logger } from '../utils/loggerUtils';
 import { useTheme } from '../contexts/ThemeContext'; // Import the ThemeContext
-import * as LoginStyles from '../styles/AboutStyles.js'; // Import the stylesimport { ForgotPasswordWindow } from './ForgotPassword'; // Import ForgotPasswordWindow component
+import * as LoginStyles from '../styles/AboutStyles.js'; // Import the styles
 import ForgotPasswordWindow from './ForgotPassword'; // Import ForgotPasswordWindow component
 
 
@@ -21,6 +21,7 @@ import ForgotPasswordWindow from './ForgotPassword'; // Import ForgotPasswordWin
 function LoginWindow({ onClose, setLoginID }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   /**
    * Handles closing the login popup.
@@ -29,11 +30,18 @@ function LoginWindow({ onClose, setLoginID }) {
     if (onClose) onClose();
   };
 
-
+  /**
+   * Opens the forgot password modal.
+   */
   const forgotPassword = () => {
-    
-    //TODO: implement forgot password functionality
-    alert('Forgot password functionality not implemented yet.');
+    setShowForgotPassword(true);
+  }
+
+  /**
+   * Closes the forgot password modal and returns to login.
+   */
+  const handleForgotPasswordClose = () => {
+    setShowForgotPassword(false);
   }
 
   /**
@@ -60,8 +68,13 @@ function LoginWindow({ onClose, setLoginID }) {
       });
 
   };
+    const { isLightMode } = useTheme();
   
-  const { isLightMode } = useTheme();
+  // If forgot password modal is open, show it instead of login form
+  if (showForgotPassword) {
+    return <ForgotPasswordWindow onClose={handleForgotPasswordClose} />;
+  }
+  
   return (
     <>
       {( 

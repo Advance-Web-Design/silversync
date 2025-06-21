@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import * as FormStyles from '../styles/FormStyle.js';
+import * as LoginStyles from '../styles/AboutStyles.js';
+import { useTheme } from '../contexts/ThemeContext';
 import { forgotPassword } from '../services/firebaseService.js';
 
 /**
@@ -14,72 +16,102 @@ import { forgotPassword } from '../services/firebaseService.js';
 function ForgotPasswordWindow({ onClose }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
 
-  // Simulate password reset (replace with real logic if needed)
-  const handleReset = (e) => {
+  const { isLightMode } = useTheme();
+  // Handle password reset
+  const handleReset = async (e) => {
     e.preventDefault();
-    // TODO: Implement backend password reset logic here
-
-    if (!username || !email) {
-      alert('Please enter both username and email.');
+    
+    if (!username.trim() || !email.trim()) {
+      setMessage('Please enter both username and email.');
+      setMessageType('error');
       return;
     }
-    else
-    {
-      forgotPassword(username, email)
-        .then(() => {
-          alert('your new password has been sent to your email.');
-        })
-        .catch(error => {
-          alert('Error during password reset: ' + error.message);
-        });
+
+    setIsLoading(true);
+    setMessage('');
+    
+    try {
+      await forgotPassword(username.trim(), email.trim());
+      setMessage('A new password has been sent to your email address. Please check your inbox and change your password after logging in.');
+      setMessageType('success');
+      
+      // Auto-close after 5 seconds on success
+      setTimeout(() => {
+        if (onClose) onClose();
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Password reset error:', error);
+      setMessage(error.message || 'Failed to reset password. Please check your username and email.');
+      setMessageType('error');
+    } finally {
+      setIsLoading(false);
     }
-    setSubmitted(true);
-    setTimeout(() => {
-      if (onClose) onClose();
-    }, 1500);
   };
 
   const handleClose = () => {
     if (onClose) onClose();
   };
-
   return (
-    <div className={FormStyles.formOverlayStyle} onClick={handleClose}>
-      <div className={FormStyles.formContentStyle} onClick={e => e.stopPropagation()}>
-        <button className={FormStyles.formCloseButtonStyle} onClick={handleClose}>
+    <div className={LoginStyles.popupOverlayBaseStyle + " " + (isLightMode ? LoginStyles.popupOverlayLightStyle : LoginStyles.popupOverlayDarkStyle)} onClick={handleClose}>
+      <div className={LoginStyles.popupContentBaseStyle + " " + (isLightMode ? LoginStyles.popupContentLightStyle : LoginStyles.popupContentDarkStyle)} onClick={e => e.stopPropagation()}>
+        <button className={LoginStyles.popupCloseButtonBaseStyle + " " + (isLightMode ? LoginStyles.popupCloseButtonLightStyle : LoginStyles.popupCloseButtonDarkStyle)} onClick={handleClose}>
           <CloseIcon fontSize="small" />
         </button>
         <div className={FormStyles.formBodyStyle}>
-          <h2 className={FormStyles.formTitleStyle}>Reset Password</h2>
-          {!submitted ? (
-            <form onSubmit={handleReset} className={FormStyles.formStyle}>
-              <input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                required
-                className={FormStyles.formInputStyle}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className={FormStyles.formInputStyle}
-              />
-              <button type="submit" className={FormStyles.formSubmitButtonStyle}>
-                New Password
-              </button>
-            </form>
-          ) : (
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              If the username and email match, you will receive instructions to reset your password.
+          <h2 className={FormStyles.formTitleBaseStyle + " " + (isLightMode ? FormStyles.formTitleLightStyle : FormStyles.formTitleDarkStyle)}>Reset Password</h2>
+          
+          {message && (
+            <div className={`mb-4 p-3 rounded-lg text-center ${
+              messageType === 'success' 
+                ? 'bg-green-100 text-green-800 border border-green-300' 
+                : 'bg-red-100 text-red-800 border border-red-300'
+            }`}>
+              {message}
             </div>
           )}
+          
+          <form onSubmit={handleReset} className={FormStyles.formStyle}>
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              disabled={isLoading}
+              className={FormStyles.formInputBaseStyle + " " + (isLightMode ? FormStyles.formInputLightStyle : FormStyles.formInputDarkStyle)}
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+              className={FormStyles.formInputBaseStyle + " " + (isLightMode ? FormStyles.formInputLightStyle : FormStyles.formInputDarkStyle)}
+            />
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className={FormStyles.formSubmitButtonBaseStyle + " " + (isLightMode ? FormStyles.formSubmitButtonLightStyle : FormStyles.formSubmitButtonDarkStyle) + (isLoading ? ' opacity-50 cursor-not-allowed' : '')}
+            >
+              {isLoading ? 'Sending...' : 'Send New Password'}
+            </button>
+          </form>
+          
+          <div className="text-center mt-4">
+            <button 
+              type="button"
+              onClick={handleClose}
+              className={FormStyles.formSecondaryButtonBaseStyle + " " + (isLightMode ? FormStyles.formSecondaryButtonLightStyle : FormStyles.formSecondaryButtonDarkStyle)}
+            >
+              Back to Login
+            </button>
+          </div>
         </div>
       </div>
     </div>

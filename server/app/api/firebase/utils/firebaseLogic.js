@@ -1,14 +1,6 @@
 import { getDatabase, ref, push, set, get } from 'firebase-admin/database';
 import { initializeFirebase, getDatabaseReference } from './firebaseAdmin.js';
-//import { sendEmail } from '../../email/sendEmail.js'; //TODO: implement this
-
-
-function sendEmail({ to, subject, text }) {
-    // Placeholder function for sending email
-    // In a real application, you would implement this using an email service
-    console.log(`Sending email to ${to} with subject "${subject}" and text: ${text}`);
-    return Promise.resolve();
-}
+import { sendPasswordResetEmail } from '../../utils/emailService.js';
 
 /**
  * Generates a random password with at least one uppercase letter and one number.
@@ -49,9 +41,9 @@ async function hashPassword(password) {
 
 /**
  * Function to handle forgot password functionality
- * @description This function checks if the user exists in the database and if the provided email matches the user's email. If both checks pass, it generates a new random password, hashes it, updates the user's password in the database, and sends an email with the new password.
- * @param {*} username 
- * @param {*} email 
+ * @param {string} username - The username of the user
+ * @param {string} email - The email address of the user  
+ * @description Verifies if the username and email match in the database, generates a new password, updates it in the database, and sends an email notification
  * @returns {Promise<{ success: boolean, message: string }>} A promise that resolves to an object indicating success and a message.
  */
 export async function forgotPassword(username, email) {
@@ -60,34 +52,60 @@ export async function forgotPassword(username, email) {
         throw new Error('Firebase database not available');
     }
 
-    console.log('Forgot password for user:', username, email);
+    console.log('Processing forgot password request for user:', username, 'with email:', email);
+
+    // Validate input
+    if (!username || !email) {
+        throw new Error('Username and email are required');
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        throw new Error('Please enter a valid email address');
+    }
 
     const userRef = db.ref(`users/${username}`);
     const userSnapshot = await userRef.once('value');
 
     if (!userSnapshot.exists()) {
-        return Promise.reject(new Error('User does not exist'));
+        // For security reasons, don't reveal if the username exists or not
+        throw new Error('If the username and email combination is valid, a new password will be sent to your email');
     }
 
     const user = userSnapshot.val();
 
-    // Check if email matches
-    if (user.UserDetails.email !== email) {
-        return Promise.reject(new Error('Email does not match'));
+    // Check if email matches (case-insensitive comparison)
+    if (!user.UserDetails || !user.UserDetails.email || 
+        user.UserDetails.email.toLowerCase() !== email.toLowerCase()) {
+        // For security reasons, don't reveal if the email matches or not
+        throw new Error('If the username and email combination is valid, a new password will be sent to your email');
+    }    try {
+        const newPassword = generateRandomPassword();
+        
+        // Hash the new password before storing it
+        const hashedNewPassword = await hashPassword(newPassword);
+        
+        console.log(`Generated new password for ${username}: ${newPassword}`);
+        console.log(`Hashed password: ${hashedNewPassword.substring(0, 20)}...`);
+        
+        // Update password in database
+        await userRef.child('UserDetails/hashedPassword').set(hashedNewPassword);
+        console.log(`Password updated in Firebase for user: ${username}`);
+        
+        // Send email with new password
+        await sendPasswordResetEmail(email, username, newPassword);
+
+        console.log(`Password reset successful for user: ${username}`);
+        return { 
+            success: true, 
+            message: 'A new password has been sent to your email address. Please check your inbox and change your password after logging in.' 
+        };
+
+    } catch (error) {
+        console.error('Error during password reset process:', error);
+        throw new Error('Failed to reset password. Please try again later.');
     }
-
-    const newPassword = generateRandomPassword();
-
-    await userRef.child('UserDetails/hashedPassword').set(hashPassword(newPassword));
-
-    await sendEmail({
-        to: email,
-        subject: 'Your New Password',
-        text: `Hello ${username},\n\nYour new password is: ${newPassword}\n\nPlease log in and change it as soon as possible.`
-    });
-
-
-    return { success: true, message: 'New Password was sent to your email' };
 }
 /**
  * function to update user info in the Firebase database
@@ -366,4 +384,29 @@ async function updateChallengeLeaderboard(db, gameMode, userId, gameEntry) {
         console.error('Error updating challenge leaderboard:', error);
         // Don't throw error as game saving should still work
     }
+}
+
+/**
+ * Fetches user game history from Firebase
+ * @param {string} userId - The user ID to fetch game history for
+ * @returns {Promise<Object>} Game history object organized by game modes
+ */
+export async function getUserGameHistory(userId) {
+    const { app, db } = initializeFirebase();
+    if (!db) {
+        throw new Error('Firebase database not available');
+    }
+
+    console.log('Fetching game history for user:', userId);
+
+    // Get user game history
+    const userRef = db.ref(`users/${userId}`);
+    const userSnapshot = await userRef.once('value');
+
+    if (!userSnapshot.exists()) {
+        throw new Error('User not found');
+    }
+
+    const user = userSnapshot.val();
+    return user.gamehistory || {};
 }
