@@ -30,6 +30,13 @@ export async function OPTIONS() {
     });
 }
 
+/**
+ * POST handler for user registration
+ * This function adds a new user to the Firebase database.
+ * @param {*} request 
+ * @description This function retrieves the username, hashed password, and email from the request body, and calls the `addUser` function to add the user to the database. If successful, it returns the user ID. If there is an error (e.g., username or email already exists), it returns an error message with a 400 status.
+ * @returns user ID or error message
+ */
 export async function POST(request) {
     try {
         const { addUser } = await import('../../utils/firebaseLogic.js');

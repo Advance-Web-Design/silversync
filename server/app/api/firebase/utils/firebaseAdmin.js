@@ -1,26 +1,19 @@
-
-
 import { initializeApp, getApps, getApp, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 
 
 
-// const firebaseAdminConfig = {
-//   credential: cert({
-//     projectId: process.env.FIREBASE_PROJECT_ID,
-//     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-//     privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-//   }),
-//   databaseURL: process.env.FIREBASE_DATABASE_URL,
-// };
-
-// const app = getApps().length ? getApps()[0] : initializeApp(firebaseAdminConfig);
-// const db = getDatabase(app);
-
-
 
 let app = null;
 let db = null;
+
+/**
+ * Initializes Firebase Admin SDK with the provided configuration.  
+ * If Firebase is already initialized, it returns the existing app and database instances.
+ * @returns {Object} An object containing the Firebase app and database instances.
+ * @throws {Error} If there is an error during initialization.
+ * @description This function checks if Firebase has already been initialized. If not, it initializes Firebase with the configuration from environment variables. It also handles errors during initialization and logs appropriate messages.
+ * */
 export const initializeFirebase = () => {
     if (app && db) {
         console.log('Firebase already initialized');
