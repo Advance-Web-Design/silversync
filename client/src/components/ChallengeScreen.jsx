@@ -236,16 +236,14 @@ const ChallengeScreen = () => {
                 'Blue Sky Studios',
                 'National Geographic',
                 'FX Networks',
-                'Hulu',
-
-                // DC
+                'Hulu',                // DC
                 'DC Entertainment',
                 'DC Comics',
                 'DC Films',
-                'DC Universe',
-                'DC Entertainment Television'
+                'DC Universe',                'DC Entertainment Television'
             ]
-        },    ];
+        },
+    ];
 
     const handleChallengeSelect = async (challenge) => {
         setChallengeMode(challenge);
