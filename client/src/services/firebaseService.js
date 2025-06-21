@@ -38,13 +38,12 @@ export async function updateUserProfile(username, userDetails, verifyPassword) {
   });
 
   const data = await res.json();
-
   if (!res.ok) {
     // Throw the backend error message if available
     throw new Error(data.message || 'Profile update failed');
   }
 
-  return data.success;
+  return data; // Return the full response which includes both success and userProfile
 }
 
 export async function forgotPassword(username, email) {
@@ -233,6 +232,27 @@ export async function fetchLeaderboard(challengeId = 'all') {
   }
 
   return data;
+}
+
+/**
+ * Fetches user game history from Firebase
+ * @param {string} userId - The user ID to fetch game history for
+ * @returns {Promise<Object>} Game history object organized by game modes
+ */
+export async function fetchUserGameHistory(userId) {
+  const res = await fetch(`${API_BASE}/user-game-history/*`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch game history');
+  }
+
+  return data.gameHistory || {};
 }
 
 

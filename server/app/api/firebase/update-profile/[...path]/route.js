@@ -44,13 +44,17 @@ export async function POST(request) {
       const userProfile = await verifyUser(username, hashedPassword);
         if (!userProfile) {
             throw new Error('User not found or invalid credentials');
-        }
-        else
+        }        else
         {
             // Update user profile with new details
             const { updateUserProfile } = await import('../../utils/firebaseLogic.js');
             await updateUserProfile(username, userDetails, hashedPassword);
-            userProfile.userDetails = userDetails;
+            
+            // Update the userProfile object with the new details
+            if (userDetails.email) {
+                userProfile.email = userDetails.email;
+            }
+            // Note: We don't update password in the userProfile as it's not returned for security
         }
 
       return withCors(NextResponse.json({ success: true, userProfile }));
