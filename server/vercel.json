@@ -5,5 +5,11 @@
       "src": "package.json",
       "use": "@vercel/next"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/firebase/challenge-data/cron-check",
+      "schedule": "0 3 * * 1"
+    }
   ]
 }
