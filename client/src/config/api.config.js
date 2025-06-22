@@ -12,8 +12,8 @@ const isDevelopment = import.meta.env.DEV;
 // Get backend URL based on environment
 const getBackendUrl = () => {
   // For production, use the environment variable
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_BACKEND_URL || 'https://connect-the-shows-server.vercel.app';
+  if (isProduction) {
+    return import.meta.env.VITE_BACKEND_URL || 'https://localhost:3000';
   }
   
   // Check for custom backend URL in development

@@ -24,6 +24,7 @@ import {
 import { generateCheatSheet, clearCheatSheetCacheForNewGame } from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
 import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
+import { loadChallengeBlacklists } from '../services/challengeBlacklistService';
 import { logger } from '../utils/loggerUtils';
 
 /**
@@ -457,6 +458,33 @@ export const GameProvider = ({ children }) => {
     }
     // When turning off, we keep the data but hide the sidebar
   };
+
+  // Initialize challenge blacklists on app startup
+  useEffect(() => {
+    const initializeChallengeBlacklists = async () => {
+      try {
+        logger.info('🚀 Initializing challenge blacklists...');
+        const blacklists = await loadChallengeBlacklists();
+        logger.info(`✅ Successfully loaded ${Object.keys(blacklists).length} challenge blacklists`);
+        
+        // Log stats for debugging
+        Object.entries(blacklists).forEach(([challengeName, data]) => {
+          if (data && typeof data === 'object') {
+            const movieCount = data.blockedMovies === '*' ? 'ALL' : 
+              (data.blockedMovies ? Object.keys(data.blockedMovies).length : 0);
+            const tvCount = data.blockedTvShows === '*' ? 'ALL' : 
+              (data.blockedTvShows ? Object.keys(data.blockedTvShows).length : 0);
+            logger.debug(`📊 ${challengeName}: ${movieCount} movies, ${tvCount} TV shows blocked`);
+          }
+        });
+      } catch (error) {
+        logger.error('❌ Failed to initialize challenge blacklists:', error);
+        // Continue without blacklists - app should still work
+      }
+    };
+
+    initializeChallengeBlacklists();
+  }, []); // Run once on app startup
 
   const contextValue = {
     // Game state and actions
