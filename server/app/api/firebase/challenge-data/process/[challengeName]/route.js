@@ -105,11 +105,11 @@ export async function POST(request, { params }) {
         { error: `Unknown challenge: ${challengeName}` },
         { status: 404 }
       ));
-    }
-
-    if (!config || !config.companyIds) {
+    }    
+    
+    if (!config || !config.companyNames) {
       return withCors(NextResponse.json(
-        { error: 'Invalid challenge configuration' },
+        { error: 'Invalid challenge configuration - missing company names' },
         { status: 400 }
       ));
     }
@@ -130,13 +130,14 @@ export async function POST(request, { params }) {
       return withCors(NextResponse.json(
         { error: 'Database connection failed' },
         { status: 500 }
-      ));
-    }    // Generate blacklist using both company IDs and names
+      ));    
+    }    // Generate blacklist using company names only
     const { blockedMovies, blockedTvShows } = await generateChallengeBlacklist(
       challengeName, 
-      config.companyIds,
-      config.companyNames || []
-    );    // Store in Firebase with tracking information
+      config.companyNames
+    );
+
+    // Store in Firebase with tracking information
     const challengeRef = db.ref(`challenge-blacklists/${challengeName}`);
     const dataToStore = {
       blockedMovies,
@@ -145,7 +146,7 @@ export async function POST(request, { params }) {
       companyIds: config.companyIds,
       companyNames: config.companyNames || [],
       generatedAt: new Date().toISOString(),
-      fetchMethod: 'hybrid', // Both company IDs and names
+      fetchMethod: 'names-only', // Using company names only
       stats: {
         totalMovies: Object.keys(blockedMovies).length,
         totalTvShows: Object.keys(blockedTvShows).length

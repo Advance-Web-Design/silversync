@@ -95,22 +95,13 @@ export async function searchByCompanyName(type, companyName, page = 1, rateLimit
   if (!response.ok) {
     throw new Error(`TMDB Search API error: ${response.status} ${response.statusText}`);
   }
-
   const data = await response.json();
   
-  // Filter results to only include items that actually match the company
-  const filteredResults = data.results.filter(item => {
-    const companies = item.production_companies || [];
-    return companies.some(company => 
-      company.name.toLowerCase().includes(companyName.toLowerCase()) ||
-      companyName.toLowerCase().includes(company.name.toLowerCase())
-    );
-  });
-
-  return {
-    ...data,
-    results: filteredResults
-  };
+  // For search results, we'll trust TMDB's search relevance
+  // since production_companies info might not be available in search results
+  console.log(`Found ${data.results.length} ${type} results for "${companyName}"`);
+  
+  return data;
 }
 
 /**
@@ -148,48 +139,38 @@ export async function fetchAllPages(type, companyIds, maxPages = null) {  const 
 }
 
 /**
- * Generate blacklist for a specific challenge using both company IDs and names
+ * Generate blacklist for a specific challenge using company names only
  */
-export async function generateChallengeBlacklist(challengeName, companyIds, companyNames = []) {
-  console.log(`Generating blacklist for ${challengeName} with companies: ${companyIds}`);
-  console.log(`Also searching by company names: ${companyNames.slice(0, 3).join(', ')}${companyNames.length > 3 ? '...' : ''}`);
+export async function generateChallengeBlacklist(challengeName, companyNames = []) {
+  console.log(`Generating blacklist for ${challengeName} using company names only`);
+  console.log(`Searching by company names: ${companyNames.slice(0, 3).join(', ')}${companyNames.length > 3 ? '...' : ''}`);
   
   try {
-    // Method 1: Fetch by company IDs (primary method - more reliable)
-    const [moviesByIds, tvShowsByIds] = await Promise.all([
-      fetchAllPages('movie', companyIds),
-      fetchAllPages('tv', companyIds)
-    ]);
-    
-    // Method 2: Fetch by company names (fallback method - catches edge cases)
+    // Use company names only for reliable results
     const [moviesByNames, tvShowsByNames] = await Promise.all([
       fetchByCompanyNames('movie', companyNames),
       fetchByCompanyNames('tv', companyNames)
     ]);
     
-    // Combine and deduplicate results
-    const allMovies = [...moviesByIds, ...moviesByNames];
-    const allTvShows = [...tvShowsByIds, ...tvShowsByNames];
-    
     // Process results into minimal format with deduplication
     const blockedMovies = {};
     const blockedTvShows = {};
     
-    allMovies.forEach(movie => {
+    moviesByNames.forEach(movie => {
       blockedMovies[movie.id] = {
         id: movie.id,
         title: movie.title
       };
     });
     
-    allTvShows.forEach(show => {
+    tvShowsByNames.forEach(show => {
       blockedTvShows[show.id] = {
         id: show.id,
         name: show.name
       };
     });
     
-    console.log(`Generated blacklist: ${Object.keys(blockedMovies).length} movies (${moviesByIds.length} by IDs + ${moviesByNames.length} by names), ${Object.keys(blockedTvShows).length} TV shows (${tvShowsByIds.length} by IDs + ${tvShowsByNames.length} by names)`);
+    console.log(`Generated blacklist: ${Object.keys(blockedMovies).length} movies, ${Object.keys(blockedTvShows).length} TV shows (using company names only)`);
     
     return { blockedMovies, blockedTvShows };
     
