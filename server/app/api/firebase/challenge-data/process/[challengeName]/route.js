@@ -58,14 +58,41 @@ export async function POST(request, { params }) {
         challenge: challengeName,
         status: 'no-processing-needed'
       }));
-    }
-
-    // Handle special challenges
+    }    // Handle special challenges
     if (SPECIAL_CHALLENGES[challengeName]) {
+      // Initialize Firebase
+      const { db } = initializeFirebase();
+      if (!db) {
+        return withCors(NextResponse.json(
+          { error: 'Database connection failed' },
+          { status: 500 }
+        ));
+      }
+
+      // Store special challenge data
+      const challengeRef = db.ref(`challenge-blacklists/${challengeName}`);
+      const specialConfig = SPECIAL_CHALLENGES[challengeName];
+      const dataToStore = {
+        blockedMovies: specialConfig.blockedMovies,
+        blockedTvShows: specialConfig.blockedTvShows,
+        lastUpdated: new Date().toISOString(),
+        fetchMethod: 'special',
+        generatedAt: new Date().toISOString(),
+        stats: {
+          totalMovies: specialConfig.blockedMovies === '*' ? 'ALL' : 0,
+          totalTvShows: specialConfig.blockedTvShows === '*' ? 'ALL' : 0
+        }
+      };
+
+      await challengeRef.set(dataToStore);
+
       return withCors(NextResponse.json({
-        message: `Challenge ${challengeName} uses special filtering rules`,
+        message: `Special challenge ${challengeName} data stored successfully`,
         challenge: challengeName,
-        status: 'no-processing-needed'
+        fetchMethod: 'special',
+        stats: dataToStore.stats,
+        lastUpdated: dataToStore.lastUpdated,
+        status: 'completed'
       }));
     }
 
@@ -104,22 +131,25 @@ export async function POST(request, { params }) {
         { error: 'Database connection failed' },
         { status: 500 }
       ));
-    }
-
-    // Generate blacklist using the utility function
+    }    // Generate blacklist using both company IDs and names
     const { blockedMovies, blockedTvShows } = await generateChallengeBlacklist(
       challengeName, 
-      config.companyIds
-    );
-
-    // Store in Firebase
+      config.companyIds,
+      config.companyNames || []
+    );    // Store in Firebase with tracking information
     const challengeRef = db.ref(`challenge-blacklists/${challengeName}`);
     const dataToStore = {
       blockedMovies,
       blockedTvShows,
       lastUpdated: new Date().toISOString(),
       companyIds: config.companyIds,
-      generatedAt: new Date().toISOString()
+      companyNames: config.companyNames || [],
+      generatedAt: new Date().toISOString(),
+      fetchMethod: 'hybrid', // Both company IDs and names
+      stats: {
+        totalMovies: Object.keys(blockedMovies).length,
+        totalTvShows: Object.keys(blockedTvShows).length
+      }
     };
 
     await challengeRef.set(dataToStore);

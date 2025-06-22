@@ -67,6 +67,53 @@ export async function fetchTMDBDiscover(type, companyIds, page = 1, rateLimiter 
 }
 
 /**
+ * Search for content by company name (fallback method)
+ */
+export async function searchByCompanyName(type, companyName, page = 1, rateLimiter = null) {
+  if (rateLimiter) {
+    await rateLimiter.waitIfNeeded();
+  }
+  
+  const baseUrl = 'https://api.themoviedb.org/3/search';
+  const endpoint = type === 'movie' ? 'movie' : 'tv';
+  
+  const params = new URLSearchParams({
+    page: page.toString(),
+    query: companyName,
+    include_adult: 'false'
+  });
+
+  const url = `${baseUrl}/${endpoint}?${params}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${process.env.TMDB_API_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB Search API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  // Filter results to only include items that actually match the company
+  const filteredResults = data.results.filter(item => {
+    const companies = item.production_companies || [];
+    return companies.some(company => 
+      company.name.toLowerCase().includes(companyName.toLowerCase()) ||
+      companyName.toLowerCase().includes(company.name.toLowerCase())
+    );
+  });
+
+  return {
+    ...data,
+    results: filteredResults
+  };
+}
+
+/**
  * Batch process TMDB pages with rate limiting
  * Fetches ALL pages to get complete data
  */
@@ -101,37 +148,48 @@ export async function fetchAllPages(type, companyIds, maxPages = null) {  const 
 }
 
 /**
- * Generate blacklist for a specific challenge
+ * Generate blacklist for a specific challenge using both company IDs and names
  */
-export async function generateChallengeBlacklist(challengeName, companyIds) {
+export async function generateChallengeBlacklist(challengeName, companyIds, companyNames = []) {
   console.log(`Generating blacklist for ${challengeName} with companies: ${companyIds}`);
+  console.log(`Also searching by company names: ${companyNames.slice(0, 3).join(', ')}${companyNames.length > 3 ? '...' : ''}`);
   
   try {
-    // Fetch movies and TV shows in parallel
-    const [movies, tvShows] = await Promise.all([
+    // Method 1: Fetch by company IDs (primary method - more reliable)
+    const [moviesByIds, tvShowsByIds] = await Promise.all([
       fetchAllPages('movie', companyIds),
       fetchAllPages('tv', companyIds)
     ]);
     
-    // Process results into minimal format
+    // Method 2: Fetch by company names (fallback method - catches edge cases)
+    const [moviesByNames, tvShowsByNames] = await Promise.all([
+      fetchByCompanyNames('movie', companyNames),
+      fetchByCompanyNames('tv', companyNames)
+    ]);
+    
+    // Combine and deduplicate results
+    const allMovies = [...moviesByIds, ...moviesByNames];
+    const allTvShows = [...tvShowsByIds, ...tvShowsByNames];
+    
+    // Process results into minimal format with deduplication
     const blockedMovies = {};
     const blockedTvShows = {};
     
-    movies.forEach(movie => {
+    allMovies.forEach(movie => {
       blockedMovies[movie.id] = {
         id: movie.id,
         title: movie.title
       };
     });
     
-    tvShows.forEach(show => {
+    allTvShows.forEach(show => {
       blockedTvShows[show.id] = {
         id: show.id,
         name: show.name
       };
     });
     
-    console.log(`Generated blacklist: ${Object.keys(blockedMovies).length} movies, ${Object.keys(blockedTvShows).length} TV shows`);
+    console.log(`Generated blacklist: ${Object.keys(blockedMovies).length} movies (${moviesByIds.length} by IDs + ${moviesByNames.length} by names), ${Object.keys(blockedTvShows).length} TV shows (${tvShowsByIds.length} by IDs + ${tvShowsByNames.length} by names)`);
     
     return { blockedMovies, blockedTvShows };
     
@@ -176,4 +234,47 @@ export async function testTMDBConnection() {
     console.error('TMDB connection test failed:', error);
     throw error;
   }
+}
+
+/**
+ * Fetch content by company names (search-based approach)
+ */
+export async function fetchByCompanyNames(type, companyNames, maxPages = 5) {
+  const rateLimiter = new TMDBRateLimiter();
+  const results = [];
+  const seenIds = new Set(); // Prevent duplicates
+  
+  for (const companyName of companyNames) {
+    console.log(`Searching ${type} by company name: ${companyName}`);
+    
+    let page = 1;
+    let totalPages = 1;
+    
+    do {
+      try {
+        const data = await searchByCompanyName(type, companyName, page, rateLimiter);
+        
+        if (page === 1) {
+          totalPages = Math.min(data.total_pages, maxPages);
+        }
+        
+        // Add unique results
+        data.results.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            results.push(item);
+          }
+        });
+        
+        page++;
+        
+      } catch (error) {
+        console.error(`Error searching ${type} for company ${companyName}:`, error);
+        break; // Move to next company on error
+      }
+      
+    } while (page <= totalPages);
+  }
+  
+  return results;
 }

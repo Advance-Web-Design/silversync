@@ -4,58 +4,77 @@
 
 ### Ultra-Minimal Challenge Data Structure
 ```javascript
-challengeData/
+challenge-blacklists/
 ├── "no-marvel"/
-│   ├── lastUpdated: 1735689600000
+│   ├── lastUpdated: "2024-12-31T23:59:59.999Z"
 │   ├── blockedMovies: {
 │   │   ├── "299536": { "id": 299536, "title": "Avengers: Infinity War" },
 │   │   ├── "299534": { "id": 299534, "title": "Avengers: Endgame" },
 │   │   ├── "315635": { "id": 315635, "title": "Spider-Man: Homecoming" }
 │   │   // ... only Marvel movies (ID + title only)
 │   │   }
-│   └── blockedTvShows: {
-│       ├── "1403": { "id": 1403, "name": "Marvel's Agents of S.H.I.E.L.D." },
-│       ├── "38472": { "id": 38472, "name": "The Falcon and the Winter Soldier" }
-│       // ... only Marvel TV shows (ID + name only)
-│       }
+│   ├── blockedTvShows: {
+│   │   ├── "1403": { "id": 1403, "name": "Marvel's Agents of S.H.I.E.L.D." },
+│   │   ├── "38472": { "id": 38472, "name": "The Falcon and the Winter Soldier" }
+│   │   // ... only Marvel TV shows (ID + name only)
+│   │   }
+│   ├── companyIds: [420, 7505, 19551]
+│   ├── companyNames: ["Marvel Studios", "Marvel Entertainment", "Marvel Comics", ...]
+│   ├── fetchMethod: "hybrid"
+│   ├── stats: { "totalMovies": 87, "totalTvShows": 23 }
+│   └── generatedAt: "2024-12-31T23:59:59.999Z"
 │
 ├── "no-dc"/
-│   ├── lastUpdated: 1735689600000
+│   ├── lastUpdated: "2024-12-31T23:59:59.999Z"
 │   ├── blockedMovies: {
 │   │   ├── "414906": { "id": 414906, "title": "The Batman" },
 │   │   ├── "297761": { "id": 297761, "title": "Suicide Squad" }
 │   │   }
-│   └── blockedTvShows: {
-│       ├── "1434": { "id": 1434, "name": "The Flash" },
-│       ├── "1412": { "id": 1412, "name": "Arrow" }
-│       }
+│   ├── blockedTvShows: {
+│   │   ├── "1434": { "id": 1434, "name": "The Flash" },
+│   │   ├── "1412": { "id": 1412, "name": "Arrow" }
+│   │   }
+│   ├── companyIds: [429, 1363, 9993]
+│   ├── companyNames: ["DC Entertainment", "DC Comics", "DC Films", ...]
+│   ├── fetchMethod: "hybrid"
+│   ├── stats: { "totalMovies": 45, "totalTvShows": 12 }
+│   └── generatedAt: "2024-12-31T23:59:59.999Z"
 │
 ├── "movies-only"/
-│   ├── lastUpdated: 1735689600000
+│   ├── lastUpdated: "2024-12-31T23:59:59.999Z"
 │   ├── blockedMovies: {}                // No movies blocked
-│   └── blockedTvShows: "*"              // All TV shows blocked
+│   ├── blockedTvShows: "*"              // All TV shows blocked
+│   ├── fetchMethod: "special"
+│   └── generatedAt: "2024-12-31T23:59:59.999Z"
 │
 ├── "tv-only"/
-│   ├── lastUpdated: 1735689600000
+│   ├── lastUpdated: "2024-12-31T23:59:59.999Z"
 │   ├── blockedMovies: "*"               // All movies blocked
-│   └── blockedTvShows: {}               // No TV shows blocked
+│   ├── blockedTvShows: {}               // No TV shows blocked
+│   ├── fetchMethod: "special"
+│   └── generatedAt: "2024-12-31T23:59:59.999Z"
 │
 ├── "no-disney"/
-│   ├── lastUpdated: 1735689600000
+│   ├── lastUpdated: "2024-12-31T23:59:59.999Z"
 │   ├── blockedMovies: {
 │   │   ├── "62177": { "id": 62177, "title": "The Lion King" },
 │   │   ├── "129": { "id": 129, "title": "Spirited Away" },
 │   │   ├── "12092": { "id": 12092, "title": "Alice in Wonderland" }
 │   │   // ... all Disney movies
 │   │   }
-│   └── blockedTvShows: {
-│       ├── "1771": { "id": 1771, "name": "DuckTales" },
-│       ├── "18357": { "id": 18357, "name": "The Mandalorian" }
-│       // ... all Disney TV shows
-│       }
+│   ├── blockedTvShows: {
+│   │   ├── "1771": { "id": 1771, "name": "DuckTales" },
+│   │   ├── "18357": { "id": 18357, "name": "The Mandalorian" }
+│   │   // ... all Disney TV shows
+│   │   }
+│   ├── companyIds: [2, 3, 420, 7505, 1, 13252, 3475]
+│   ├── companyNames: ["Walt Disney Pictures", "Pixar", "Marvel Studios", ...]
+│   ├── fetchMethod: "hybrid"
+│   ├── stats: { "totalMovies": 156, "totalTvShows": 89 }
+│   └── generatedAt: "2024-12-31T23:59:59.999Z"
 │
 └── "Nathan"/
-    ├── lastUpdated: 1735689600000
+    ├── lastUpdated: "2024-12-31T23:59:59.999Z"
     ├── blockedMovies: {
     │   // Combined Disney + DC movies
     │   ├── "62177": { "id": 62177, "title": "The Lion King" },
@@ -63,7 +82,12 @@ challengeData/
     │   ├── "129": { "id": 129, "title": "Spirited Away" },
     │   ├── "297761": { "id": 297761, "title": "Suicide Squad" }
     │   }
-    └── blockedTvShows: "*"              // All TV shows blocked (movies-only)
+    ├── blockedTvShows: "*"              // All TV shows blocked (movies-only)
+    ├── companyIds: [2, 3, 420, 7505, 1, 13252, 3475, 429, 1363, 9993]
+    ├── companyNames: ["Walt Disney Pictures", "Pixar", "DC Entertainment", ...]
+    ├── fetchMethod: "hybrid"
+    ├── stats: { "totalMovies": 201, "totalTvShows": 0 }
+    └── generatedAt: "2024-12-31T23:59:59.999Z"
 
 // NOTE: "for-fun" and "classic" have NO DATA - no filtering needed
 ```
