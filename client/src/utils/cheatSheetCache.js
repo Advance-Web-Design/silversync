@@ -5,8 +5,8 @@
  * are automatically excluded from the game in ALL modes. This ensures that
  * players only encounter entities with poster_path (movies/TV) or profile_path (actors).
  */
-import { getMovieDetails, getTvShowDetails } from '../services/tmdbService';
 import { logger } from './loggerUtils';
+import { filterEntitiesByChallenge } from './challengeUtils';
 
 // Cache keys
 const CACHE_KEYS = {
@@ -102,227 +102,7 @@ const generateBoardHash = (nodes) => {
     .map(node => node.id)
     .sort()
     .join('|');
-
   return btoa(sortedNodeIds).slice(0, 16); // Simple hash for cache key
-};
-
-// Legacy storage functions (simplified)
-export const loadPreviousSearches = () => {
-  try {
-    const stored = sessionStorage.getItem('previousSearches');
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    logger.error('Error loading previous searches:', error);
-    return [];
-  }
-};
-
-export const savePreviousSearches = (searches) => {
-  if (searches && searches.length > 0) {
-    try {
-      sessionStorage.setItem('previousSearches', JSON.stringify(searches));
-    } catch (error) {
-      logger.error('Error saving previous searches:', error);
-    }
-  }
-};
-
-export const loadKnownEntities = () => {
-  try {
-    const stored = sessionStorage.getItem('knownEntities');
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    logger.error('Error loading known entities:', error);
-    return [];
-  }
-};
-
-export const saveKnownEntities = (entities) => {
-  if (entities && entities.length > 0) {
-    try {
-      sessionStorage.setItem('knownEntities', JSON.stringify(entities));
-    } catch (error) {
-      logger.error('Error saving known entities:', error);
-    }
-  }
-};
-
-export const addToSearchHistory = (term, results) => {
-  if (!term || !results || results.length === 0) return;
-
-  // Update previous searches
-  try {
-    const currentSearches = loadPreviousSearches();
-    if (!currentSearches.includes(term.toLowerCase())) {
-      const updatedSearches = [...currentSearches, term.toLowerCase()];
-      savePreviousSearches(updatedSearches);
-    }
-  } catch (error) {
-    logger.warn('Failed to update search history:', error);
-  }
-
-  // Update known entities
-  try {
-    const currentEntities = loadKnownEntities();
-    const updatedEntities = [...currentEntities];
-    const existingIds = new Set();
-
-    currentEntities.forEach(entity => {
-      if (typeof entity === 'object' && entity !== null && entity.id) {
-        existingIds.add(`${entity.media_type}-${entity.id}`);
-      }
-    });
-
-    results.forEach(entity => {
-      const entityId = `${entity.media_type}-${entity.id}`;
-      if (!existingIds.has(entityId)) {
-        updatedEntities.push(entity);
-        existingIds.add(entityId);
-      }
-    });
-
-    saveKnownEntities(updatedEntities);
-  } catch (error) {
-    logger.warn('Failed to update known entities:', error);
-  }
-};
-
-/**
- * Helper function to check if production companies contain excluded companies
- * @param {Array} productionCompanies - Array of production company objects
- * @param {Array} excludeCompanies - Array of company names to exclude
- * @returns {boolean} - Whether any excluded company is found
- */
-const hasExcludedProductionCompany = (productionCompanies, excludeCompanies) => {
-  return productionCompanies.some(company =>
-    excludeCompanies.some(excludedCompany =>
-      company.name && company.name.includes(excludedCompany)
-    )
-  );
-};
-
-/**
- * Ultra-optimized filtering for better performance
- */
-export const filterEntitiesAdvancedOptimized = async (entities, filterOptions = {}) => {  const {
-    excludeProductionCompanies = [],
-    minPopularity = 0,
-    batchSize = 50 // Larger batches
-  } = filterOptions;
-
-  if (!entities || entities.length === 0) {
-    return [];
-  }
-
-  logger.debug(`🔍 Starting ultra-optimized filtering on ${entities.length} entities`);
-  const startTime = Date.now();
-
-  // Pre-filter by popularity (very fast, no API calls)
-  let filteredEntities = entities;
-  if (minPopularity > 0) {
-    filteredEntities = entities.filter(entity => (entity.popularity || 0) >= minPopularity);
-  }
-  // Early exit if no production company filtering needed
-  if (excludeProductionCompanies.length === 0) {
-    logger.debug(`🔍 No production filtering needed: ${entities.length} → ${filteredEntities.length} in ${Date.now() - startTime}ms`);
-    return filteredEntities;
-  }
-
-  // Cache for production company data with aggressive caching strategy
-  const productionCompanyCache = new Map();
-  const failedFetches = new Set(); // Track failed API calls to avoid retries
-    const finalEntities = [];
-  
-  // Process in larger batches with timeout protection
-  for (let i = 0; i < filteredEntities.length; i += batchSize) {
-    const batch = filteredEntities.slice(i, i + batchSize);
-    
-    // Set a timeout for the entire batch
-    const batchPromise = Promise.race([
-      processBatchWithTimeout(batch, excludeProductionCompanies, productionCompanyCache, failedFetches),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 3000)) // 3 second timeout
-    ]);
-
-    try {      const batchResults = await batchPromise;
-      const validResults = batchResults.filter(entity => entity !== null);
-      finalEntities.push(...validResults);
-        // Very short delay between batches
-      if (i + batchSize < filteredEntities.length) {
-        await new Promise(resolve => setTimeout(resolve, 25)); // Reduced to 25ms
-      }
-    } catch (error) {      if (error.message === 'Batch timeout') {
-        logger.warn(`⚠️ Batch ${i}-${i + batchSize} timed out, skipping`);
-        // Add entities without filtering on timeout
-        finalEntities.push(...batch);
-      } else {
-        logger.error('Batch processing error:', error);
-      }
-    }
-  }
-  const duration = Date.now() - startTime;
-
-  logger.debug(`🔍 Ultra-optimized filtering complete: ${entities.length} → ${finalEntities.length} in ${duration}ms`);
-  return finalEntities;
-};
-
-/**
- * Process a batch with timeout protection
- */
-const processBatchWithTimeout = async (batch, excludeProductionCompanies, cache, failedFetches) => {
-  const batchPromises = batch.map(async (entity) => {
-    try {
-      const cacheKey = `${entity.media_type}-${entity.id}`;
-      
-      // Skip if we know this fetch failed before
-      if (failedFetches.has(cacheKey)) {
-        return entity; // Keep entity if we can't check
-      }
-      
-      // Check cache first
-      if (cache.has(cacheKey)) {
-        const passes = cache.get(cacheKey);
-        return passes ? entity : null;
-      }
-
-      const passesFilter = await filterByProductionCompaniesUltraFast(
-        entity, 
-        excludeProductionCompanies,
-        cache,
-        failedFetches
-      );
-      
-      return passesFilter ? entity : null;
-    } catch (error) {
-      logger.error(`Error filtering entity ${entity.title || entity.name}:`, error);
-      return entity; // Keep entity if filtering fails
-    }
-  });
-
-  return await Promise.all(batchPromises);
-};
-
-/**
- * Get cached cheat sheet if valid
- */
-export const getCachedCheatSheet = (boardState) => {
-  try {
-    const cached = sessionStorage.getItem(CACHE_KEYS.CHEAT_SHEET);
-    if (!cached) return null;
-
-    const cacheData = JSON.parse(cached);
-    const currentBoardHash = generateBoardHash(boardState);
-    
-    // Check if cache is still valid (same board state and not expired)
-    if (cacheData.boardHash === currentBoardHash && 
-        Date.now() - cacheData.timestamp < CACHE_DURATION) {
-      return cacheData.entities;
-    }
-    
-    return null;
-  } catch (error) {
-    logger.error('Error reading cached cheat sheet:', error);
-    return null;
-  }
 };
 
 /**
@@ -492,8 +272,17 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
     processedEntities.push(entity);
   }
 
-  logger.debug(`🔍 Fast filtering with global image filter: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);  // Apply media type filters
-  let finalEntities = processedEntities;
+  logger.debug(`🔍 Fast filtering with global image filter: ${relevantEntities.length} → ${processedEntities.length} in ${Date.now() - startFilterTime}ms`);
+
+  // Apply challenge-based filtering first (most important)
+  let challengeFilteredEntities = processedEntities;
+  if (filterOptions.challengeName) {
+    const challengeStartTime = Date.now();
+    challengeFilteredEntities = filterEntitiesByChallenge(processedEntities, filterOptions.challengeName);
+    logger.debug(`🎯 Challenge filtering (${filterOptions.challengeName}): ${processedEntities.length} → ${challengeFilteredEntities.length} in ${Date.now() - challengeStartTime}ms`);
+  }
+  // Apply media type filters
+  let finalEntities = challengeFilteredEntities;
   if (filterOptions.enableProductionFiltering) {
     if (filterOptions.filtertype?.includes('movies-only')) {
       finalEntities = finalEntities.filter(entity => entity.media_type !== 'tv');
@@ -501,92 +290,5 @@ const optimizeEntityFilteringFast = async (relevantEntities, nodes, filterOption
       finalEntities = finalEntities.filter(entity => entity.media_type !== 'movie');
     }
   }
-  // Apply production company filtering with adaptive limits based on dataset size
-  if (filterOptions.enableProductionFiltering && 
-      filterOptions.filtertype?.includes('no-production-companie')) {
-    
-    if (finalEntities.length < 200) {      logger.debug('🔍 Applying full production company filtering');
-      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
-        ...filterOptions,
-        batchSize: 50 // Larger batches
-      });
-    } else {      logger.debug('🔍 Applying optimized production company filtering for large dataset');      // For large datasets, apply filtering but without limits
-      finalEntities = await filterEntitiesAdvancedOptimized(finalEntities, {
-        ...filterOptions,
-        batchSize: 100 // Even larger batches for efficiency
-      });
-    }
-  }
-
   return finalEntities;
-};
-
-/**
- * Ultra-fast version of filterByProductionCompanies with aggressive caching and timeout protection
- */
-export const filterByProductionCompaniesUltraFast = async (entity, excludeCompanies = [], cache = null, failedFetches = null) => {
-  // Only filter movies and TV shows for production companies
-  if (!entity || (entity.media_type !== 'movie' && entity.media_type !== 'tv')) {
-    return true; // Keep people and other entities
-  }
-
-  // If no companies to exclude, keep all movies and TV shows
-  if (!excludeCompanies || excludeCompanies.length === 0) {
-    return true;
-  }
-
-  try {
-    // Check if we already have production company data
-    if (entity.production_companies && Array.isArray(entity.production_companies)) {
-      return !hasExcludedProductionCompany(entity.production_companies, excludeCompanies);
-    }
-
-    // Check cache first if provided
-    const cacheKey = `details-${entity.media_type}-${entity.id}`;
-    let details = cache?.get(cacheKey);
-
-    if (!details) {
-      // Check if this fetch failed before
-      if (failedFetches?.has(cacheKey)) {
-        return true; // Skip if we know it will fail
-      }
-
-      // Set a timeout for individual API calls
-      const fetchPromise = entity.media_type === 'movie' 
-        ? getMovieDetails(entity.id)
-        : getTvShowDetails(entity.id);
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('API timeout')), 2000) // 2 second timeout per call
-      );
-
-      try {
-        details = await Promise.race([fetchPromise, timeoutPromise]);
-      } catch (error) {
-        if (error.message === 'API timeout') {
-          logger.warn(`⚠️ API timeout for ${entity.media_type} ${entity.id}, skipping filter`);
-          failedFetches?.add(cacheKey);
-          return true; // Keep entity on timeout
-        }
-        throw error;
-      }
-
-      // Cache the details if cache is provided
-      if (cache && details) {
-        cache.set(cacheKey, details);
-      }
-    }
-
-    if (details && details.production_companies && Array.isArray(details.production_companies)) {
-      const hasExcludedCompany = hasExcludedProductionCompany(details.production_companies, excludeCompanies);
-      return !hasExcludedCompany;
-    }
-
-    return true; // Keep the movie/TV show if no excluded companies found
-
-  } catch (error) {
-    logger.error(`Error checking production companies for ${entity.title || entity.name}:`, error);
-    failedFetches?.add(`details-${entity.media_type}-${entity.id}`);
-    return true; // Keep the entity if we can't check (fail gracefully)
-  }
 };

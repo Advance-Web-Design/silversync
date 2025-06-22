@@ -6,10 +6,9 @@
  */
 import { useState } from 'react';
 import { getPersonDetails, getMovieDetails, getTvShowDetails } from '../services/tmdbService';
-import { processPersonDetails, findPersonConnections, findMovieConnections, findTvShowConnections, checkInitialConnectability as checkInitialConnectabilityUtil, checkItemConnectabilityUtil } from '../utils/entityUtils';
-import { DEFAULT_NODE_POSITION, RANDOM_POSITION_RANGE, calculateNodePosition, saveEntityToLocalDatabase, findPathBetweenNodes } from '../utils/boardUtils';
 import { logger } from '../utils/loggerUtils';
 import { actorTreeManager } from '../utils/actorTreeUtils';
+import { isMovieBlocked, isTvShowBlocked } from '../utils/challengeUtils';
 
 /**
  * @returns {Object} Board methods and state variables
@@ -118,13 +117,25 @@ export const useBoard = () => {
    * @param {number} gameStartTime - When the game started (for score calculation)
    * @param {Function} setGameCompleted - Function to set game completion state
    * @returns {Promise<void>} - Promise that resolves when item is added
-   */
-  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, setShortestPathLength, completeGame, gameStartTime, setGameCompleted, currentUser = null, challengeMode = null) => {
+   */  const addToBoard = async (item, exactMatch, connectableItems, setIsLoading, startActors, gameCompleted, setShortestPathLength, completeGame, gameStartTime, setGameCompleted, currentUser = null, challengeMode = null) => {
     if (!item) return;
 
     setIsLoading(true);
 
-    try {
+    try {      // Apply challenge filtering as a safety measure
+      if (challengeMode?.id) {
+        if (item.media_type === 'movie' && isMovieBlocked(item.id, challengeMode.id)) {
+          logger.warn(`🚫 Blocked movie from being added to board: ${item.title} (challenge: ${challengeMode.id})`);
+          setIsLoading(false);
+          return;
+        }
+        if (item.media_type === 'tv' && isTvShowBlocked(item.id, challengeMode.id)) {
+          logger.warn(`🚫 Blocked TV show from being added to board: ${item.name} (challenge: ${challengeMode.id})`);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const itemKey = `${item.media_type}-${item.id}`;
       const isConnectable = connectableItems[itemKey];
 
@@ -136,39 +147,36 @@ export const useBoard = () => {
       if (existingNode || !isConnectable) {
         setIsLoading(false);
         return;
-      }
-
-      // Process the item by type to add to the board
+      }      // Process the item by type to add to the board
       let nodeData = null;
       let nodeId = null;
       let nodeType = null;
-      let newConnections = [];
 
       // Process based on media type
       if (item.media_type === 'person') {
-        const details = await processPersonDetails(item.id);
+        const details = await getPersonDetails(item.id);
         nodeData = details;
         nodeId = `person-${item.id}`;
         nodeType = 'person';
-        newConnections = findPersonConnections(details, nodes, nodeId);
 
       } else if (item.media_type === 'movie') {
         const details = await getMovieDetails(item.id);
         nodeData = details;
         nodeId = `movie-${item.id}`;
         nodeType = 'movie';
-        newConnections = findMovieConnections(details, nodes, nodeId);
 
       } else if (item.media_type === 'tv') {
         const details = await getTvShowDetails(item.id);
         nodeData = details;
         nodeId = `tv-${item.id}`;
         nodeType = 'tv';
-        newConnections = findTvShowConnections(details, nodes, nodeId);
       }
 
-      // Calculate a position for the new node
-      const newNodePosition = calculateNodePosition(newConnections, nodePositions, nodeId);
+      // Calculate a simple position for the new node
+      const newNodePosition = {
+        x: 250 + Math.random() * 100 - 50, // Random position near center
+        y: 250 + Math.random() * 100 - 50
+      };
 
       const newNode = {
         id: nodeId,
@@ -183,10 +191,72 @@ export const useBoard = () => {
         ...prevPositions,
         [nodeId]: newNodePosition
       }));
+        // Create connections to existing nodes on the board
+      const newConnections = [];
       
-      // Add new connections
+      // Check connections based on node type
+      if (nodeType === 'person') {
+        // For actors, connect to movies/TV shows they appeared in that are on the board
+        const movieCredits = nodeData.movie_credits?.cast || [];
+        const tvCredits = nodeData.tv_credits?.cast || [];
+        
+        nodes.forEach(existingNode => {
+          if (existingNode.type === 'movie') {
+            const movieMatch = movieCredits.find(credit => credit.id === existingNode.data.id);
+            if (movieMatch) {
+              newConnections.push({
+                source: nodeId,
+                target: existingNode.id
+              });
+            }
+          } else if (existingNode.type === 'tv') {
+            const tvMatch = tvCredits.find(credit => credit.id === existingNode.data.id);
+            if (tvMatch) {
+              newConnections.push({
+                source: nodeId,
+                target: existingNode.id
+              });
+            }
+          }
+        });
+      } else if (nodeType === 'movie') {
+        // For movies, connect to actors that are on the board and appeared in this movie
+        const cast = nodeData.credits?.cast || [];
+        
+        nodes.forEach(existingNode => {
+          if (existingNode.type === 'person') {
+            const actorMatch = cast.find(actor => actor.id === existingNode.data.id);
+            if (actorMatch) {
+              newConnections.push({
+                source: nodeId,
+                target: existingNode.id
+              });
+            }
+          }
+        });
+      } else if (nodeType === 'tv') {
+        // For TV shows, connect to actors that are on the board and appeared in this show
+        const regularCast = nodeData.credits?.cast || [];
+        const aggregateCast = nodeData.aggregate_credits?.cast || [];
+        const allCast = [...regularCast, ...aggregateCast];
+        
+        nodes.forEach(existingNode => {
+          if (existingNode.type === 'person') {
+            const actorMatch = allCast.find(actor => actor.id === existingNode.data.id);
+            if (actorMatch) {
+              newConnections.push({
+                source: nodeId,
+                target: existingNode.id
+              });
+            }
+          }
+        });
+      }
+
+      // Add the new connections to the connections state
       if (newConnections.length > 0) {
-        setConnections(prev => [...prev, ...newConnections]);
+        setConnections(prevConnections => [...prevConnections, ...newConnections]);
+        logger.info(`🔗 Created ${newConnections.length} connections for ${nodeData.name || nodeData.title}`);
       }
 
       // Add the entity to actor trees and check for connections

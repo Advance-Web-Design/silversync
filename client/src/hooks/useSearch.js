@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { searchPeople } from '../services/tmdbService';
 import { searchLocal, quickSearch } from '../utils/localSearch';
-import { addToSearchHistory } from '../utils/cheatSheetCache';
 import { logger } from '../utils/loggerUtils';
 
 /**
@@ -81,17 +80,9 @@ export const useSearch = () => {
       }
     }
     
-    return null;
-  };  /**
-   * Learn from successful searches to improve future searches
-   * @param {string} term - Search term
-   * @param {Array} results - Search results
-   */
-  const learnFromSuccessfulSearch = (term, results) => {
-    // The cache now handles search history internally
-    addToSearchHistory(term, results);
-  };
-    // "Did you mean" functionality has been removed while keeping fuzzy search capabilities
+    return null;  };
+
+  // "Did you mean" functionality has been removed while keeping fuzzy search capabilities
 
   /**
    * Search for actors for the starting positions
@@ -149,10 +140,10 @@ export const useSearch = () => {
         newTotalPages[actorIndex] = response.total_pages;
         return newTotalPages;
       });
-      
-      // Learn from the search
+        // Learn from the search
       if (filteredResults && filteredResults.length > 0) {
-        learnFromSuccessfulSearch(query, filteredResults.map(result => ({ ...result, media_type: 'person' })));
+        // Search learning functionality has been removed as part of cleanup
+        logger.debug(`Found ${filteredResults.length} actors for query: ${query}`);
       }
     } catch (error) {
       logger.error('Error searching for actors:', error);
@@ -185,13 +176,11 @@ export const useSearch = () => {
     setExactMatch,
     originalSearchTerm,
     setOriginalSearchTerm,
-    connectableItems,
-    setConnectableItems,
+    connectableItems,    setConnectableItems,
     performLocalSearch,
     performQuickSearch,
     checkForMisspelling,
     findExactMatch,
-    learnFromSuccessfulSearch,
     searchStartActors,
     resetSearch
   };
