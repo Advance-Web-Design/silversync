@@ -65,8 +65,17 @@ function About({ onClose }) {
               }>
                 We hope you enjoy playing it as much as we enjoyed making it!
               </p>
+                <a href="https://www.buymeacoffee.com/orhod">
+                  <img
+                    src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=orhod&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=ffffff"
+                    alt="Buy me a coffee"
+                    className="transition-opacity hover:opacity-80"
+                  />
+                </a>
             </div>
+
           </div>
+
         </div>
       )}
     </>
