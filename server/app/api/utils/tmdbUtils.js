@@ -220,7 +220,7 @@ export async function testTMDBConnection() {
 /**
  * Fetch content by company names (search-based approach)
  */
-export async function fetchByCompanyNames(type, companyNames, maxPages = 5) {
+export async function fetchByCompanyNames(type, companyNames) {
   const rateLimiter = new TMDBRateLimiter();
   const results = [];
   const seenIds = new Set(); // Prevent duplicates
@@ -229,14 +229,14 @@ export async function fetchByCompanyNames(type, companyNames, maxPages = 5) {
     console.log(`Searching ${type} by company name: ${companyName}`);
     
     let page = 1;
-    let totalPages = 1;
     
     do {
       try {
         const data = await searchByCompanyName(type, companyName, page, rateLimiter);
         
-        if (page === 1) {
-          totalPages = Math.min(data.total_pages, maxPages);
+        // If no results, we've reached the end
+        if (!data.results || data.results.length === 0) {
+          break;
         }
         
         // Add unique results
@@ -254,7 +254,7 @@ export async function fetchByCompanyNames(type, companyNames, maxPages = 5) {
         break; // Move to next company on error
       }
       
-    } while (page <= totalPages);
+    } while (true);
   }
   
   return results;
