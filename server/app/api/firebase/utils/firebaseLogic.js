@@ -408,5 +408,31 @@ export async function getUserGameHistory(userId) {
     }
 
     const user = userSnapshot.val();
-    return user.gamehistory || {};
+    const gameHistory = user.gamehistory || {};
+    
+    // Clean up game history to ensure no mode has more than 10 games
+    let needsCleanup = false;
+    const cleanedHistory = {};
+    
+    Object.entries(gameHistory).forEach(([gameMode, games]) => {
+        if (Array.isArray(games) && games.length > 10) {
+            cleanedHistory[gameMode] = games.slice(0, 10);
+            needsCleanup = true;
+            console.log(`Cleaned up ${gameMode}: reduced from ${games.length} to 10 games`);
+        } else {
+            cleanedHistory[gameMode] = games;
+        }
+    });
+    
+    // If cleanup was needed, update the database
+    if (needsCleanup) {
+        try {
+            await userRef.child('gamehistory').update(cleanedHistory);
+            console.log('Successfully cleaned up game history in Firebase');
+        } catch (error) {
+            console.error('Error cleaning up game history:', error);
+        }
+    }
+    
+    return cleanedHistory;
 }

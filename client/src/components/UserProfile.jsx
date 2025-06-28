@@ -85,20 +85,33 @@ function UserProfile({ onClose, userData = {} }) {
         }, [userData]);        // Load game history from userData or fetch if not available
         useEffect(() => {
             if (userData.gamehistory) {
-                setGameHistory(userData.gamehistory);
+                // Limit each game mode to last 10 games (in case userData has more)
+                const limitedHistory = {};
+                Object.entries(userData.gamehistory).forEach(([gameMode, games]) => {
+                    limitedHistory[gameMode] = games.slice(0, 10);
+                });
+                
+                setGameHistory(limitedHistory);
                 // Reset to 'All' tab when new data is loaded
                 setActiveTab('All');
             } else if (userData.userId && !loadingGameHistory) {
                 loadGameHistory();
             }
-        }, [userData]);        // Function to load game history
+        }, [userData]);// Function to load game history
         const loadGameHistory = async () => {
             if (!userData.userId) return;
             
             setLoadingGameHistory(true);
             try {
                 const history = await fetchUserGameHistory(userData.userId);
-                setGameHistory(history);
+                
+                // Limit each game mode to last 10 games (in case database has more)
+                const limitedHistory = {};
+                Object.entries(history).forEach(([gameMode, games]) => {
+                    limitedHistory[gameMode] = games.slice(0, 10);
+                });
+                
+                setGameHistory(limitedHistory);
                 setActiveTab('All'); // Reset to 'All' tab when loading new data
             } catch (error) {
                 console.error('Error loading game history:', error);
@@ -231,9 +244,11 @@ function UserProfile({ onClose, userData = {} }) {
                             }
                         >
                             Change Password
-                        </button>
-                        <button 
-                            onClick={() => setShowGameHistory(true)} 
+                        </button>                        <button 
+                            onClick={() => {
+                                setShowGameHistory(true);
+                                loadGameHistory(); // Refresh game history data from database
+                            }} 
                             className={
                                 "px-4 py-2 rounded-md font-semibold text-sm transition-colors duration-150 focus:outline-none focus:ring-2 " +
                                 (isLightMode 

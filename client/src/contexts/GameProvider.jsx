@@ -17,13 +17,9 @@ import { GameContext } from './gameContext';
 import { useGame } from '../hooks/useGame';
 import { useBoard } from '../hooks/useBoard';
 import { useSearch } from '../hooks/useSearch';
-import {
-  fetchAllPossibleConnections as fetchEntityConnections,
-  checkActorTvShowConnection as checkActorTvConnection,
-} from '../utils/entityUtils';
 import { generateCheatSheet, clearCheatSheetCacheForNewGame } from '../utils/cheatSheetCache';
 import { fetchRandomUniqueActor, clearConnectionCache } from '../utils/boardUtils';
-import { getPersonDetails, getMovieDetails, getTvShowDetails, checkActorInTvShow, fetchRandomPerson } from '../services/tmdbService';
+import { getPersonDetails, getMovieDetails, getTvShowDetails, fetchRandomPerson } from '../services/tmdbService';
 import { loadChallengeBlacklists } from '../services/challengeBlacklistService';
 import { logger } from '../utils/loggerUtils';
 
@@ -38,14 +34,11 @@ export const GameProvider = ({ children }) => {
   // Use custom hooks for different aspects of the game
   const gameState = useGame();
   const boardState = useBoard();
-  const searchState = useSearch();
-
-  // Local state for UI and game interactions
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [possibleConnections, setPossibleConnections] = useState([]);
-  const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+  const searchState = useSearch();  // Local state for UI and game interactions
   const [showAllSearchable, setShowAllSearchable] = useState(false);
   const [cheatSheetResults, setCheatSheetResults] = useState([]);
+  // Node selection for connections panel
+  const [selectedNode, setSelectedNode] = useState(null);
   // Challenge and screen navigation state
   const [currentScreen, setCurrentScreen] = useState('challenges'); // 'start', 'challenges', 'actor-selection', 'game'
   const [challengeMode, setChallengeMode] = useState(null);
@@ -140,13 +133,12 @@ export const GameProvider = ({ children }) => {
     setIsLoading(true);
     try {
       // Use provided nodes or fall back to state nodes
-      const nodesToUse = updatedNodes || nodes;
-
-      // Generate new cheat sheet with challenge filtering
+      const nodesToUse = updatedNodes || nodes;      // Generate new cheat sheet with challenge filtering
       const cheatSheetEntities = await generateCheatSheet(nodesToUse, gameStarted, startActors, {
         enableProductionFiltering: challengeMode?.filter || false,
         filtertype: challengeMode?.type || 'classic',
         excludeProductionCompanies: challengeMode?.remove || [],
+        challengeName: challengeMode?.id || null, // Pass the challenge name for blacklist filtering
       });
 
       setCheatSheetResults(cheatSheetEntities); // Load cheat sheet results into and cashe them for search
@@ -250,31 +242,6 @@ export const GameProvider = ({ children }) => {
     setCurrentScreen('challenges');
     setChallengeMode(null);
   };
-
-  /**
-   * Handles selection of a node on the game board
-   * Fetches all possible connections for the selected node
-   * 
-   * @param {Object} node - The selected node object
-   */
-  const selectNode = async (node) => {
-    logger.debug(`🎯 Selecting node: ${node.data?.name || node.data?.title || 'Unknown'}`);
-    setSelectedNode(node);
-    setIsLoadingConnections(true);
-
-    try {
-      // Fetch all possible connections for this node
-      const connections = await fetchAllPossibleConnections(node);
-      setPossibleConnections(connections);
-      logger.debug(`📊 Found ${connections.length} possible connections`);
-    } catch (error) {
-      logger.error("Error fetching possible connections:", error);
-      setPossibleConnections([]);
-    } finally {
-      setIsLoadingConnections(false);
-    }
-  };
-
   /**
    * Wrapper function for searchStartActors that provides all required parameters
    * This ensures the function is called with the correct state setters
@@ -409,40 +376,7 @@ export const GameProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
-
   /**
-   * Checks if an actor appears in a TV show
-   * @param {number} actorId - ID of the actor
-   * @param {number} tvShowId - ID of the TV show
-   */
-  const checkActorTvShowConnection = async (actorId, tvShowId) => {
-    return await checkActorTvConnection(actorId, tvShowId, {
-      getPersonDetails,
-      getTvShowDetails,
-      checkActorInTvShow
-    });
-  };
-
-  /**
-   * Fetches all possible connections for a given node
-   * @param {Object} node - The node to find connections for
-   */
-  const fetchAllPossibleConnections = async (node) => {
-    return await fetchEntityConnections(
-      node,
-      { getPersonDetails, getMovieDetails, getTvShowDetails },
-      nodes
-    );
-  };
-
-  /**
-   * Closes the connections panel by clearing selected node state
-   */
-  const closeConnectionsPanel = () => {
-    logger.debug('❌ Closing connections panel');
-    setSelectedNode(null);
-    setPossibleConnections([]);
-  };  /**
    * Toggles visibility of all searchable entities in the sidebar
    * Only shows/hides the sidebar, doesn't regenerate data
    */  const toggleShowAllSearchable = async () => {
@@ -481,10 +415,19 @@ export const GameProvider = ({ children }) => {
         logger.error('❌ Failed to initialize challenge blacklists:', error);
         // Continue without blacklists - app should still work
       }
-    };
-
-    initializeChallengeBlacklists();
+    };    initializeChallengeBlacklists();
   }, []); // Run once on app startup
+
+  // Node selection functions for connections panel
+  const selectNode = (node) => {
+    setSelectedNode(node);
+    logger.debug(`🎯 Selected node: ${node.data.name || node.data.title}`);
+  };
+
+  const closeConnectionsPanel = () => {
+    setSelectedNode(null);
+    logger.debug('❌ Closed connections panel');
+  };
 
   const contextValue = {
     // Game state and actions
@@ -507,15 +450,10 @@ export const GameProvider = ({ children }) => {
     gameStartTime,
     gameScore: gameState.gameScore,
     currentGameScore: gameState.currentGameScore, // Add current game score
-    shortestPathLength,
-
-    // Board state
+    shortestPathLength,    // Board state
     nodes,
     connections,
     nodePositions,
-    selectedNode,
-    possibleConnections,
-    isLoadingConnections,
     showAllSearchable,    // Challenge mode and screen navigation
     currentScreen,
     challengeMode,
@@ -541,9 +479,7 @@ export const GameProvider = ({ children }) => {
     setConnectableItems,    setSearchTerm,    setCurrentScreen,
     setChallengeMode,
     setShowLeaderboard,
-    setCurrentUser,
-
-    // Board functions
+    setCurrentUser,    // Board functions
     addToBoard,
     addPersonToBoard,
     addMovieToBoard,
@@ -551,26 +487,26 @@ export const GameProvider = ({ children }) => {
     checkItemConnectability,
     checkInitialConnectability,
     checkGameCompletion,
-    checkActorTvShowConnection,
 
     // Custom hooks actions
     startGame,
     resetGame,
     selectStartActor,
     updateNodePosition,
-    selectNode,
-    closeConnectionsPanel,
     toggleShowAllSearchable,
     fetchAndSetAllSearchableEntities,
     randomizeActors,
     handleSearch,
     searchStartActors: searchStartActorsWrapper,
-    setActorSearch,
-
-    // Cheat sheet results
+    setActorSearch,    // Cheat sheet results
     cheatSheetResults,
     setCheatSheetResults,
-  };  // Auto-generate cache when game starts to enable local search
+
+    // Node selection for connections panel
+    selectedNode,
+    selectNode,
+    closeConnectionsPanel,
+  };// Auto-generate cache when game starts to enable local search
   useEffect(() => {
     if (gameStarted && nodes.length === 2) { // Only when game starts with initial 2 actors
       logger.debug('🚀 Game started, generating cache for local search');
