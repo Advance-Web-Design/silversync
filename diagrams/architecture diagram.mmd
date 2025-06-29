@@ -1,231 +1,145 @@
----
-query: assume the site is deployed, and if you can add some component diagram and
-  emphasis the data flow as well
-references:
-  - "File: /architecture diagram.mmd"
-generationTime: 2025-06-07T15:26:55.882Z
----
-flowchart TB
-    %% ========================================
-    %% LAYER 1: PRESENTATION LAYER (React Frontend - Vercel Edge)
-    %% ========================================
-    subgraph PRES["🎨 PRESENTATION (React - Vercel Edge)"]
-        direction TB
-        
-        subgraph CORE["🎯 Core"]
-            APP["App.jsx<br/>Router"] 
-            GC["GameContent.jsx<br/>Shell"]
-            SS["StartScreen.jsx<br/>Setup"]
-        end
-        
-        subgraph GAME["🎮 Game Engine"]
-            GA["GameplayArea.jsx<br/>Container"]
-            GB["GameBoard.jsx<br/>Main+Zoom"]
-            NL["NodeLayer.jsx<br/>Position"]
-            DN["DraggableNode.jsx<br/>Cards"]
-            CL["ConnectionLines.jsx<br/>Paths"]
-        end
-        
-        subgraph SEARCH["🔍 Search"]
-            SP["SearchPanel.jsx<br/>Input"]
-            SPU["SearchPanelUI.jsx<br/>Results"]
-            CP["ConnectionsPanel.jsx<br/>Details"]
-            SES["SearchEntitiesSidebar.jsx<br/>Browser"]
-        end
-        
-        subgraph UI["🖼️ UI Components"]
-            BH["BoardHeader.jsx<br/>Title+Menu"]
-            AC["ActorCard.jsx<br/>Display"]
-            ASI["ActorSearchInterface.jsx<br/>Input"]
-            VM["VictoryModal.jsx<br/>Win"]
-            MENU["Menu.jsx<br/>Nav"]
-            INFO["InfoBar.jsx<br/>Status"]
-        end
-        
-        subgraph AUTH["🔐 Auth & Pages"]
-            LOGIN["Login.jsx"]
-            REG["Register.jsx"]
-            PROF["Profile.jsx"]
-            HTP["HowToPlay.jsx"]
-            ABOUT["About.jsx"]
-            LB["Leaderboard.jsx"]
-            CM["ChallengeMode.jsx"]
-        end
-    end
-    
-    %% ========================================
-    %% LAYER 2: SERVERLESS BACKEND (Next.js 15 - Vercel Functions)
-    %% ========================================
-    subgraph BACKEND["🔧 SERVERLESS BACKEND (Next.js 15 - Vercel)"]
-        direction TB
-        
-        subgraph API["🚀 API Routes"]
-            SEARCH_API["api/tmdb/search/*<br/>Multi-Search Proxy"]
-            ACTOR_API["api/tmdb/actor/*<br/>Actor+Credits"]
-            MOVIE_API["api/tmdb/movie/*<br/>Movie+Cast"]
-            TV_API["api/tmdb/tv-show/*<br/>TV+Cast"]
-        end
-        
-        subgraph MW_SEC["🛡️ Security"]
-            MW["middleware.js<br/>CORS Headers"]
-            BEARER["Bearer Token<br/>TMDB Security"]
-            CACHE["60s Cache<br/>Performance"]
-        end
-        
-        subgraph FEATURES["⚡ Features"]
-            SCALE["Auto-Scaling<br/>Global CDN"]
-            ENV["Env Variables<br/>API Security"]
-        end
-    end
-    
-    %% ========================================
-    %% LAYER 3: BUSINESS LOGIC LAYER (React State + Client Services)
-    %% ========================================
-    subgraph BIZ["🧠 BUSINESS LOGIC (React State + Client Services)"]
-        direction TB
-        
-        subgraph STATE["📊 State"]
-            GP["GameProvider.jsx<br/>Central Context"]
-            GCX["gameContext.js<br/>Distribution"]
-        end
-        
-        subgraph HOOKS["🎣 Hooks"]
-            UG["useGame.js<br/>Mechanics"]
-            UB["useBoard.js<br/>Management"]
-            USR["useSearch.js<br/>Logic"]
-            UZ["useZoom.js<br/>Viewport"]
-        end
-        
-        subgraph CLIENT_SVCS["📡 CLIENT SERVICES"]
-            AS["apiService.js<br/>HTTP Client<br/>Error Handling"]
-            TS["tmdbService.js<br/>TMDB Integration<br/>Data Processing"]
-            FS["firebaseService.js<br/>Firebase Client<br/>Auth+Firestore"]
-        end
-        
-        subgraph UTILS["🛠️ Utils"]
-            EU["entityUtils.js<br/>Connections"]
-            BU["boardUtils.js<br/>Position+Path"]
-            SU["searchUtils.js<br/>Fuzzy Search"]
-            AU["apiUtils.js<br/>HTTP Helpers"]
-            TU["tmdbUtils.js<br/>Image URLs"]
-            STU["stringUtils.js<br/>Text Processing"]
-        end
-    end
-    
-    %% ========================================
-    %% LAYER 4: CLOUD DATA (External Services)
-    %% ========================================
-    subgraph CLOUD["☁️ CLOUD DATA (External Services)"]
-        direction TB
-        
-        subgraph TMDB["🎬 TMDB"]
-            TMDB_API["TMDB API v3<br/>Search/Actor/Movie/TV<br/>Authenticated"]
-            TMDB_CDN["TMDB Images CDN<br/>Direct Delivery<br/>Profile/Poster"]
-        end
-        
-        subgraph FIREBASE["🔥 Firebase"]
-            FB_AUTH["Authentication<br/>Login/Register"]
-            FB_STORE["Firestore DB<br/>users|gameStats<br/>leaderboard|challenges"]
-            FB_FUNC["Cloud Functions<br/>Stats Processing<br/>Leaderboard Updates"]
-            FB_RULES["Security Rules<br/>User Access Control"]
-        end
-        
-        subgraph VERCEL_INFRA["🌐 Vercel"]
-            EDGE["Edge Network<br/>Global Distribution"]
-            DEPLOY["Deployments<br/>Auto-Scaling"]
-            ANALYTICS["Analytics<br/>Monitoring"]
-        end
-    end
-    
-    %% ========================================
-    %% DATA FLOWS - OPTIMIZED ARROWS
-    %% ========================================
-    
-    %% Primary App Flow (Thick Blue)
-    APP ==> GC
-    GC ==> GA
-    GA ==> GB
-    
-    %% Game Engine Flow (Green)
-    GB --> NL
-    GB --> CL
-    NL --> DN
-    
-    %% Search Flow (Purple)
-    GB --> SP
-    SP --> SPU
-    SP --> SES
-    GB --> CP
-    
-    %% Presentation to Backend (Direct API calls)
-    SP ==> SEARCH_API
-    AC ==> ACTOR_API
-    PROF ==> MOVIE_API
-    LB ==> TV_API
-    
-    %% State Management (Red - Critical)
-    GP ==> GCX
-    GP ==> UG
-    GP ==> UB
-    GP ==> USR
-    GP ==> UZ
-    
-    %% Client Services Integration (Orange - Key Path)
-    USR ==> AS
-    USR ==> TS
-    GP ==> FS
-    UG --> EU
-    UB --> BU
-    USR --> SU
-    
-    %% Backend to Business Logic (Green - API Flow)
-    SEARCH_API ==> AS
-    ACTOR_API ==> AS
-    MOVIE_API ==> AS
-    TV_API ==> AS
-    
-    %% Backend to TMDB (Thick Green)
-    SEARCH_API ==> TMDB_API
-    ACTOR_API ==> TMDB_API
-    MOVIE_API ==> TMDB_API
-    TV_API ==> TMDB_API
-    
-    %% Direct CDN (Dashed Red - Performance)
-    DN -.-> TMDB_CDN
-    SPU -.-> TMDB_CDN
-    AC -.-> TMDB_CDN
-    
-    %% Firebase Direct (Dashed Orange)
-    FS -.-> FB_AUTH
-    FS -.-> FB_STORE
-    LOGIN -.-> FB_AUTH
-    REG -.-> FB_AUTH
-    PROF -.-> FB_STORE
-    LB -.-> FB_STORE
-    FB_STORE -.-> FB_FUNC
-    
-    %% Utility Integration (Gray)
-    TS --> TU
-    AS --> AU
-    
-    %% Infrastructure (Blue)
-    BACKEND --> EDGE
-    BACKEND --> DEPLOY
-    MW --> BEARER
-    MW --> CACHE
-    
-    %% ========================================
-    %% STYLING
-    %% ========================================
-    
-    classDef presentationLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-    classDef backendLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
-    classDef businessLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
-    classDef cloudLayer fill:#fff8e1,stroke:#e65100,stroke-width:2px,color:#000
-    classDef coreComponent fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
-    
-    class PRES,CORE,GAME,SEARCH,UI,AUTH presentationLayer
-    class BACKEND,API,MW_SEC,FEATURES backendLayer
-    class BIZ,STATE,HOOKS,CLIENT_SVCS,UTILS,AS,TS,FS businessLayer
-    class CLOUD,TMDB,FIREBASE,VERCEL_INFRA cloudLayer
-    class APP,GP,GB,TMDB_API,FB_AUTH coreComponent
+flowchart TD
+ subgraph GAME["game/"]
+        InfoBar["InfoBar"]
+        ActorCard["ActorCard"]
+        LoadingOverlay["LoadingOverlay"]
+        NodeLayer["NodeLayer"]
+        SearchPanel["SearchPanel"]
+        SearchPanelUI["SearchPanelUI"]
+        VictoryModal["VictoryModal"]
+        ConnectionContent["ConnectionContent"]
+        ConnectionLines["ConnectionLines"]
+        ConnectionsPanel["ConnectionsPanel"]
+        DraggableNode["DraggableNode"]
+        GameplayArea["GameplayArea"]
+        SearchEntitiesSidebar["SearchEntitiesSidebar"]
+        GameBoard["GameBoard"]
+  end
+ subgraph COMPONENTS["components/"]
+        GameContent["GameContent"]
+        Menu["Menu"]
+        HowToPlay["HowToPlay"]
+        About["About"]
+        Leaderboard["Leaderboard"]
+        Login["Login"]
+        Register["Register"]
+        ToggleButtonCheck["ToggleButtonCheck"]
+        UserProfile["UserProfile"]
+        StartScreen["StartScreen"]
+        ChallengeScreen["ChallengeScreen"]
+        GAME
+  end
+ subgraph CONTEXT["context/"]
+        GameProvider["GameProvider"]
+        ThemeContext["ThemeContext"]
+        gameContext["gameContext"]
+  end
+ subgraph HOOKS["hooks/"]
+        useBoard["useBoard"]
+        useZoom["useZoom"]
+        useGame["useGame"]
+        useSearch["useSearch"]
+  end
+ subgraph SERVICES["services/"]
+        tmdbService["tmdbService"]
+        firebaseService["firebaseService"]
+        challengeBlacklistService["challengeBlacklistService"]
+        apiService["apiService"]
+  end
+ subgraph UTILS["utils/"]
+        actorTreeUtils["actorTreeUtils"]
+        loggerUtils["loggerUtils"]
+        stringUtils["stringUtils"]
+        tmdbUtils["tmdbUtils"]
+        challengeUtils["challengeUtils"]
+        apiUtils["apiUtils"]
+        entityUtils["entityUtils"]
+        localSearch["localSearch"]
+  end
+ subgraph STYLES["styles/"]
+        appStyle["appStyle"]
+        menuStyle["menuStyle"]
+        connectionPanelStyle["connectionPanelStyle"]
+        AboutStyles["AboutStyles"]
+        FormStyle["FormStyle"]
+        BoardStyle["BoardStyle"]
+        ActorsCardStyle["ActorsCardStyle"]
+        PanelUIStyle["PanelUIStyle"]
+        SearchSidebar["SearchSidebar"]
+        ChallangeStyle["ChallangeStyle"]
+  end
+ subgraph CLIENT["Client"]
+    direction TB
+        COMPONENTS
+        CONTEXT
+        HOOKS
+        SERVICES
+        UTILS
+        STYLES
+        main["main"]
+        App["App"]
+  end
+ subgraph SERVER["Server"]
+    direction TB
+        API
+        middleware["middleware"]
+  end
+ subgraph API["api/"]
+        tmdb["tmdb"]
+        game["game"]
+        auth["auth"]
+  end
+ subgraph EXTERNAL["External Services & APIs"]
+    direction TB
+        Vercel[("Vercel Deployment")]
+        TMDb_CDN[("TMDb Image CDN")]
+        Cron_Job[("Cron Job")]
+        Firebase[("Firebase Auth/Firestore")]
+        Email_Provider[("Email Provider: SMTP/Gmail/Outlook")]
+        TMDb_API[("TMDb API")]
+  end
+    main --> App
+    App --> GameProvider & ThemeContext & GameContent
+    GameProvider --> useBoard & useGame & useSearch & tmdbService & challengeBlacklistService & loggerUtils & actorTreeUtils & challengeUtils & stringUtils
+    GameContent --> StartScreen & ChallengeScreen & GameplayArea
+    GameplayArea --> GameBoard & InfoBar & VictoryModal
+    GameBoard --> ConnectionsPanel & LoadingOverlay & NodeLayer & ConnectionLines & SearchPanel & SearchEntitiesSidebar
+    NodeLayer --> DraggableNode
+    ConnectionsPanel --> ConnectionContent & entityUtils
+    useBoard --> entityUtils
+    localSearch --> entityUtils
+    ConnectionContent --> ConnectionsPanel
+    SearchPanel --> SearchPanelUI & SearchEntitiesSidebar
+    Menu --> HowToPlay & About & Leaderboard & Login & Register & ToggleButtonCheck & ThemeContext & gameContext & UserProfile
+    UserProfile --> firebaseService & gameContext & ThemeContext & AboutStyles & FormStyle
+    About --> AboutStyles
+    HowToPlay --> AboutStyles & ThemeContext
+    ToggleButtonCheck --> ThemeContext
+    tmdbService --> tmdbUtils & apiService
+    firebaseService --> apiService
+    challengeBlacklistService --> apiService
+    apiService --> apiUtils
+    apiService -. HTTP .-> middleware
+    middleware --> tmdb & game & auth
+    tmdb -. HTTP .-> TMDb_API
+    game -. HTTP .-> Firebase & TMDb_API
+    auth -. HTTP .-> Firebase
+    auth -. SMTP .-> Email_Provider
+    tmdb -. Deploy .-> Vercel
+    game -. Deploy .-> Vercel
+    auth -. Deploy .-> Vercel
+    main -. Deploy .-> Vercel
+    GameBoard -. Images .-> TMDb_CDN
+    Cron_Job -. POST .-> game
+
+    style GAME fill:#B3E5FC
+    style COMPONENTS fill:#B3E5FC
+    style CONTEXT fill:#B3E5FC
+    style HOOKS fill:#B3E5FC
+    style SERVICES fill:#B3E5FC
+    style UTILS fill:#B3E5FC
+    style STYLES fill:#B3E5FC
+    style API fill:#FFE0B2
+    style EXTERNAL fill:#C8E6C9,stroke:#388E3C,stroke-width:2
+    style CLIENT fill:#B3E5FC,stroke:#0288D1,stroke-width:2
+    style SERVER fill:#FFE0B2,stroke:#F57C00,stroke-width:2
