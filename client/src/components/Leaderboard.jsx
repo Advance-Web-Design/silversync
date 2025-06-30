@@ -147,24 +147,25 @@ const Leaderboard = ({ onClose }) => {
                     <span className="text-red-400">{error}</span>
                   </div>
                 ) : leaderboardData.length > 0 ? (                 
-                   <>                 <div className={`grid grid-cols-6 gap-8 text-sm font-bold border-b pb-2 ${
+                   <>                 <div className={`grid grid-cols-6 gap-1 sm:gap-2 md:gap-4 lg:gap-8 text-xs sm:text-sm font-bold border-b pb-2 ${
                       isLightMode 
                         ? 'text-gray-700 border-gray-300' 
                         : 'text-gray-300 border-gray-600'
                     }`}>
                       <span className="text-center">Rank</span>
-                      <span>Player</span>
+                      <span className="truncate">Player</span>
                       <span className="text-center">Score</span>
                       <span className="text-center">Time</span>
                       <span className="text-center">Path</span>
-                      <span className="col-span-1">Starting Actors</span>
+                      <span className="text-center text-xs sm:text-sm">Actors</span>
                     </div>
                     {leaderboardData.map((player) => (                      
                       <div key={`${player.username}-${player.rank}`} 
-                           className={`grid grid-cols-6 gap-8 text-sm py-2 border-b border-opacity-30 ${
+                           className={`grid grid-cols-6 gap-1 sm:gap-2 md:gap-4 lg:gap-8 text-xs sm:text-sm py-2 border-b border-opacity-30 ${
                              isLightMode ? 'text-gray-800 border-gray-200' : 'text-white border-gray-700'
                            } ${player.rank <= 3 ? 'bg-gradient-to-r from-transparent via-yellow-50/10 to-transparent' : ''}`}>
-                        <span className={`font-bold text-center ${
+    
+                        <span className={`font-bold text-center text-xs sm:text-sm ${
                           player.rank === 1 ? (isLightMode ? 'text-yellow-600' : 'text-yellow-400') :
                           player.rank === 2 ? (isLightMode ? 'text-gray-600' : 'text-gray-300') :
                           player.rank === 3 ? (isLightMode ? 'text-amber-600' : 'text-amber-400') :
@@ -172,24 +173,37 @@ const Leaderboard = ({ onClose }) => {
                         }`}>
                           {getRankDisplay(player.rank)}
                         </span>
-                        <span className="truncate font-medium" title={player.username}>{player.username}</span>
-                        <span className="text-center font-semibold">{player.score}</span>
-                        <span className="text-center">{formatTime(player.time)}</span>
-                        <span className="text-center">{player.pathLength || 'N/A'}</span>                        
-                        <span className="text-xs leading-tight" title={`${player.startingActor1} → ${player.startingActor2}`}>
+    
+                        <span className="truncate font-medium text-xs sm:text-sm" title={player.username}>
+                          {player.username}
+                        </span>
+    
+                        <span className="text-center font-semibold text-xs sm:text-sm">
+                          {player.score}
+                        </span>
+    
+                        <span className="text-center text-xs sm:text-sm">
+                          {formatTime(player.time)}
+                        </span>
+    
+                        <span className="text-center text-xs sm:text-sm">
+                          {player.pathLength || 'N/A'}
+                        </span>
+    
+                        <span className="text-xs leading-tight overflow-hidden" title={`${player.startingActor1} → ${player.startingActor2}`}>
                           {player.startingActor1 && player.startingActor2 
                             ? (
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`font-medium ${isLightMode ? 'text-blue-700' : 'text-blue-300'}`}>
-                                  {player.startingActor1}
+                              <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-1 text-xs">
+                                <span className={`font-medium truncate max-w-full ${isLightMode ? 'text-blue-700' : 'text-blue-300'}`}>
+                                  {player.startingActor1.split(' ')[0]} {/* Show only first name on mobile */}
                                 </span>
-                                <span className="text-gray-500 font-bold">→</span>
-                                <span className={`font-medium ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>
-                                  {player.startingActor2}
+                                <span className="text-gray-500 font-bold hidden sm:inline">→</span>
+                                <span className={`font-medium truncate max-w-full ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>
+                                  {player.startingActor2.split(' ')[0]} {/* Show only first name on mobile */}
                                 </span>
                               </div>
                             )
-                            : 'N/A'
+                            : <span className="text-xs">N/A</span>
                           }
                         </span>
                       </div>

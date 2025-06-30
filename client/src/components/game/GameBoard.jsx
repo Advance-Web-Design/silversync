@@ -67,18 +67,38 @@ const GameBoard = React.memo(() => {
       if (boardRef.current) {
         const rect = boardRef.current.getBoundingClientRect();
         const effectiveZoom = zoomLevel || 1;
+        
+        // Get actual viewport dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate safe areas for mobile
+        const isPortrait = viewportHeight > viewportWidth;
+        const safeAreaTop = isPortrait ? 80 : 60;
+        const safeAreaBottom = isPortrait ? 180 : 120;
+        
+        // Calculate available space
+        const availableWidth = Math.max(rect.width, viewportWidth - 20);
+        const availableHeight = Math.max(rect.height, viewportHeight - safeAreaTop - safeAreaBottom);
+        
         setBoardSize({
-          // divide by zoom so that boardSize × zoom === actual viewport size
-          width:  rect.width  / effectiveZoom,
-          height: rect.height / effectiveZoom
+          width: Math.max(availableWidth / effectiveZoom, 320),
+          height: Math.max(availableHeight / effectiveZoom, 480)
         });
       }
     };
-    // Initial dimensions
+    
     updateDimensions();
-    // Add resize listener
     window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    window.addEventListener('orientationchange', () => {
+      // Delay to allow orientation change to complete
+      setTimeout(updateDimensions, 100);
+    });
+    
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener('orientationchange', updateDimensions);
+    };
   }, [zoomLevel]);  // <-- now also runs whenever zoomLevel changes
 
   /**
@@ -154,7 +174,7 @@ const GameBoard = React.memo(() => {
     >
       <div
         className={BoardStyles.zoomWrapperStyle} // Use style from BoardStyle.js
-        // Removed inline styles: width, height, position, overflow (now in zoomWrapperStyle)
+        
       >
         <div
           className={BoardStyles.zoomContentBaseStyle} // Use base style from BoardStyle.js
@@ -162,7 +182,6 @@ const GameBoard = React.memo(() => {
             width:           `${boardSize.width}px`,  // Dynamic, remains inline
             height:          `${boardSize.height}px`, // Dynamic, remains inline
             transform:       `scale(${zoomLevel})`,   // Dynamic, remains inline
-            // Removed: position, transformOrigin, transition (now in zoomContentBaseStyle)
           }}
         >
           {/* Connection lines behind nodes */}
@@ -196,13 +215,12 @@ const GameBoard = React.memo(() => {
         gameCompleted={gameCompleted}
       />
 
-      {/* Zoom percentage indicator */}
-      <div
-        className={BoardStyles.zoomIndicatorStyle} // Use style from BoardStyle.js
-        // Removed inline styles (now in zoomIndicatorStyle)
-      >
-        Zoom: {(zoomLevel * 100).toFixed(0)}%      
+      {/* Zoom percentage indicator - only show on medium/large screens */}
+      {window.innerWidth >= 900 && (
+        <div className={BoardStyles.zoomIndicatorStyle}>
+          Zoom: {(zoomLevel * 100).toFixed(0)}%      
         </div>
+      )}
     </Box>
   );
 });

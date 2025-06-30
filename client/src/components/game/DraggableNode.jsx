@@ -85,27 +85,35 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     if (!isDragging) return;
     
     // Calculate new position based on mouse position and initial offset
-    const effectiveZoom = zoomLevel || 1; /*sanity check to prevent division by 0 */
-    const newX = (e.clientX - dragOffset.x) / effectiveZoom;
-    const newY = (e.clientY - dragOffset.y) / effectiveZoom;
-    updatePosition({ x: newX, y: newY });
+    const effectiveZoom = zoomLevel || 1;
+    let newX = (e.clientX - dragOffset.x) / effectiveZoom;
+    let newY = (e.clientY - dragOffset.y) / effectiveZoom;
     
-    // Calculate boundaries considering node dimensions
-    const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 0;
-    const nodeHeight = nodeRef.current ? nodeRef.current.offsetHeight : 0;
+    // Get node dimensions
+    const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 120;
+    const nodeHeight = nodeRef.current ? nodeRef.current.offsetHeight : 160;
     
-    // Check if board dimensions are valid numbers
-    const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 ? boardWidth : window.innerWidth;
-    const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 ? boardHeight : window.innerHeight;
+    // Better boundary calculation for mobile portrait mode
+    const safeAreaTop = 60;
+    const safeAreaBottom = 150;
     
-    // Keep node within board boundaries
-    const boundedX = Math.max(0, Math.min(newX, validBoardWidth - nodeWidth));
-    const boundedY = Math.max(0, Math.min(newY, validBoardHeight - nodeHeight));
+    const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 
+      ? boardWidth 
+      : Math.max(window.innerWidth - 20, 300);
+      
+    const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 
+      ? boardHeight 
+      : Math.max(window.innerHeight - safeAreaTop - safeAreaBottom, 400);
     
+    // Apply boundaries with extra padding
+    const boundedX = Math.max(10, Math.min(newX, validBoardWidth - nodeWidth - 10));
+    const boundedY = Math.max(safeAreaTop, Math.min(newY, validBoardHeight - nodeHeight + safeAreaTop));
+    
+    // Only update with bounded position
     updatePosition({ x: boundedX, y: boundedY });
     
     e.preventDefault();
-  }, [isDragging, dragOffset, updatePosition, boardWidth, boardHeight]);
+  }, [isDragging, dragOffset, updatePosition, boardWidth, boardHeight, zoomLevel]);
   
   /**
    * Handles mouse up events to end dragging
@@ -169,27 +177,35 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     const touch = e.touches[0];
     
     // Calculate new position based on touch position and initial offset
-    const effectiveZoom = zoomLevel || 1; /*sanity check to prevent division by 0 */
-    const newX = (touch.clientX - dragOffset.x) / effectiveZoom;
-    const newY = (touch.clientY - dragOffset.y) / effectiveZoom;
-    updatePosition({ x: newX, y: newY });
+    const effectiveZoom = zoomLevel || 1;
+    let newX = (touch.clientX - dragOffset.x) / effectiveZoom;
+    let newY = (touch.clientY - dragOffset.y) / effectiveZoom;
     
-    // Calculate boundaries considering node dimensions
-    const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 0;
-    const nodeHeight = nodeRef.current ? nodeRef.current.offsetHeight : 0;
+    // Get node dimensions
+    const nodeWidth = nodeRef.current ? nodeRef.current.offsetWidth : 120;
+    const nodeHeight = nodeRef.current ? nodeRef.current.offsetHeight : 160;
     
-    // Check if board dimensions are valid numbers
-    const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 ? boardWidth : window.innerWidth;
-    const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 ? boardHeight : window.innerHeight;
+    // Better boundary calculation for mobile portrait mode
+    const safeAreaTop = 60; // Account for header/UI
+    const safeAreaBottom = 150; // Account for search panel and stats
     
-    // Keep node within board boundaries
-    const boundedX = Math.max(0, Math.min(newX, validBoardWidth - nodeWidth));
-    const boundedY = Math.max(0, Math.min(newY, validBoardHeight - nodeHeight));
+    const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 
+      ? boardWidth 
+      : Math.max(window.innerWidth - 20, 300); // Add padding and minimum width
     
+    const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 
+      ? boardHeight 
+      : Math.max(window.innerHeight - safeAreaTop - safeAreaBottom, 400); // Account for UI elements
+    
+    // Apply boundaries with extra padding for safety
+    const boundedX = Math.max(10, Math.min(newX, validBoardWidth - nodeWidth - 10));
+    const boundedY = Math.max(safeAreaTop, Math.min(newY, validBoardHeight - nodeHeight + safeAreaTop));
+    
+    // Only update with bounded position
     updatePosition({ x: boundedX, y: boundedY });
     
     e.preventDefault();
-  }, [isDragging, dragOffset, updatePosition, boardWidth, boardHeight]);
+  }, [isDragging, dragOffset, updatePosition, boardWidth, boardHeight, zoomLevel]);
   
   /**
    * Handles touch end events to stop dragging on mobile
@@ -226,6 +242,74 @@ const DraggableNode = ({ node, position, updatePosition, boardWidth, boardHeight
     };
   }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
   
+  /**
+   * Validate position when board dimensions change or orientation changes
+   */
+  useEffect(() => {
+    if (nodeRef.current && position) {
+      const nodeWidth = nodeRef.current.offsetWidth || 120;
+      const nodeHeight = nodeRef.current.offsetHeight || 160;
+      
+      const safeAreaTop = 60;
+      const safeAreaBottom = 150;
+      
+      const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 
+        ? boardWidth 
+        : Math.max(window.innerWidth - 20, 300);
+        
+      const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 
+        ? boardHeight 
+        : Math.max(window.innerHeight - safeAreaTop - safeAreaBottom, 400);
+      
+      const boundedX = Math.max(10, Math.min(position.x, validBoardWidth - nodeWidth - 10));
+      const boundedY = Math.max(safeAreaTop, Math.min(position.y, validBoardHeight - nodeHeight + safeAreaTop));
+      
+      // Only update if position needs correction
+      if (Math.abs(boundedX - position.x) > 1 || Math.abs(boundedY - position.y) > 1) {
+        updatePosition({ x: boundedX, y: boundedY });
+      }
+    }
+  }, [boardWidth, boardHeight, position.x, position.y, updatePosition]);
+  
+  /**
+   * Listen for orientation changes
+   */
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      setTimeout(() => {
+        if (nodeRef.current && position) {
+          const nodeWidth = nodeRef.current.offsetWidth || 120;
+          const nodeHeight = nodeRef.current.offsetHeight || 160;
+          
+          const safeAreaTop = 60;
+          const safeAreaBottom = 150;
+          
+          const validBoardWidth = typeof boardWidth === 'number' && boardWidth > 0 
+            ? boardWidth 
+            : Math.max(window.innerWidth - 20, 300);
+            
+          const validBoardHeight = typeof boardHeight === 'number' && boardHeight > 0 
+            ? boardHeight 
+            : Math.max(window.innerHeight - safeAreaTop - safeAreaBottom, 400);
+        
+          const boundedX = Math.max(10, Math.min(position.x, validBoardWidth - nodeWidth - 10));
+          const boundedY = Math.max(safeAreaTop, Math.min(position.y, validBoardHeight - nodeHeight + safeAreaTop));
+          
+          // Only update if position needs correction
+          if (Math.abs(boundedX - position.x) > 1 || Math.abs(boundedY - position.y) > 1) {
+            updatePosition({ x: boundedX, y: boundedY });
+          }
+        }
+      }, 200); // Delay to allow orientation change
+    };
+    
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, [boardWidth, boardHeight, position.x, position.y, updatePosition]);
+
   /**
    * Determine background color based on node type
    * @returns {string} CSS color value

@@ -1,13 +1,13 @@
 // for ActorCard
 //export const actorCardStyle = "relative flex flex-col text-white items-center rounded-xl bg-slate-800 p-3 sm:p-4 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400 min-h-[300px] w-[200px] sm:min-h-[325px] sm:w-[230px]"
-export const actorCardBaseStyle = "relative flex flex-col items-center rounded-xl p-3 sm:p-4 shadow-lg min-h-[300px] w-[200px] sm:min-h-[325px] sm:w-[230px]";
+export const actorCardBaseStyle = "relative flex flex-col items-center justify-center rounded-xl p-3 sm:p-4 shadow-lg min-h-[280px] w-[180px] sm:min-h-[325px] sm:w-[230px] mx-auto";
 export const actorCardDarkStyle = "text-white bg-slate-900 shadow-cyan-500/25 border-2 border-cyan-400";
 export const actorCardLightStyle = "text-black bg-slate-300 border-2 border-cyan-600";
 
 
-export const actorContainerStyle = "flex flex-col h-full w-full"
+export const actorContainerStyle = "flex flex-col h-full w-full items-center justify-center"
 
-export const actorImageContainerStyle = "h-[180px] w-[130px] sm:h-[200px] sm:w-[150px] overflow-hidden rounded mt-1 sm:mt-2 mb-2 sm:mb-4 mx-auto border border-slate-600"
+export const actorImageContainerStyle = "h-[160px] w-[120px] sm:h-[200px] sm:w-[150px] overflow-hidden rounded mt-1 sm:mt-2 mb-2 sm:mb-4 mx-auto border border-slate-600"
 
 export const actorImageStyle = "h-full w-full object-cover"
 
@@ -23,9 +23,9 @@ export const actorSearchButtonDarkStyle = "bg-cyan-600 text-white hover:bg-cyan-
 //For ActorSearchInterface
 
 export const loadingActorsStyle = "w-[130px] h-[180px] sm:w-[150px] sm:h-[200px] mb-2 sm:mb-4 flex items-center justify-center bg-[#f0f0f0] rounded text-[0.8rem] sm:text-[0.9rem] text-[#666]";
-export const actorSearchPanelStyle = "relative w-full"
+export const actorSearchPanelStyle = "relative w-full flex flex-col items-center"
 
-export const actorSearchInputStyle = "w-full py-2 px-2 sm:py-2.5 sm:px-2.5 rounded border border-gray-500 text-sm sm:text-base mb-1 sm:mb-1.5"
+export const actorSearchInputStyle = "w-full max-w-full py-2 px-2 sm:py-2.5 sm:px-2.5 rounded border border-gray-500 text-sm sm:text-base mb-1 sm:mb-1.5"
 
 export const actorSearchResultsStyle = "absolute w-full max-h-[200px] sm:max-h-[250px] overflow-y-auto bg-white border border-[#ddd] rounded z-10 shadow-[0_4px_6px_rgba(0,0,0,0.1)]";
 
