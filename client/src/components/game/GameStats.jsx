@@ -1,5 +1,4 @@
 import React from 'react';
-// import './GameBoard.css'; // You can remove this if GameStats no longer uses direct classes from it
 import * as GameStatStyles from '../../styles/GameStatStyles.js';
 import { useTheme } from '../../contexts/ThemeContext'; // Import the theme context to access light/dark mode
 
