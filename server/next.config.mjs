@@ -11,11 +11,8 @@ const nextConfig = {
     config.externals = [...(config.externals || []), 'canvas', 'jsdom'];
     return config;
   },
-  // Experimental: skip static optimization for API routes
-  experimental: {
-    skipTrailingSlashRedirect: true,
-    skipMiddlewareUrlNormalize: true,
-  },
+  skipTrailingSlashRedirect: true,
+  skipMiddlewareUrlNormalize: true,
 };
 
 export default nextConfig;
